@@ -1,8 +1,8 @@
 # Portable build and installation
 
 The runtime does not require Nix. QML resources are interpreted by Quickshell;
-there is no Rust compilation yet. A future Rust helper will use standard Cargo
-with a committed Cargo.lock and an independent build output.
+the Bluetooth helper uses standard Cargo with a committed Cargo.lock and an
+independent build output. `make build` builds only this helper; QML needs no compilation.
 
 ## From a checkout
 
@@ -16,7 +16,7 @@ make check
 The preview needs Quickshell (currently developed against 0.3.2) and its Qt Quick,
 Effects and Window modules. Desktop integration currently targets Hyprland 0.57
 Lua APIs. These versions are the initial development baseline, not a tested
-compatibility range. A complete desktop deployment is still under migration.
+compatibility range. Hardware acceptance and host cutover remain separate from package installation.
 
 ## Package staging (including Arch PKGBUILD)
 
@@ -30,7 +30,7 @@ locates resources relative to its installation prefix. For development or specia
 packaging, `NULLSHELL_DATA_DIR` explicitly overrides the resource directory.
 Use a clean package staging directory; this is not an in-place upgrade manager.
 
-Current desktop adapters use systemd/util-linux tools, hypridle, coreutils, bash, Python 3, BlueZ tools,
+Current desktop adapters use systemd/util-linux tools, hypridle, coreutils, bash, the Rust helper, BlueZ tools,
 NetworkManager tools, brightnessctl, Hyprland and Darkman. The on-screen keyboard
 uses optional wvkbd. Audio/media/battery use the corresponding Quickshell APIs and
 system services. Dependency names and optional feature handling will be refined

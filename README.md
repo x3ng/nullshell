@@ -16,6 +16,7 @@ Nix 是打包和部署入口之一，不是运行时配置语言。
 - [仓库与提交规范](AGENTS.md)
 - [源码来源](docs/PROVENANCE.md)
 - [部署与会话生命周期](docs/DEPLOYMENT.md)
+- [Rust 后端协议](docs/BACKEND.md)
 - 上游仓库：git@github.com:x3ng/nullshell.git
 
 采用 [MIT 许可证](LICENSE)。引入第三方代码前核实对应版本和文件的许可。

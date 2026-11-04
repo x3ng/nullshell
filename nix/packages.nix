@@ -1,6 +1,7 @@
 { pkgs }:
 let
   inherit (pkgs) lib;
+  helper = import ./backend.nix { inherit pkgs; };
   assets = pkgs.runCommand "nullshell-assets" { } ''
     mkdir -p $out/share/nullshell
     cp ${../integration/hypridle.conf} $out/share/nullshell/hypridle.conf
@@ -11,11 +12,11 @@ let
     fi
   '';
   runtime = with pkgs; [
+    helper
     quickshell
     bash
     coreutils
     systemd
-    python3
     bluez
     networkmanager
     brightnessctl
@@ -88,6 +89,7 @@ in
     desktop
     greeter
     preview
+    helper
     ;
   default = desktop;
 }

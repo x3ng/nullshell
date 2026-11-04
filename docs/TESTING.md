@@ -42,13 +42,29 @@ actions. Unlike the sandbox check, an interactive invocation uses the caller's
 environment and may read existing wallpaper state. It is not a general sandbox
 for arbitrary desktop code. The full desktop entry is not a safe preview.
 
-## Required future integration coverage
+## Real authentication in disposable VMs
 
-Before deployment, extend VM tests to real compositor/session-lock, PAM, greetd,
-agent cancellation/crash recovery and session-scoped service lifecycle. Use fake
-D-Bus services for deterministic BlueZ disconnect, timeout and cancellation tests.
-These tests are not implemented by the initial preview smoke test.
+```sh
+nix build path:.#legacyPackages.x86_64-linux.tests.lock-vm --no-link --max-jobs 1 --cores 2
+nix build path:.#legacyPackages.x86_64-linux.tests.greeter-vm --no-link --max-jobs 1 --cores 2
+```
 
-Physical GPU behavior, real Bluetooth hardware and actual laptop suspend/resume
-need a separate final hardware acceptance pass after isolated tests succeed.
-Do not claim VM smoke tests establish those properties.
+The locker test uses a headless Sway compositor to exercise the real Wayland
+session-lock protocol and the packaged PAM service: incorrect password stays
+secured, correct password unlocks, and the process remains available. This tests
+the protocol without claiming Sway support for the full desktop.
+The greeter test uses real greetd and Cage: incorrect credentials cannot launch a
+session; correct credentials launch the selected session as the test user.
+Keyboard injection establishes focus before typing; the test accounts and
+passwords exist only inside the VM. Neither test installs host services.
+
+The private-bus Bluetooth check covers confirmation/rejection, PIN/passkey,
+stale replies, cancellation/EOF, oversized input, foreign callers and BlueZ owner
+loss. It needs no real radio. Rust unit tests and clippy cover the helper separately.
+
+## Remaining acceptance boundaries
+
+Full Hyprland desktop/Polkit lifecycle, service restarts during active requests,
+physical GPU behavior, real Bluetooth hardware and actual laptop suspend/resume
+need further integration/hardware acceptance. The sleep bridge remains hypridle.
+Do not claim the authentication VMs establish real hardware power behavior.

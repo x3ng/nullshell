@@ -1,12 +1,20 @@
 PREFIX ?= /usr/local
 DESTDIR ?=
 USER_UNIT_DIR ?= $(PREFIX)/lib/systemd/user
+CARGO_BUILD_JOBS ?= 2
+CARGO_TARGET_DIR ?= backend/target
 
-.PHONY: install check
+.PHONY: build helper install check check-backend
+
+build: helper
+
+helper:
+	CARGO_BUILD_JOBS=$(CARGO_BUILD_JOBS) CARGO_TARGET_DIR="$(abspath $(CARGO_TARGET_DIR))" cargo build --locked --release --manifest-path backend/Cargo.toml
 
 # No services are enabled and no user configuration is written by installation.
-install:
+install: helper
 	install -Dm755 bin/nullshell "$(DESTDIR)$(PREFIX)/bin/nullshell"
+	install -Dm755 "$(CARGO_TARGET_DIR)/release/nullshell-helper" "$(DESTDIR)$(PREFIX)/bin/nullshell-helper"
 	install -Dm755 bin/nullshell-lock "$(DESTDIR)$(PREFIX)/bin/nullshell-lock"
 	install -Dm755 bin/nullshell-migrate-state "$(DESTDIR)$(PREFIX)/bin/nullshell-migrate-state"
 	install -d "$(DESTDIR)$(PREFIX)/share/nullshell"
@@ -20,3 +28,7 @@ check:
 	sh -n bin/nullshell-lock
 	sh -n bin/nullshell-migrate-state
 	./bin/nullshell --help
+	python3 tests/test_migration.py
+
+check-backend:
+	CARGO_BUILD_JOBS=$(CARGO_BUILD_JOBS) cargo test --locked --manifest-path backend/Cargo.toml

@@ -23,6 +23,7 @@ Scope {
     property var pairingDevice: null
     property string pairingPrompt: ""
     property string pairingCode: ""
+    property int pairingRequestId: 0
     signal feedback(string key, string summary, string body, bool critical)
     property var connectionTracker: ConnectionFeedback.create()
 
@@ -201,7 +202,7 @@ Scope {
         id: pairingAgent
         property bool hasStarted: false
         stdinEnabled: true
-        command: ["python3", "-B", Quickshell.shellPath("components/bluetooth_pair.py"),
+        command: ["nullshell-helper", "bluetooth-agent",
             root.pairingDevice?.address ?? "", root.pairingDevice?.adapter?.adapterId ?? ""]
         stdout: SplitParser {
             onRead: data => {
@@ -234,8 +235,9 @@ Scope {
         return true;
     }
     function handlePairingEvent(event) {
-        if (!pairingDevice) return;
+        if (!pairingDevice || event.version !== 1) return;
         if (event.type === "prompt") {
+            pairingRequestId = event.id;
             pairingPrompt = event.kind;
             pairingCode = event.code || "";
         } else if (event.type === "done") {
@@ -262,7 +264,7 @@ Scope {
         if (["confirm", "authorize"].includes(pairingPrompt) && !["yes", "no"].includes(answer)) return false;
         if (pairingPrompt === "passkey" && !/^[0-9]{1,6}$/.test(answer)) return false;
         if (pairingPrompt === "pin" && (!answer || answer.length > 16 || /[\x00-\x1f\x7f]/.test(answer))) return false;
-        pairingAgent.write(JSON.stringify({answer: answer}) + "\n");
+        pairingAgent.write(JSON.stringify({version: 1, id: pairingRequestId, answer: answer}) + "\n");
         pairingPrompt = "";
         pairingCode = "";
         return true;
@@ -274,7 +276,7 @@ Scope {
         pairingDevice = null;
         pairingPrompt = "";
         pairingCode = "";
-        if (pairingAgent.running) pairingAgent.write('{"cancel":true}\n');
+        if (pairingAgent.running) pairingAgent.write('{"version":1,"cancel":true}\n');
         return true;
     }
     Timer {
@@ -283,7 +285,7 @@ Scope {
         onTriggered: {
             if (root.pairingDevice && !pairingAgent.running && !pairingAgent.hasStarted) {
                 root.cancelBluetoothPairing();
-                root.bluetoothError = "Cannot start pairing. Check python3 and bluetoothctl.";
+                root.bluetoothError = "Cannot start pairing. Check that nullshell-helper is installed.";
             }
         }
     }

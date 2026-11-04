@@ -28,10 +28,23 @@
           inherit (packages) desktop greeter;
           preview = import ./nix/tests/preview.nix { inherit pkgs packages; };
           config = import ./nix/tests/config.nix { inherit pkgs; };
+          migration = import ./nix/tests/migration.nix { inherit pkgs; };
+          bluetooth = import ./nix/tests/bluetooth.nix {
+            inherit pkgs;
+            helper = packages.helper;
+          };
         }
       );
       # Explicit, heavier integration test; not part of every local flake check.
       legacyPackages = eachSystem (system: {
+        tests.greeter-vm = import ./nix/tests/greeter-vm.nix {
+          pkgs = nixpkgs.legacyPackages.${system};
+          packages = self.packages.${system};
+        };
+        tests.lock-vm = import ./nix/tests/lock-vm.nix {
+          pkgs = nixpkgs.legacyPackages.${system};
+          packages = self.packages.${system};
+        };
         tests.vm = import ./nix/tests/vm.nix {
           pkgs = nixpkgs.legacyPackages.${system};
           packages = self.packages.${system};
