@@ -57,58 +57,11 @@ ColumnLayout {
                 id: content
                 width: viewport.width
                 spacing: 10
-                RowLayout {
+                ConnectivitySummary {
                     Layout.fillWidth: true
-                    spacing: 6
-                    WorkspaceStrip {
-                        Layout.fillWidth: true
-                        Layout.minimumWidth: 0
-                        Layout.preferredHeight: 44
-                        style: page.style
-                        controls: page.controls
-                        searchModel: page.searchModel
-                        workspaces: page.displayedWorkspaces
-                        windows: page.displayedWindows
-                    }
-                    ChoiceButton {
-                        objectName: "overview-windows"
-                        Layout.preferredWidth: 40
-                        Layout.preferredHeight: 44
-                        style: page.style
-                        label: ""
-                        iconKind: "window"
-                        iconSize: 20
-                        Accessible.name: "Manage windows and workspaces"
-                        tooltip: "Manage windows and workspaces"
-                        onTriggered: page.actions.execute("desktop")
-                    }
-                }
-                RowLayout {
-                    Layout.fillWidth: true
-                    spacing: 16
-                    OverviewStatusEntry {
-                        style: page.style
-                        actions: page.actions
-                        icon: "wifi"
-                        title: "Wi-Fi"
-                        detail: !page.system.wifiAvailable ? "Unavailable"
-                            : page.system.wifiEnabled ? page.system.wifiConnection || "Not connected" : "Wi-Fi off"
-                        online: page.system.wifiEnabled && page.system.wifiNetworks.some(network => network.connected)
-                        available: page.system.wifiAvailable
-                        action: "wifi"
-                    }
-                    OverviewStatusEntry {
-                        style: page.style
-                        actions: page.actions
-                        icon: "bluetooth"
-                        title: "Bluetooth"
-                        detail: !page.system.bluetoothAvailable ? "Unavailable"
-                            : !page.system.bluetoothEnabled ? "Off"
-                            : page.system.bluetoothConnected.length ? page.system.bluetoothConnected.length + " connected" : "Not connected"
-                        online: page.system.bluetoothEnabled && page.system.bluetoothConnected.length > 0
-                        available: page.system.bluetoothAvailable
-                        action: "bluetooth"
-                    }
+                    style: page.style
+                    actions: page.actions
+                    system: page.system
                 }
                 RowLayout {
                     Layout.fillWidth: true
@@ -259,6 +212,16 @@ ColumnLayout {
                             onTriggered: page.player?.next()
                         }
                     }
+                }
+                WorkspaceStrip {
+                    Layout.fillWidth: true
+                    Layout.minimumWidth: 0
+                    Layout.preferredHeight: 44
+                    style: page.style
+                    controls: page.controls
+                    searchModel: page.searchModel
+                    workspaces: page.displayedWorkspaces
+                    windows: page.displayedWindows
                 }
             }
         }

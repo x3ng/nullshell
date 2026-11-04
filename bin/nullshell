@@ -39,8 +39,9 @@ case "$mode" in
     preview-greeter) entry=$resources/preview.qml; export QS_PREVIEW_LOCK=0 ;;
     preview-lock) entry=$resources/preview.qml; export QS_PREVIEW_LOCK=1 ;;
     preview-polkit) entry=$resources/polkit/preview.qml ;;
+    preview-connectivity) entry=$resources/preview-connectivity.qml ;;
     -h|--help)
-        printf '%s\n' 'Usage: nullshell [desktop|locker|polkit|greeter|lock|session-start|migrate-state|ipc|preview-greeter|preview-lock|preview-polkit] [arguments]'
+        printf '%s\n' 'Usage: nullshell [desktop|locker|polkit|greeter|lock|session-start|migrate-state|ipc|preview-greeter|preview-lock|preview-polkit|preview-connectivity] [arguments]'
         exit 0 ;;
     *) printf 'Unknown mode: %s\n' "$mode" >&2; exit 2 ;;
 esac

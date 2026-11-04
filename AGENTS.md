@@ -32,6 +32,16 @@ boundary; inspect staged contents and new file names before each commit.
 
 ## Validation and commits
 
+- UI iteration must use working-tree previews before release packaging. Never
+  create tags, push trial layouts, update a consumer flake or switch the host
+  merely to see a visual change. See docs/DEVELOPMENT.md.
+- Inspect actual rendered screenshots at representative sizes and states before
+  claiming a layout works. QML loading/offscreen checks are not visual acceptance.
+- If the relevant isolated preview is missing, build that development entry first;
+  do not use production deployment as its substitute.
+- Commits are reviewable checkpoints, not release events. Tag and update release
+  consumers only at an explicitly agreed milestone after acceptance. Permission
+  to run Home Manager switch does not establish visual acceptance.
 - Limit local builds to two cores and one Nix build job unless justified.
 - Run lightweight checks first; VM tests separately for integration changes.
 - Never treat preview compilation as proof of lock, PAM, greetd or suspend safety.

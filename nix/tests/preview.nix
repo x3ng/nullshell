@@ -16,7 +16,7 @@ pkgs.runCommand "nullshell-preview-check"
     export DBUS_SYSTEM_BUS_ADDRESS=unix:path="$TMPDIR/no-system-bus"
     unset WAYLAND_DISPLAY DISPLAY HYPRLAND_INSTANCE_SIGNATURE
     mkdir -p $out
-    for mode in greeter lock polkit; do
+    for mode in greeter lock polkit connectivity; do
       for light in 0 1; do
         export QS_PREVIEW_LIGHT=$light
         log="$out/$mode-$light.log"

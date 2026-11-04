@@ -7,6 +7,12 @@ The command panel has no full-screen dimming scrim; its tint and blur appear
 in the same mapped frame. Greeter and locker retain their separate background
 paths. These changes are development work, not a new approved release.
 
+The command panel includes a compact connection summary and revised workspace
+placement. A standalone connectivity fixture preview exists; the full panel
+preview and final layout acceptance are still pending. UI experiments formerly
+tagged v0.1.2 through v0.1.10 have been consolidated here; those temporary tags
+were withdrawn during history cleanup. Do not reuse them for future releases.
+
 ## v0.1.1
 
 The greeter now remembers the last successfully authenticated user and session.

@@ -18,6 +18,36 @@ Effects and Window modules. Desktop integration currently targets Hyprland 0.57
 Lua APIs. These versions are the initial development baseline, not a tested
 compatibility range. Hardware acceptance and host cutover remain separate from package installation.
 
+## Fast UI iteration
+
+See [DEVELOPMENT.md](DEVELOPMENT.md) for the edit/preview/acceptance workflow and
+the outstanding full-panel preview work. Do not deploy to inspect trial layouts.
+
+From the checkout, an installed nullshell runtime can load the working QML tree:
+
+```sh
+NULLSHELL_DATA_DIR="$PWD/qml" nullshell preview-connectivity
+```
+
+Quickshell watches source changes and reloads the preview. No build, release,
+flake update or Home Manager switch is needed. This window reuses the desktop's
+connection summary and has synthetic connected, disconnected, disabled,
+unavailable and long-name states, plus a light/dark switch. It starts no desktop
+services and does not change radios or device connections. It checks layout,
+not compositor blur or hardware integration.
+
+Without an installed runtime, use the project environment:
+
+```sh
+nix develop --command ./bin/nullshell preview-connectivity
+```
+
+The same source override works for `preview-lock`, `preview-greeter` and
+`preview-polkit`. There is not yet an isolated full-command-panel preview.
+Do not launch a second `desktop` as a preview: it owns real notification,
+wallpaper and idle services. Keep release deployment separate from visual
+iteration; use the VM tests for session integration.
+
 ## Package staging (including Arch PKGBUILD)
 
 ```sh

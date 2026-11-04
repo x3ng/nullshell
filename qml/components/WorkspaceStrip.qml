@@ -13,7 +13,7 @@ Flickable {
     required property var workspaces
     required property var windows
     implicitHeight: 44
-    contentWidth: entries.implicitWidth
+    contentWidth: Math.max(width, entries.implicitWidth)
     contentHeight: height
     flickableDirection: Flickable.HorizontalFlick
     boundsBehavior: Flickable.StopAtBounds
@@ -22,6 +22,7 @@ Flickable {
 
     Row {
         id: entries
+        x: Math.max(0, (strip.width - implicitWidth) / 2)
         spacing: 6
         Repeater {
             model: strip.workspaces
@@ -59,11 +60,11 @@ Flickable {
                         model: chip.apps.slice(0, 3)
                         Item {
                             required property var modelData
-                            width: 22; height: 28
+                            width: 20; height: 28
                             IconImage {
                                 id: appIcon
                                 anchors.centerIn: parent
-                                implicitSize: 22
+                                implicitSize: 20
                                 source: strip.searchModel.desktopIconSource(strip.searchModel.desktopEntryFor(modelData))
                                 visible: status === Image.Ready
                             }

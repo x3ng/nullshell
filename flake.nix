@@ -70,6 +70,7 @@
               "greeter"
               "lock"
               "polkit"
+              "connectivity"
             ]
         )
       );

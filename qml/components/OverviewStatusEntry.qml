@@ -12,6 +12,7 @@ Rectangle {
     required property string icon
     required property string title
     required property string detail
+    property string secondary: ""
     required property string action
     property bool online: false
     property bool available: true
@@ -24,7 +25,7 @@ Rectangle {
     border.color: entry.style.accent
     activeFocusOnTab: true
     Accessible.role: Accessible.Button
-    Accessible.name: title + ": " + detail
+    Accessible.name: title + ": " + detail + (secondary ? ", " + secondary : "")
     Accessible.onPressAction: entry.actions.execute(entry.action)
     Keys.onReturnPressed: entry.actions.execute(entry.action)
     Keys.onEnterPressed: entry.actions.execute(entry.action)
@@ -47,21 +48,27 @@ Rectangle {
             textFormat: Text.PlainText
             font.family: entry.style.fontFamily
             font.pixelSize: 16
+            font.weight: Font.Medium
             color: entry.available ? entry.style.textPrimary : entry.style.textMuted
             elide: Text.ElideRight
             maximumLineCount: 1
         }
         Text {
-            text: "›"
-            color: entry.style.textMuted
-            font.pixelSize: 20
-            opacity: entryMouse.containsMouse || entry.activeFocus ? 1 : 0.45
+            Layout.maximumWidth: entry.width * 0.42
+            visible: entry.secondary !== ""
+            text: entry.secondary
+            textFormat: Text.PlainText
+            font.family: entry.style.fontFamily
+            font.pixelSize: 14
+            color: entry.style.textSecondary
+            elide: Text.ElideRight
+            maximumLineCount: 1
         }
     }
     ShellToolTip {
         style: entry.style
         visible: entryMouse.containsMouse || entry.activeFocus
-        text: entry.title + " · " + entry.detail
+        text: entry.title + " · " + entry.detail + (entry.secondary ? " · " + entry.secondary : "")
     }
     MouseArea {
         id: entryMouse
