@@ -3,6 +3,7 @@ let
   inherit (pkgs) lib;
   assets = pkgs.runCommand "nullshell-assets" { } ''
     mkdir -p $out/share/nullshell
+    cp ${../integration/hypridle.conf} $out/share/nullshell/hypridle.conf
     cp -R ${../qml}/. $out/share/nullshell/
     if find -L $out/share/nullshell -type l | read -r broken; then
       echo "Broken resource symlink: $broken" >&2
@@ -19,8 +20,10 @@ let
     networkmanager
     brightnessctl
     hyprland
+    hypridle
     wvkbd
     darkman
+    util-linux
   ];
   desktop =
     pkgs.runCommand "nullshell-desktop"
@@ -32,8 +35,13 @@ let
         mkdir -p $out/bin
         makeWrapper ${pkgs.runtimeShell} $out/bin/nullshell \
           --add-flags ${../bin/nullshell} \
-          --set NULLSHELL_DATA_DIR ${assets}/share/nullshell \
-          --prefix PATH : ${lib.makeBinPath runtime}
+          --set-default NULLSHELL_DATA_DIR ${assets}/share/nullshell \
+          --set NULLSHELL_LIBEXEC_DIR ${../bin} \
+          --prefix PATH : "$out/bin:${lib.makeBinPath runtime}"
+        mkdir -p $out/lib/systemd/user
+        for unit in ${../integration/systemd}/*; do
+          sed "s|@BINDIR@|$out/bin|g; s|/bin/sh|${pkgs.runtimeShell}|g" "$unit" > "$out/lib/systemd/user/$(basename "$unit")"
+        done
       '';
   greeter =
     pkgs.runCommand "nullshell-greeter"
@@ -45,7 +53,7 @@ let
         mkdir -p $out/bin
         makeWrapper ${pkgs.runtimeShell} $out/bin/nullshell-greeter \
           --add-flags '${../bin/nullshell} greeter' \
-          --set NULLSHELL_DATA_DIR ${assets}/share/nullshell \
+          --set-default NULLSHELL_DATA_DIR ${assets}/share/nullshell \
           --prefix PATH : ${
             lib.makeBinPath [
               pkgs.quickshell
@@ -64,7 +72,7 @@ let
         for mode in lock greeter polkit; do
           makeWrapper ${pkgs.runtimeShell} $out/bin/nullshell-preview-$mode \
             --add-flags "${../bin/nullshell} preview-$mode" \
-            --set NULLSHELL_DATA_DIR ${assets}/share/nullshell \
+            --set-default NULLSHELL_DATA_DIR ${assets}/share/nullshell \
             --prefix PATH : ${
               lib.makeBinPath [
                 pkgs.quickshell

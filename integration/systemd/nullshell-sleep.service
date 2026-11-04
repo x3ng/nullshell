@@ -1,0 +1,12 @@
+[Unit]
+Description=nullshell sleep and logind bridge (hypridle)
+PartOf=nullshell-session.target graphical-session.target
+After=graphical-session.target
+Conflicts=hypridle.service
+
+[Service]
+Type=exec
+ExecCondition=/bin/sh -c 'test -n "$HYPRLAND_INSTANCE_SIGNATURE" && test -n "$WAYLAND_DISPLAY"'
+ExecStart=@BINDIR@/nullshell sleep-bridge
+Restart=on-failure
+RestartSec=2

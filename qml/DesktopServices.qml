@@ -68,7 +68,7 @@ Scope {
     FileView {
         id: keepAwakeFile
         path: (Quickshell.env("XDG_STATE_HOME") || Quickshell.env("HOME") + "/.local/state")
-            + "/quickshell/keep-awake"
+            + "/nullshell/keep-awake"
         blockLoading: true
         blockWrites: true
         atomicWrites: true

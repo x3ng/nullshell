@@ -58,7 +58,7 @@ ShellRoot {
     Theme { id: loginTheme; darkMode: appearance.text().trim() !== "light" }
     FileView {
         id: appearance
-        path: (Quickshell.env("XDG_STATE_HOME") || Quickshell.env("HOME") + "/.local/state") + "/quickshell/appearance-mode"
+        path: (Quickshell.env("XDG_STATE_HOME") || Quickshell.env("HOME") + "/.local/state") + "/nullshell/appearance-mode"
         blockLoading: true
         watchChanges: true
         printErrors: false
@@ -82,7 +82,7 @@ ShellRoot {
 
     PamContext {
         id: pam
-        config: "quickshell-lock"
+        config: "nullshell-lock"
         user: Quickshell.env("USER")
 
         onPamMessage: {

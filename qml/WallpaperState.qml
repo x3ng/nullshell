@@ -5,8 +5,8 @@ import Quickshell.Io
 Scope {
     id: root
     property bool synchronous: false
-    property string configPath: (Quickshell.env("XDG_CONFIG_HOME") || Quickshell.env("HOME") + "/.config") + "/quickshell/wallpaper.json"
-    property string statePath: (Quickshell.env("XDG_STATE_HOME") || Quickshell.env("HOME") + "/.local/state") + "/quickshell/wallpaper.json"
+    property string configPath: (Quickshell.env("XDG_CONFIG_HOME") || Quickshell.env("HOME") + "/.config") + "/nullshell/wallpaper.json"
+    property string statePath: (Quickshell.env("XDG_STATE_HOME") || Quickshell.env("HOME") + "/.local/state") + "/nullshell/wallpaper.json"
     property var defaults: ({version: 1, outputs: {}})
     property var choices: ({version: 1, outputs: {}})
     property var pending: null

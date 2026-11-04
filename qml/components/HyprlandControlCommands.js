@@ -52,13 +52,13 @@ function windowAction(action, windowRow, workspaceRow) {
     } else return {error: "Unknown window operation"};
     return {code: prefix + result(dispatch)};
 }
-function workspaceAction(action, workspaceRow, layout) {
+function workspaceAction(action, workspaceRow, layout, adapterPath) {
     const guard = workspaceGuard(workspaceRow, action === "focus");
     if (!guard) return {error: "Enter this workspace before changing its layout"};
     if (action === "focus") return {code: guard + result("hl.dsp.focus({workspace = target})")};
     if (action !== "layout" || !["dwindle", "master", "scrolling", "monocle"].includes(layout))
         return {error: "Unknown workspace layout"};
     return {code: guard
-        + "local ok, message = require('workspaces').set_layout(target, '" + layout + "'); "
+        + "local ok, message = dofile(" + luaString(adapterPath) + ").set_layout(target, '" + layout + "'); "
         + "if not ok then return 'ERROR: ' .. tostring(message) end; return 'OK'"};
 }

@@ -1,0 +1,13 @@
+[Unit]
+Description=nullshell polkit
+PartOf=nullshell-session.target graphical-session.target
+After=graphical-session.target
+StartLimitIntervalSec=60
+StartLimitBurst=5
+
+[Service]
+Type=exec
+ExecCondition=/bin/sh -c 'test -n "$HYPRLAND_INSTANCE_SIGNATURE" && test -n "$WAYLAND_DISPLAY"'
+ExecStart=@BINDIR@/nullshell polkit --no-duplicate
+Restart=on-failure
+RestartSec=2

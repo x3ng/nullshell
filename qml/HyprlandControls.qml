@@ -104,7 +104,7 @@ Scope {
         return run(Commands.windowAction(operation, window, workspaceRow(workspaceAddress)), names[operation], target);
     }
     function focusWorkspace(address) { return run(Commands.workspaceAction("focus", workspaceRow(address)), "focusWorkspace", address); }
-    function setLayout(address, layout) { return run(Commands.workspaceAction("layout", workspaceRow(address), layout), "setLayout", address); }
+    function setLayout(address, layout) { return run(Commands.workspaceAction("layout", workspaceRow(address), layout, Quickshell.shellPath("adapters/Hyprland.lua")), "setLayout", address); }
     function focusWindow(address) { return windowRequest("focus", address); }
     function toggleFloat(address) { return windowRequest("float", address); }
     function toggleFullscreen(address) { return windowRequest("fullscreen", address); }
@@ -112,7 +112,7 @@ Scope {
     function closeWindow(address) { return windowRequest("close", address); }
     function lock() {
         // Acknowledge launch; the separate Quickshell locker owns the session lock and PAM.
-        return run({code: Commands.result("hl.dsp.exec_cmd('qs-lock')")}, "lock", "session");
+        return run({code: Commands.result("hl.dsp.exec_cmd('nullshell lock')")}, "lock", "session");
     }
     function refresh() {
         if (!available) return;

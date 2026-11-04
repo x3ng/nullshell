@@ -43,7 +43,7 @@ Scope {
     readonly property int defaultTimeout: 5000
 
     readonly property string historyFile: (Quickshell.env("XDG_STATE_HOME")
-        || Quickshell.env("HOME") + "/.local/state") + "/quickshell/notifications.json"
+        || Quickshell.env("HOME") + "/.local/state") + "/nullshell/notifications.json"
     readonly property string legacyHistoryFile: Quickshell.cacheDir + "/notification_history.json"
     property int nextRecord: 0
     // Bulk-clear intent must survive the asynchronous startup snapshot load.

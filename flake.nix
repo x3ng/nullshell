@@ -10,6 +10,8 @@
       ];
     in
     {
+      homeManagerModules.default = import ./nix/home-manager.nix;
+      nixosModules.default = import ./nix/nixos.nix;
       packages = eachSystem (
         system:
         import ./nix/packages.nix {

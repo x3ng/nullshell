@@ -1,0 +1,4 @@
+#%PAM-1.0
+# Arch Linux profile; other distributions must use their native PAM includes.
+auth include system-auth
+account include system-auth

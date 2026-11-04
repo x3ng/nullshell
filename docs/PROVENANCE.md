@@ -7,5 +7,7 @@ Only Git-tracked runtime resources were imported; legacy installers and service
 units were not copied. Relative shared-component symlinks are preserved.
 Personal greeter username and default wallpaper were removed.
 
-No DMS source has been imported. Project license selection and a complete audit
-of inherited source notices remain prerequisites for a public release.
+No DMS source has been imported. The owner selected MIT for this project. No third-party license notices were
+found in the imported files; future external contributions require source and
+license tracking. The bundled Hyprland adapter also extracts appearance and
+workspace layout functions from the same dotfiles revision.

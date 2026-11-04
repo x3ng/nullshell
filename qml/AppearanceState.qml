@@ -14,7 +14,7 @@ Scope {
     readonly property string appearanceError: persistenceError || desktopAppearance.error
     property string persistenceError: ""
     readonly property string statePath: (Quickshell.env("XDG_STATE_HOME")
-        || Quickshell.env("HOME") + "/.local/state") + "/quickshell/appearance-mode"
+        || Quickshell.env("HOME") + "/.local/state") + "/nullshell/appearance-mode"
 
     Appearance {
         id: desktopAppearance

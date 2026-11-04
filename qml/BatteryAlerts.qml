@@ -12,7 +12,7 @@ Scope {
     property bool onBattery: UPower.onBattery
     readonly property string alertKey: "battery-low"
     readonly property string statePath: (Quickshell.env("XDG_STATE_HOME")
-        || Quickshell.env("HOME") + "/.local/state") + "/quickshell/battery-alerts.json"
+        || Quickshell.env("HOME") + "/.local/state") + "/nullshell/battery-alerts.json"
     property bool stateLoaded: false
     property bool persistenceAllowed: false
     // Lowest threshold already announced this charge cycle; 100 means none.

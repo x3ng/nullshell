@@ -30,7 +30,7 @@ locates resources relative to its installation prefix. For development or specia
 packaging, `NULLSHELL_DATA_DIR` explicitly overrides the resource directory.
 Use a clean package staging directory; this is not an in-place upgrade manager.
 
-Current desktop adapters use systemd tools, coreutils, bash, Python 3, BlueZ tools,
+Current desktop adapters use systemd/util-linux tools, hypridle, coreutils, bash, Python 3, BlueZ tools,
 NetworkManager tools, brightnessctl, Hyprland and Darkman. The on-screen keyboard
 uses optional wvkbd. Audio/media/battery use the corresponding Quickshell APIs and
 system services. Dependency names and optional feature handling will be refined
@@ -43,5 +43,5 @@ Application code must not invoke Nix or embed `/nix/store` paths.
 
 Arch packaging should declare runtime dependencies and call the staging target;
 it must not invoke `nix build`. A release PKGBUILD will be added once the runtime
-contract and project license are settled, rather than publishing an incomplete
+contract is settled, rather than publishing an incomplete
 package now.

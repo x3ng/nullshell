@@ -1,0 +1,27 @@
+#!/bin/sh
+# Idempotent legacy import. No source is changed; existing destinations win.
+set -eu
+umask 077
+state=${XDG_STATE_HOME:-$HOME/.local/state}
+config=${XDG_CONFIG_HOME:-$HOME/.config}
+mkdir -p "$state/nullshell" "$config/nullshell"
+exec 9>"$state/nullshell/.migration-lock"
+flock -w 5 9
+[ ! -e "$state/nullshell/.imported-quickshell-v1" ] || exit 0
+copy_once() {
+    [ -f "$1" ] || return 0
+    [ ! -e "$2" ] && [ ! -L "$2" ] || return 0
+    temp=$(mktemp "${2}.import.XXXXXX")
+    if ! cat "$1" > "$temp"; then rm -f "$temp"; return 1; fi
+    # Link publishes a complete file without replacing a concurrently created one.
+    if ! ln "$temp" "$2"; then
+        rm -f "$temp"
+        [ -e "$2" ] || return 1
+    fi
+    rm -f "$temp"
+}
+for name in keep-awake notifications.json wallpaper.json appearance-mode battery-alerts.json; do
+    copy_once "$state/quickshell/$name" "$state/nullshell/$name"
+done
+copy_once "$config/quickshell/wallpaper.json" "$config/nullshell/wallpaper.json"
+printf '%s\n' '1' > "$state/nullshell/.imported-quickshell-v1"

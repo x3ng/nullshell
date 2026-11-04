@@ -5,7 +5,7 @@ import Quickshell
 
 Scope {
     required property bool darkMode
-    // Palette sync: the values below are mirrored in hypr/appearance.lua
+    // Palette sync: the values below are mirrored in adapters/Hyprland.lua
     // (borders, groupbar). Keep both files in step when changing a colour;
     // accent is intentionally darker in Hyprland borders than in the shell.
     readonly property int panelPadding: 22

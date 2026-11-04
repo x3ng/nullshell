@@ -55,7 +55,7 @@ Scope {
         enabled: root.ready && !root.keepAwake
         respectInhibitors: true
         onIsIdleChanged: {
-            if (isIdle) root.run(["qs-lock"]);
+            if (isIdle) root.run(["nullshell", "lock"]);
         }
     }
 

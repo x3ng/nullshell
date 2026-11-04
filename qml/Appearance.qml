@@ -4,6 +4,7 @@ import QtQuick
 import Quickshell
 import Quickshell.Io
 import Quickshell.Hyprland
+import "components/HyprlandControlCommands.js" as Commands
 
 // Apply the observed Darkman mode to the compositor. Darkman owns the portal.
 Scope {
@@ -37,7 +38,7 @@ Scope {
         applyingGeneration = compositorGeneration;
         compositorError = "";
         update.command = ["hyprctl", "eval",
-            "require('appearance').apply('" + applyingMode + "')"];
+            "dofile(" + Commands.luaString(Quickshell.shellPath("adapters/Hyprland.lua")) + ").apply('" + applyingMode + "')"];
         update.running = true;
     }
 
