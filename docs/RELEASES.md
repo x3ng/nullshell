@@ -1,5 +1,12 @@
 # Releases
 
+## v0.1.1
+
+The greeter now remembers the last successfully authenticated user and session.
+NixOS stores this small JSON state under a dedicated greeter-owned directory;
+neither passwords nor desktop-user files are read. The greetd VM verifies a
+second login after a greeter restart and an added session.
+
 ## v0.1.0
 
 First source release of the independent nullshell project (MIT).

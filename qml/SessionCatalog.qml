@@ -8,8 +8,14 @@ Item {
     id: root
     property var sessions: []
     property string selectedId: ""
+    property string preferredId: ""
     readonly property var current: sessions.find(entry => entry.id === selectedId) ?? null
     property var loadedPaths: ({})
+
+    onPreferredIdChanged: {
+        if (!selectionTouched && sessions.some(session => session.id === preferredId))
+            selectedId = preferredId;
+    }
 
     function parseExec(value) {
         const args = [];
@@ -63,7 +69,9 @@ Item {
         const updated = sessions.filter(session => session.id !== id).concat([entry]);
         updated.sort((a, b) => a.name.localeCompare(b.name));
         sessions = updated;
-        if (!selectedId || !updated.some(session => session.id === selectedId)) {
+        if (!selectionTouched && updated.some(session => session.id === preferredId)) {
+            selectedId = preferredId;
+        } else if (!selectedId || !updated.some(session => session.id === selectedId)) {
             selectedId = updated.some(session => session.id === "hyprland-uwsm.desktop")
                 ? "hyprland-uwsm.desktop" : updated[0].id;
         } else if (selectedId === "hyprland.desktop"

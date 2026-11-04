@@ -43,3 +43,11 @@ owns file loading and publication. Pages do not read files. This slice covers
 terminal and idle configuration only. Wallpaper, theme, greeter configuration
 remain separate settings domains. Legacy state migration is documented in
 [DEPLOYMENT.md](DEPLOYMENT.md).
+
+The greeter stores only the last successfully authenticated user and session ID
+in its dedicated account's state file. On NixOS this is
+`/var/lib/nullshell-greeter/last-login.json` (directory mode 0700, file mode 0600).
+Other distributions can set `NULLSHELL_GREETER_STATE_FILE` to a writable path owned
+by the greeter account. Missing or invalid state falls back to an empty user and
+the available session list. Passwords are never stored, and the greeter does not
+read a desktop user's home directory.

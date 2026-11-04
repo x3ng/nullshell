@@ -54,7 +54,10 @@ session-lock protocol and the packaged PAM service: incorrect password stays
 secured, correct password unlocks, and the process remains available. This tests
 the protocol without claiming Sway support for the full desktop.
 The greeter test uses real greetd and Cage: incorrect credentials cannot launch a
-session; correct credentials launch the selected session as the test user.
+session; correct credentials launch the selected session as the test user. It
+then restarts greetd, adds a newly available session, and logs in using only a
+password to verify the remembered user and session. It checks the greeter-owned
+state file's permissions.
 Keyboard injection establishes focus before typing; the test accounts and
 passwords exist only inside the VM. Neither test installs host services.
 

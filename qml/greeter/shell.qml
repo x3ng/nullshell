@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Window
 import Quickshell
+import Quickshell.Io
 import Quickshell.Services.Greetd
 
 ShellRoot {
@@ -10,7 +11,20 @@ ShellRoot {
     property bool awaitingReply: false
     property string pendingSecret: ""
     property bool hasPendingSecret: false
+    property string rememberedUser: ""
+    property string authenticatedUser: ""
+    property var pendingLaunch: null
     property string status: Greetd.available ? "" : "greetd is unavailable"
+    readonly property string statePath: Quickshell.env("NULLSHELL_GREETER_STATE_FILE")
+        || ((Quickshell.env("XDG_STATE_HOME") || Quickshell.env("HOME") + "/.local/state")
+            + "/nullshell/greeter-login.json")
+
+    function launchPending() {
+        if (!pendingLaunch) return;
+        const request = pendingLaunch;
+        pendingLaunch = null;
+        Greetd.launch(request.args, request.environment);
+    }
 
     function submit(user, secret) {
         if (busy) return;
@@ -36,6 +50,7 @@ ShellRoot {
         if (Greetd.state !== GreetdState.Inactive) return;
         pendingSecret = secret;
         hasPendingSecret = true;
+        authenticatedUser = user;
         busy = true;
         status = "";
         Greetd.createSession(user);
@@ -65,6 +80,7 @@ ShellRoot {
             root.awaitingReply = false;
             root.pendingSecret = "";
             root.hasPendingSecret = false;
+            root.authenticatedUser = "";
             root.status = message || "Authentication failed";
             loginView.clearSecret();
             loginView.focusInput();
@@ -84,19 +100,48 @@ ShellRoot {
                 environment.push("XDG_CURRENT_DESKTOP=" + name);
                 environment.push("XDG_SESSION_DESKTOP=" + name);
             }
-            Greetd.launch(session.args, environment);
+            root.pendingLaunch = {args: session.args, environment: environment};
+            const contents = JSON.stringify({version: 1, user: root.authenticatedUser,
+                session: session.id}) + "\n";
+            if (loginState.text() === contents) root.launchPending();
+            else loginState.setText(contents);
         }
         function onError(error) {
             root.busy = false;
             root.awaitingReply = false;
             root.pendingSecret = "";
             root.hasPendingSecret = false;
+            root.authenticatedUser = "";
             root.status = error;
         }
     }
 
     Theme { id: loginTheme; darkMode: true }
     SessionCatalog { id: catalog }
+    FileView {
+        id: loginState
+        path: root.statePath
+        preload: true
+        blockLoading: true
+        atomicWrites: true
+        printErrors: false
+        onLoaded: {
+            try {
+                const saved = JSON.parse(text());
+                if (saved.version !== 1 || typeof saved.user !== "string"
+                    || typeof saved.session !== "string") return;
+                if (saved.user.length <= 128 && !/[\x00-\x1f\x7f]/.test(saved.user))
+                    root.rememberedUser = saved.user;
+                if (/^[^/\x00-\x1f\x7f]+\.desktop$/.test(saved.session))
+                    catalog.preferredId = saved.session;
+            } catch (_) { /* Invalid state uses portable defaults. */ }
+        }
+        onSaved: root.launchPending()
+        onSaveFailed: {
+            console.warn("Could not save greeter login choice");
+            root.launchPending();
+        }
+    }
 
     Window {
         id: window
@@ -111,7 +156,7 @@ ShellRoot {
             id: loginView
             anchors.fill: parent
             theme: root.style
-            userName: ""
+            userName: root.rememberedUser
             editableUser: true
             sessions: catalog.sessions
             selectedSessionId: catalog.selectedId

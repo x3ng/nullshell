@@ -10,10 +10,20 @@ let
     Type=Application
     Exec=${session}
   '';
+  alternative = pkgs.writeText "nullshell-alternative.desktop" ''
+    [Desktop Entry]
+    Name=Alternative session
+    Type=Application
+    Exec=${pkgs.coreutils}/bin/false
+  '';
   startGreeter = pkgs.writeShellScript "nullshell-test-greeter" ''
+    umask 077
     exec > /run/nullshell-greeter-test/greeter.log 2>&1
     export XDG_RUNTIME_DIR=/run/nullshell-greeter-test
-    export XDG_DATA_DIRS=${sessions}/share
+    export NULLSHELL_GREETER_STATE_FILE=/var/lib/nullshell-greeter/last-login.json
+    export XDG_DATA_DIRS=/run/nullshell-greeter-test/sessions/share
+    mkdir -p "$XDG_DATA_DIRS/wayland-sessions"
+    cp ${sessions}/share/wayland-sessions/nullshell-test.desktop "$XDG_DATA_DIRS/wayland-sessions/"
     export WLR_BACKENDS=headless WLR_RENDERER=pixman WLR_LIBINPUT_NO_DEVICES=1
     export QT_QUICK_BACKEND=software
     exec ${pkgs.dbus}/bin/dbus-run-session --dbus-daemon=${pkgs.dbus}/bin/dbus-daemon -- \
@@ -57,5 +67,20 @@ pkgs.testers.runNixOSTest {
     machine.wait_for_file("/home/preview/authenticated-session", timeout=timedelta(seconds=30))
     assert machine.succeed("cat /home/preview/authenticated-session").strip() == "preview"
     assert machine.succeed("stat -c %U /home/preview/authenticated-session").strip() == "preview"
+    machine.wait_until_succeeds("test -f /var/lib/nullshell-greeter/last-login.json", timeout=timedelta(seconds=15))
+    saved = machine.succeed("cat /var/lib/nullshell-greeter/last-login.json")
+    assert '"user":"preview"' in saved
+    assert '"session":"nullshell-test.desktop"' in saved
+    assert machine.succeed("stat -c '%U %a' /var/lib/nullshell-greeter/last-login.json").strip() == "greeter 600"
+
+    # A newly available alphabetically first session must not replace the saved choice.
+    machine.succeed("cp ${alternative} /run/nullshell-greeter-test/sessions/share/wayland-sessions/alternative.desktop")
+    machine.succeed("systemctl restart greetd.service")
+    machine.wait_until_succeeds("test -S /run/nullshell-greeter-test/wayland-0", timeout=timedelta(seconds=30))
+    machine.sleep(2)
+    machine.succeed("rm /home/preview/authenticated-session")
+    # Only a password is typed: a second login proves the user and session were restored.
+    type_into_greeter("-s 200 test-only-password -k Return")
+    machine.wait_for_file("/home/preview/authenticated-session", timeout=timedelta(seconds=30))
   '';
 }

@@ -7,6 +7,11 @@
 let
   cfg = config.programs.nullshell;
   packages = import ./packages.nix { inherit pkgs; };
+  greeterSession = pkgs.writeShellScript "nullshell-greeter-session" ''
+    umask 077
+    export NULLSHELL_GREETER_STATE_FILE=/var/lib/nullshell-greeter/last-login.json
+    exec ${pkgs.dbus}/bin/dbus-run-session -- ${pkgs.cage}/bin/cage -s -d -- ${cfg.greeter.package}/bin/nullshell-greeter
+  '';
 in
 {
   options.programs.nullshell = {
@@ -26,11 +31,12 @@ in
       services.upower.enable = true;
     })
     (lib.mkIf cfg.greeter.enable {
+      systemd.tmpfiles.rules = [ "d /var/lib/nullshell-greeter 0700 greeter greeter -" ];
       services.greetd = {
         enable = true;
         settings.default_session = {
           user = "greeter";
-          command = "${pkgs.dbus}/bin/dbus-run-session -- ${pkgs.cage}/bin/cage -s -d -- ${cfg.greeter.package}/bin/nullshell-greeter";
+          command = "${greeterSession}";
         };
       };
     })

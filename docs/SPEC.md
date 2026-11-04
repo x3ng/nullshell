@@ -34,8 +34,9 @@ Polkit 或 portal。nullshell 的目标是统一交互与协调，不重写这�
 
 ## 配置与动态数据
 
-现状不是“只有动态文件”：wallpaper.json 已有静态配置；终端 argv、idle 超时、
-greeter 用户名等仍内嵌在 QML；Keep awake、通知历史与壁纸选择已有持久状态。
+wallpaper.json 保留静态默认配置；终端 argv 与 idle 超时有独立用户配置。
+Keep awake、通知历史、壁纸选择，以及 greeter 上次成功登录的用户名和会话
+分别保存状态；greeter 状态由专用账户持有。
 
 目标路径：
 
@@ -43,7 +44,7 @@ greeter 用户名等仍内嵌在 QML；Keep awake、通知历史与壁纸选择�
 - $XDG_CONFIG_HOME/nullshell/config.json：版本化用户设置，用户/dotfiles 管理。
 - $XDG_STATE_HOME/nullshell/：Keep awake、通知历史及 UI 保存的偏好覆盖；原子写入。
 - $XDG_CACHE_HOME/nullshell/：可重建缓存；$XDG_RUNTIME_DIR 下放临时 IPC 资源。
-- greeter：独立系统配置，部署时显式提供；不读取上述用户路径。
+- greeter：独立系统状态保存上次成功认证的用户名与会话 ID；不读取上述用户路径。
 
 优先级：包默认值 < 用户配置 < 明确允许 UI 修改的持久覆盖。
 每个状态域只有一个写入者，多进程读者订阅更新。
