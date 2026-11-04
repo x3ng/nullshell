@@ -1,17 +1,34 @@
 # Releases
 
-## Unreleased
+## v0.2.0 — 2026-11-05
 
-Desktop surfaces use flat tonal materials and native rounded compositor blur.
-The command panel has no full-screen dimming scrim; its tint and blur appear
-in the same mapped frame. Greeter and locker retain their separate background
-paths. These changes are development work, not a new approved release.
+Consolidated desktop release following the v0.1.1 baseline.
 
-The command panel includes a compact connection summary and revised workspace
-placement. A standalone connectivity fixture preview exists; the full panel
-preview and final layout acceptance are still pending. UI experiments formerly
-tagged v0.1.2 through v0.1.10 have been consolidated here; those temporary tags
-were withdrawn during history cleanup. Do not reuse them for future releases.
+- Flat tonal materials and native rounded desktop blur; no full-screen command
+  panel scrim or separate surface fade before the blur tint appears.
+- Compact connection details, workspaces below full-width content, matching
+  workspace/tray icon sizes, wrapping workspaces and single-column controls at
+  narrow widths. Remove redundant workspace management chrome.
+- Full `preview-panel` entry reuses the production LauncherPanel with injected
+  clock, screen and synthetic services. Source edits reload without publishing,
+  updating consumer lockfiles or activating host services.
+- Fix greeter, locker and Polkit preview windows so they actually map; fix hidden
+  page minimum widths that caused narrow panel contents to overflow.
+- Portable Python preview tests shared by local development and the NixOS VM.
+  Nix provides optional tools and system integration checks, not the test logic.
+
+Validation on x86_64-linux: portable deployment/migration checks, Rust unit tests
+and clippy, all flake checks (including private-bus Bluetooth), and desktop/Polkit,
+session-lock/PAM and greetd VMs passed. Native panel previews were inspected at
+740 and 440 px, including long labels, multiple applications per workspace,
+wrapped rows and both palettes. VM checks cover keyboard selection retention,
+actual preview mapping and production-service isolation. Physical Bluetooth,
+GPU and suspend behavior remain hardware acceptance boundaries; aarch64 builds
+and other distributions have not been exercised in this release run.
+
+This is a source release. No consumer nix-config or dotfiles update and no host
+activation is part of publishing it. The withdrawn experimental v0.1.2–v0.1.10
+tags are not reused.
 
 ## v0.1.1
 

@@ -5,13 +5,15 @@
 基于 Quickshell / Qt Quick；首先支持 Hyprland。项目独立于个人 dotfiles，
 Nix 是打包和部署入口之一，不是运行时配置语言。
 
-当前 v0.1 已提供独立桌面/greeter 包、会话单元、状态迁移和 Rust 蓝牙配对后端。
-隔离预览、真实登录/锁屏认证及 Hyprland/Polkit 虚拟机测试已通过；
-真实硬件验收与主机旧部署的切换尚未执行。
+v0.2.0 提供独立桌面/greeter 包、会话单元、状态迁移和 Rust 蓝牙配对后端，
+并支持完整面板的源码热重载预览、工作区换行和窄屏单列布局。
+通用预览测试、登录/锁屏认证及 Hyprland/Polkit VM 测试已通过；
+这些测试不代替真实硬件上的蓝牙、GPU 和休眠验收。
 
 - [架构与迁移规范](docs/SPEC.md)
 - [配置格式与热加载](docs/CONFIGURATION.md)
 - [界面视觉规范](docs/VISUAL.md)
+- [源码预览与开发流程](docs/DEVELOPMENT.md)
 - [测试方法与覆盖边界](docs/TESTING.md)
 - [跨发行版构建与安装](docs/BUILDING.md)
 - [仓库与提交规范](AGENTS.md)
