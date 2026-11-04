@@ -13,6 +13,13 @@ separates it from the host session. The test requires successful QML loading,
 rejects common QML errors and verifies that the preview remains running.
 It does not verify pixel appearance or real authentication.
 
+The config check runs the real `ShellConfig.qml` with a synthetic temporary
+configuration. It checks schema rejection, missing-file defaults, atomic updates,
+last-valid retention and recovery through Quickshell IPC. It loads no desktop,
+authentication or device services. The same test can run without Nix by invoking
+`tests/test_config.py LOG_PATH` with Python 3 and Quickshell in an isolated
+HOME/XDG and D-Bus environment, as set up in `nix/tests/config.nix`.
+
 ## NixOS VM smoke test
 
 ```sh

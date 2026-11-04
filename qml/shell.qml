@@ -7,6 +7,12 @@ import Quickshell.Io
 import "components"
 
 ShellRoot {
+    ShellConfig {
+        id: config
+        onRejected: reason => notifications.notifyLocal("configuration", {
+            summary: "Could not load configuration", body: reason, critical: false
+        })
+    }
     AppearanceState { id: appearance }
     Theme { id: theme; darkMode: appearance.darkMode }
     DesktopServices {
@@ -20,8 +26,17 @@ ShellRoot {
     WallpaperState { id: wallpaperState }
     WallpaperWindows { wallpaper: wallpaperState }
     WallpaperPicker { id: wallpaperPicker; wallpaper: wallpaperState; style: theme }
-    IdlePolicy { keepAwake: desktop.keepAwake; ready: desktop.keepAwakeReady }
-    DesktopSearch { id: desktopSearch; query: launcher.query; actions: shellActions }
+    IdlePolicy {
+        keepAwake: desktop.keepAwake
+        ready: desktop.keepAwakeReady && config.ready
+        deadlines: config.values.idle
+    }
+    DesktopSearch {
+        id: desktopSearch
+        query: launcher.query
+        actions: shellActions
+        terminalCommand: config.values.terminal
+    }
     Notifications { id: notifications }
     BatteryAlerts { battery: desktop.battery; notifications: notifications }
     ScreenKeyboard {

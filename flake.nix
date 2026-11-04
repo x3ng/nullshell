@@ -25,6 +25,7 @@
         {
           inherit (packages) desktop greeter;
           preview = import ./nix/tests/preview.nix { inherit pkgs packages; };
+          config = import ./nix/tests/config.nix { inherit pkgs; };
         }
       );
       # Explicit, heavier integration test; not part of every local flake check.

@@ -10,7 +10,7 @@ Scope {
     required property string query
     property var actions: null
     // Terminal executable and its argument separator; argv stays an array.
-    property list<string> terminalCommand: ["kitty", "--"]
+    required property list<string> terminalCommand
     // Optional scopes keep the default query global without requiring a mode switch.
     // A bare scope shows its complete catalog; an empty global query shows home.
     readonly property string scope: query.trim().startsWith(">") ? "ACTION"

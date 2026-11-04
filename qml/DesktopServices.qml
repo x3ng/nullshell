@@ -19,7 +19,7 @@ Scope {
     property bool keepAwakeRequested: false
     property bool keepAwakeReady: false
     readonly property var source: Pipewire.defaultAudioSource
-    property list<string> terminalCommand: ["kitty", "--"]
+    required property list<string> terminalCommand
     signal feedback(string key, string summary, string body, bool critical)
     property bool controlsVisible: false
     property bool wifiDiscoveryActive: false

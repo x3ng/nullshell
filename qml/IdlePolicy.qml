@@ -6,6 +6,7 @@ Scope {
     id: root
     required property bool keepAwake
     required property bool ready
+    required property var deadlines
     property bool dimmed: false
     property bool displayOff: false
 
@@ -43,14 +44,14 @@ Scope {
     }
 
     IdleMonitor {
-        timeout: 150
+        timeout: root.deadlines.dimSeconds
         enabled: root.ready && !root.keepAwake
         respectInhibitors: true
         onIsIdleChanged: root.setDimmed(isIdle)
     }
 
     IdleMonitor {
-        timeout: 300
+        timeout: root.deadlines.lockSeconds
         enabled: root.ready && !root.keepAwake
         respectInhibitors: true
         onIsIdleChanged: {
@@ -59,7 +60,7 @@ Scope {
     }
 
     IdleMonitor {
-        timeout: 600
+        timeout: root.deadlines.displayOffSeconds
         enabled: root.ready && !root.keepAwake
         respectInhibitors: true
         onIsIdleChanged: root.setDisplayOff(isIdle)
