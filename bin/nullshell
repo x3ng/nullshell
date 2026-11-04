@@ -1,0 +1,31 @@
+#!/bin/sh
+set -eu
+
+# Source checkout and installed layouts both use bin/ next to share/ or qml/.
+prefix=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
+if [ -n "${NULLSHELL_DATA_DIR:-}" ]; then
+    resources=$NULLSHELL_DATA_DIR
+elif [ -d "$prefix/share/nullshell" ]; then
+    resources=$prefix/share/nullshell
+else
+    resources=$prefix/qml
+fi
+
+mode=${1:-desktop}
+if [ "$#" -gt 0 ]; then shift; fi
+case "$mode" in
+    desktop) entry=$resources/shell.qml ;;
+    greeter) entry=$resources/greeter/shell.qml ;;
+    preview-greeter) entry=$resources/preview.qml; export QS_PREVIEW_LOCK=0 ;;
+    preview-lock) entry=$resources/preview.qml; export QS_PREVIEW_LOCK=1 ;;
+    preview-polkit) entry=$resources/polkit/preview.qml ;;
+    -h|--help)
+        printf '%s\n' 'Usage: nullshell [desktop|greeter|preview-greeter|preview-lock|preview-polkit] [quickshell options]'
+        exit 0 ;;
+    *) printf 'Unknown mode: %s\n' "$mode" >&2; exit 2 ;;
+esac
+if [ ! -f "$entry" ]; then
+    printf 'Missing nullshell resource: %s\n' "$entry" >&2
+    exit 1
+fi
+exec quickshell --path "$entry" "$@"
