@@ -63,9 +63,11 @@ ColumnLayout {
                     actions: page.actions
                     system: page.system
                 }
-                RowLayout {
+                GridLayout {
                     Layout.fillWidth: true
-                    spacing: 16
+                    columns: width < 500 ? 1 : 2
+                    columnSpacing: 16
+                    rowSpacing: 4
                     OverviewLevelControl {
                         style: page.style
                         actions: page.actions
@@ -216,7 +218,7 @@ ColumnLayout {
                 WorkspaceStrip {
                     Layout.fillWidth: true
                     Layout.minimumWidth: 0
-                    Layout.preferredHeight: 44
+                    Layout.preferredHeight: implicitHeight
                     style: page.style
                     controls: page.controls
                     searchModel: page.searchModel

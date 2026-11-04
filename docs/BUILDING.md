@@ -21,7 +21,7 @@ compatibility range. Hardware acceptance and host cutover remain separate from p
 ## Fast UI iteration
 
 See [DEVELOPMENT.md](DEVELOPMENT.md) for the edit/preview/acceptance workflow and
-the outstanding full-panel preview work. Do not deploy to inspect trial layouts.
+the full-panel preview commands. Do not deploy to inspect trial layouts.
 
 From the checkout, an installed nullshell runtime can load the working QML tree:
 
@@ -43,7 +43,7 @@ nix develop --command ./bin/nullshell preview-connectivity
 ```
 
 The same source override works for `preview-lock`, `preview-greeter` and
-`preview-polkit`. There is not yet an isolated full-command-panel preview.
+`preview-polkit`. Use `preview-panel` for the full command panel with synthetic state.
 Do not launch a second `desktop` as a preview: it owns real notification,
 wallpaper and idle services. Keep release deployment separate from visual
 iteration; use the VM tests for session integration.

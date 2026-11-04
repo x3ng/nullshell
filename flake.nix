@@ -71,6 +71,7 @@
               "lock"
               "polkit"
               "connectivity"
+              "panel"
             ]
         )
       );
@@ -79,6 +80,9 @@
           packages = with nixpkgs.legacyPackages.${system}; [
             quickshell
             qt6.qtdeclarative
+            python3
+            grim
+            wtype
             nixfmt
             cargo
             rustc

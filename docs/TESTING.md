@@ -1,12 +1,39 @@
 # Testing without replacing the host desktop
 
+## Portable checks first
+
+With Python 3, Cargo and Quickshell installed, no Nix evaluation is needed:
+
+```sh
+make check
+make check-backend
+cargo clippy --locked --manifest-path backend/Cargo.toml -- -D warnings
+# Inside a Wayland compositor (starts and closes only its fixture preview):
+make check-preview
+python3 tests/test_panel_preview.py --screenshots /tmp/nullshell-preview
+```
+
+The preview test requires Quickshell on PATH; screenshots additionally require
+`grim`. `--keyboard` additionally uses `wtype`, preferably inside a nested/test
+compositor so synthetic keys cannot interfere with other work. It exercises the
+same QML panel with mock states, checks routing and settled geometry, selection
+identity across title updates, resize/palette changes, logs and process cleanup.
+It does not claim to prove hover stability from a result count or screenshot.
+The test refuses to attach to an existing preview instance.
+
+Nix can supply these tools via `nix develop`; it is an optional environment,
+not a runtime dependency of these scripts. The isolated config/migration/BlueZ
+checks are Python scripts too; their Nix wrappers only provide dependencies and
+private buses/directories. NixOS module, PAM, greetd and service-lifecycle
+integration are tested separately below.
+
 ## Lightweight sandbox checks
 
 ```sh
 nix flake check path:. --max-jobs 1 --cores 2
 ```
 
-The preview check exercises greeter, lock and Polkit views in both palettes.
+The preview check exercises greeter, lock, Polkit and connectivity views in both palettes.
 Each process receives a temporary HOME/XDG directories, private D-Bus session,
 an inaccessible system bus and software/offscreen Qt rendering. Nix sandboxing
 separates it from the host session. The test requires successful QML loading,
@@ -41,6 +68,12 @@ visual-only window. These entries do not authenticate, lock or execute power
 actions. Unlike the sandbox check, an interactive invocation uses the caller's
 environment and may read existing wallpaper state. It is not a general sandbox
 for arbitrary desktop code. The full desktop entry is not a safe preview.
+
+`./bin/nullshell preview-panel` runs the full production panel with isolated
+fixtures directly from source. See [DEVELOPMENT.md](DEVELOPMENT.md) for scenario,
+page, width, palette and screenshot commands. It requires Wayland; native mapping
+and fixture isolation are checked in the desktop VM rather than inferred from
+an offscreen load.
 
 ## Real authentication in disposable VMs
 

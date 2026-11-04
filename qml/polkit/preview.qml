@@ -19,10 +19,10 @@ ShellRoot {
         function submit(answer) { failed = true; }
         function cancelAuthenticationRequest() { Qt.quit(); }
     }
-    Window {
+    FloatingWindow {
         id: window
-        width: 480
-        height: view.implicitHeight
+        implicitWidth: 480
+        implicitHeight: view.implicitHeight
         visible: true
         title: "Quickshell · Authentication preview"
         color: style.panelSurface

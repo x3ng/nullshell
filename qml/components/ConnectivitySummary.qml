@@ -4,14 +4,16 @@ import QtQuick
 import QtQuick.Layouts
 import ".."
 
-RowLayout {
+GridLayout {
     id: summary
     required property Theme style
     required property var actions
     required property var system
     readonly property var network: system.wifiNetworks.find(network => network.connected) ?? null
     readonly property var devices: system.bluetoothDevices.filter(device => device.connected)
-    spacing: 16
+    columns: width < 500 ? 1 : 2
+    columnSpacing: 16
+    rowSpacing: 4
     OverviewStatusEntry {
         style: summary.style
         actions: summary.actions

@@ -18,6 +18,7 @@ Rectangle {
     property bool available: true
     Layout.fillWidth: true
     Layout.preferredWidth: 1
+    Layout.minimumWidth: 0
     implicitHeight: 44
     radius: entry.style.radiusControl
     color: entryMouse.containsMouse ? entry.style.surfaceHover : "transparent"

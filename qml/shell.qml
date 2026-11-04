@@ -3,6 +3,8 @@ pragma ComponentBehavior: Bound
 
 import QtQuick
 import Quickshell
+import Quickshell.Hyprland
+import Quickshell.Services.SystemTray
 import Quickshell.Io
 import "components"
 
@@ -71,8 +73,12 @@ ShellRoot {
 
     // Darkman owns the appearance preference; the shell mirrors it locally.
     // Pages fit their content under one height limit; details own their header.
+    SystemClock { id: panelClock; precision: SystemClock.Minutes }
     LauncherPanel {
         id: launcher
+        preferredScreen: Quickshell.screens.find(s => s.name === Hyprland.focusedMonitor?.name) ?? Quickshell.screens[0]
+        trayItems: SystemTray.items.values
+        displayDate: panelClock.date
         onOpenChanged: { if (open) workspaceLayouts.refresh(); }
         services: desktop
         style: theme

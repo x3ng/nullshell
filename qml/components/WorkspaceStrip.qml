@@ -5,24 +5,23 @@ import QtQuick.Controls
 import Quickshell.Widgets
 import ".."
 
-Flickable {
+Item {
     id: strip
     required property Theme style
     required property var controls
     required property var searchModel
     required property var workspaces
     required property var windows
-    implicitHeight: 44
-    contentWidth: Math.max(width, entries.implicitWidth)
-    contentHeight: height
-    flickableDirection: Flickable.HorizontalFlick
-    boundsBehavior: Flickable.StopAtBounds
-    clip: true
-    ScrollBar.horizontal: ScrollBar { policy: ScrollBar.AsNeeded }
-
-    Row {
+    implicitHeight: entries.implicitHeight
+    // Center a short group; let a larger group wrap within the available width.
+    readonly property real contentSpan: {
+        const chips = entries.children.filter(child => child.width > 0 && child.visible);
+        return chips.reduce((sum, child) => sum + child.width, 0) + Math.max(0, chips.length - 1) * entries.spacing;
+    }
+    Flow {
         id: entries
-        x: Math.max(0, (strip.width - implicitWidth) / 2)
+        width: Math.min(strip.width, strip.contentSpan)
+        x: (strip.width - width) / 2
         spacing: 6
         Repeater {
             model: strip.workspaces

@@ -70,7 +70,7 @@ let
       }
       ''
         mkdir -p $out/bin
-        for mode in lock greeter polkit connectivity; do
+        for mode in lock greeter polkit connectivity panel; do
           makeWrapper ${pkgs.runtimeShell} $out/bin/nullshell-preview-$mode \
             --add-flags "${../bin/nullshell} preview-$mode" \
             --set-default NULLSHELL_DATA_DIR ${assets}/share/nullshell \

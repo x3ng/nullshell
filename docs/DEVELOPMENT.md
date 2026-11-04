@@ -27,36 +27,60 @@ The login and Polkit preview commands also exist. Their offscreen checks prove
 loading and process survival, not actual window presentation or visual quality.
 Confirm a real window is mapped and inspect its screenshot before claiming success.
 
-## Full command-panel preview: required next work, not implemented
+## Full command-panel preview
 
-The connectivity preview cannot validate the overall panel. Before further panel
-layout iteration, add an isolated entry that reuses the actual LauncherPanel with
-fixtures. Inject tray items, time and target screen instead of hard-binding them
-inside presentation code. Use a separate namespace and preview IPC; closing it
-must not affect production. Audit the entire child tree for direct service calls
-and persistent state before calling it isolated.
+```sh
+./bin/nullshell preview-panel
+# Or: nix develop --command ./bin/nullshell preview-panel
+```
 
-This first entry can use the actual layer window on the compositor, allowing
-inspection of panel layout and native blur without a second desktop service.
-For freely resizable window previews, subsequently extract shared panel content
-into an ordinary QML Item used by the production layer window and a FloatingWindow.
-Do not duplicate the panel UI or require that larger refactor just to start the
-first preview. Keep compositor focus and native blur in the layer wrapper.
+This entry uses the actual LauncherPanel on the Wayland compositor with synthetic
+PanelFixture state, an independent `nullshell-preview-panel` namespace and IPC.
+It starts no desktop service, notification owner, idle inhibitor or authentication
+agent. The fixed clock, tray, search, media, network and workspace fixtures are
+injected; actions only alter memory or record their intent. It captures keyboard
+focus while open, like the real panel. Escape or outside-click hides it; Ctrl+C
+terminates the foreground process. It is a development fixture, not a security
+sandbox for arbitrary QML.
 
-The preview must provide deterministic services, controls, search results,
-notifications, media, clock, workspaces and tray fixtures. Actions should update
-mock state or record intent, never launch programs, switch workspaces, suspend,
-authenticate, write real preferences or change device connections. Do not import
-the full desktop entry as a preview: it starts real service owners. Do not start
-a second production shell alongside the existing desktop.
+In a second terminal at the same checkout, control the running preview:
 
-Acceptance must cover the default panel, search and detail pages; short/long
-labels; zero/many windows, notifications and devices; media absent/present;
-light/dark palettes; normal and constrained sizes; keyboard focus and hover.
-Inspect screenshots after changes, and exercise state changes without flicker.
-Use a separate layer-window preview with the same fixtures on a nested
-compositor or in the Hyprland VM to check blur, mapping and compositor behavior.
-A normal window screenshot alone cannot establish those effects.
+```sh
+preview() { quickshell ipc -p "$PWD/qml/preview-panel.qml" call preview "$@"; }
+preview openPanel
+preview scenario crowded     # normal, empty, crowded, media
+preview width 440            # default 740; narrow layout and workspace wrapping
+preview light true
+preview page bluetooth       # overview, desktop, wifi, bluetooth, audio, notifications
+preview search terminal
+preview tick                 # change window titles without changing identities
+preview status
+preview close
+preview quit
+```
+
+Save QML to reload, without a build or deployment. An invalid edit may leave the
+last successful scene visible; inspect the reload log, correct it and verify a
+fresh start before acceptance. No real app launch, device connection, session
+lock or shutdown occurs from preview controls. Native tray menu protocol and
+real hardware behavior need integration testing separately.
+
+Use `grim /tmp/nullshell-panel.png` after the frame/resize has settled, then inspect
+the image. The portable `tests/test_panel_preview.py` cycles scenarios and pages, checks
+settled geometry and optionally writes screenshots. The desktop VM invokes the
+same script and separately checks native layer mapping and production service
+isolation. The
+same VM confirms that greeter/lock/Polkit preview windows really map.
+
+The full panel currently requires a Wayland compositor; it is not a freely
+resizable ordinary window or an offscreen-only renderer. The IPC width control
+covers layout resizing. Native blur requires compositor protocol support; keep
+software-rendered VM screenshots distinct from physical GPU visual acceptance.
+
+Acceptance covers the default panel, search and details; short/long labels;
+zero/many windows, notifications and devices; media absent/present; both palettes
+and constrained widths. Exercise keyboard/hover and changing titles, not only
+static screenshots. Test authentication and real backend behavior in VMs.
 
 ## Checkpoints and releases
 

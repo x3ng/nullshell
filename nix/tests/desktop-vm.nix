@@ -36,6 +36,9 @@ pkgs.testers.runNixOSTest {
     environment.systemPackages = [
       packages.desktop
       pkgs.wtype
+      pkgs.quickshell
+      pkgs.python3
+      pkgs.grim
       pkgs.polkit
     ];
     systemd.packages = [
@@ -86,6 +89,25 @@ pkgs.testers.runNixOSTest {
     initial_screens = len(json.loads(machine.succeed(wallpaper))["screens"])
     signature = machine.succeed(user("systemctl --user show-environment | sed -n 's/^HYPRLAND_INSTANCE_SIGNATURE=//p'")).strip()
     hyprctl = "HYPRLAND_INSTANCE_SIGNATURE=" + shlex.quote(signature) + " hyprctl "
+    # Preview the actual panel without replacing any of the desktop owners.
+    desktop_pid = machine.succeed(user("systemctl --user show nullshell -p MainPID --value")).strip()
+    machine.succeed(user("nullshell preview-panel > /home/preview/panel-preview.log 2>&1 &"))
+    preview = "${pkgs.quickshell}/bin/quickshell ipc -p ${packages.assets}/share/nullshell/preview-panel.qml call preview"
+    def preview_call(method):
+        return machine.succeed(user(preview + " " + method))
+    machine.wait_until_succeeds(user(preview + " status") + " | grep '\"open\":true'", timeout=timedelta(seconds=20))
+    machine.wait_until_succeeds(user(hyprctl + "layers -j") + " | grep nullshell-preview-panel", timeout=timedelta(seconds=10))
+    preview_call("quit")
+    machine.wait_until_fails(user(preview + " status"), timeout=timedelta(seconds=10))
+    machine.succeed(user("python3 ${../../tests/test_panel_preview.py} --qml ${packages.assets}/share/nullshell/preview-panel.qml --keyboard --screenshots /home/preview/panel-screenshots"))
+    machine.copy_from_machine("/home/preview/panel-screenshots", "panel-preview")
+    assert json.loads(machine.succeed(idle))["keepAwake"]
+    assert machine.succeed(user("systemctl --user show nullshell -p MainPID --value")).strip() == desktop_pid
+    # Ordinary preview windows must really map; an offscreen load is not enough.
+    for mode, title in [("greeter", "Greeter preview"), ("lock", "Lock screen preview"), ("polkit", "Authentication preview")]:
+        machine.succeed(user("nullshell preview-" + mode + " > /home/preview/" + mode + "-preview.log 2>&1 & echo $! > /home/preview/preview.pid"))
+        machine.wait_until_succeeds(user(hyprctl + "clients -j") + " | grep '" + title + "'", timeout=timedelta(seconds=15))
+        machine.succeed(user("kill $(cat /home/preview/preview.pid)"))
     machine.succeed(user(hyprctl + "output create headless NULLSHELL-TEST"))
     machine.wait_until_succeeds(wallpaper + " | grep NULLSHELL-TEST", timeout=timedelta(seconds=15))
     assert len(json.loads(machine.succeed(wallpaper))["screens"]) == initial_screens + 1

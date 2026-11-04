@@ -29,11 +29,11 @@ ShellRoot {
     WallpaperState { id: wallpaperState }
     SessionCatalog { id: catalog }
 
-    Window {
+    FloatingWindow {
         id: window
         visible: true
-        width: 1100
-        height: 720
+        implicitWidth: 1100
+        implicitHeight: 720
         title: preview.lockMode
             ? "Quickshell · Lock screen preview" : "Quickshell · Greeter preview"
         color: preview.lockMode ? loginTheme.panelSurface : loginTheme.backgroundSurface

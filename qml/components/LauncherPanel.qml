@@ -5,8 +5,6 @@ import QtQuick.Layouts
 import QtQuick.Controls
 import Quickshell
 import Quickshell.Wayland
-import Quickshell.Hyprland
-import Quickshell.Services.SystemTray
 import ".."
 
 PanelWindow {
@@ -19,6 +17,12 @@ PanelWindow {
     required property var notifs
     required property var keyboard
     required property var actions
+    required property var preferredScreen
+    required property var trayItems
+    required property date displayDate
+    property string layerNamespace: "quickshell-launcher"
+    property real maximumCardWidth: style.maximumPanelWidth
+    readonly property rect cardGeometry: Qt.rect(card.x, card.y, card.width, card.height)
     property bool open: false
     property string homeTab: "overview"
     readonly property var homeTabDefinitions: [
@@ -69,8 +73,7 @@ PanelWindow {
 
     function openSearch(text) {
         if (!open) {
-            const name = Hyprland.focusedMonitor?.name;
-            openOnScreen(Quickshell.screens.find(s => s.name === name) ?? Quickshell.screens[0]);
+            openOnScreen(preferredScreen);
         }
         homeTab = "overview";
         controlSection = "";
@@ -80,8 +83,7 @@ PanelWindow {
 
     function toggle() {
         if (open) { dismiss(); return; }
-        const name = Hyprland.focusedMonitor?.name;
-        openOnScreen(Quickshell.screens.find(s => s.name === name) ?? Quickshell.screens[0]);
+        openOnScreen(preferredScreen);
     }
     function openOnScreen(targetScreen) {
         if (open || !targetScreen) return;
@@ -213,7 +215,7 @@ PanelWindow {
     exclusionMode: ExclusionMode.Normal
     WlrLayershell.layer: WlrLayer.Overlay
     WlrLayershell.keyboardFocus: open ? WlrKeyboardFocus.OnDemand : WlrKeyboardFocus.None
-    WlrLayershell.namespace: "quickshell-launcher"
+    WlrLayershell.namespace: layerNamespace
 
     Region {
         id: panelBlurRegion
@@ -226,12 +228,10 @@ PanelWindow {
     BackgroundEffect.blurRegion: panel.visible ? panelBlurRegion : null
 
     TrayMenuPopup { id: trayMenu; style: panel.style; panelWindow: panel }
-    readonly property var trayItems: SystemTray.items.values
     onTrayItemsChanged: {
         if (trayMenu.owner && !trayItems.includes(trayMenu.owner)) trayMenu.dismiss();
     }
 
-    SystemClock { id: clock; precision: SystemClock.Minutes }
 
     MouseArea {
         // Outside clicks dismiss the panel without dimming the desktop.
@@ -249,7 +249,7 @@ PanelWindow {
         anchors.top: parent.top
         // Keep the search field stationary as status/search content changes height.
         anchors.topMargin: Math.max(16, Math.round(parent.height * 0.18))
-        width: Math.min(panel.style.maximumPanelWidth, parent.width - 32)
+        width: Math.min(panel.maximumCardWidth, parent.width - 32)
         readonly property real contentHeight: panel.showingDetails ? controlDetails.naturalHeight
             : panel.searching ? searchResultsPage.naturalHeight
             : panel.homeTab === "desktop" ? desktopPage.naturalHeight
@@ -345,7 +345,7 @@ PanelWindow {
                     SearchStatus {
                         style: panel.style
                         services: panel.services
-                        date: clock.date
+                        date: panel.displayDate
                         expanded: searchStrip.width >= 600
                     }
                     Item { Layout.fillWidth: true; Layout.minimumWidth: 0 }
@@ -396,13 +396,14 @@ PanelWindow {
                     easing.type: Easing.OutCubic
                 }
                 Layout.minimumHeight: 0
+                Layout.minimumWidth: 0
                 Layout.fillWidth: true
                 Layout.fillHeight: true
                 clip: true
                 currentIndex: panel.activePage
                 OverviewPage {
                     id: overviewPage
-                    date: clock.date
+                    date: panel.displayDate
                     style: panel.style
                     services: panel.services
                     actions: panel.actions
@@ -473,7 +474,7 @@ PanelWindow {
                 onAppearanceRequested: panel.actions.execute(panel.appearance.darkMode ? "light" : "dark")
                 onKeepAwakeRequested: panel.actions.execute("keep-awake")
                 trayItems: panel.trayItems
-                date: clock.date
+                date: panel.displayDate
                 onMenuRequested: (owner, right, top) => {
                     const pos = footer.mapToItem(panel.contentItem, right, top);
                     const showMenu = () => trayMenu.openFor(owner, pos.x, pos.y);
