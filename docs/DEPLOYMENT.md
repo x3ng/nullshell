@@ -18,6 +18,11 @@ hypridle.service. Quickshell owns dim/lock/display-off timers. A Rust replacemen
 for this bridge is not required for v0.1 and must pass dedicated sleep tests before
 replacing hypridle.
 
+The desktop unit requests `darkman.service` for automatic appearance changes.
+Install its user unit when using this provider; a missing provider does not block
+the desktop because this is a Wants dependency. Host-specific location and
+appearance policy remain external configuration.
+
 ## State
 
 The desktop and locker perform a locked, one-time import of known files from

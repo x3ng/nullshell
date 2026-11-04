@@ -38,7 +38,15 @@ pkgs.testers.runNixOSTest {
       pkgs.wtype
       pkgs.polkit
     ];
-    systemd.packages = [ packages.desktop ];
+    systemd.packages = [
+      packages.desktop
+      pkgs.darkman
+    ];
+    environment.etc."xdg/darkman/config.yaml".text = ''
+      lat: 31.2
+      lng: 121.5
+      usegeoclue: false
+    '';
     fonts.packages = [ pkgs.dejavu_fonts ];
     programs.bash.loginShellInit = ''
       if [ "$(tty)" = /dev/tty1 ]; then
@@ -68,10 +76,22 @@ pkgs.testers.runNixOSTest {
     idle = user("nullshell ipc call idle status")
     machine.wait_until_succeeds(idle + " | grep '\"ready\":true'", timeout=timedelta(seconds=45))
     assert json.loads(machine.succeed(idle))["keepAwake"]
+    appearance = user("nullshell ipc call appearance status")
+    machine.wait_until_succeeds(appearance + " | grep '\"available\":true'", timeout=timedelta(seconds=30))
     polkit = user("nullshell ipc polkit call polkit status")
     machine.wait_until_succeeds(polkit + " | grep '\"registered\":true'", timeout=timedelta(seconds=30))
     machine.succeed(user("nullshell ipc call launcher toggle"))
     machine.succeed(user("nullshell ipc call launcher close"))
+    wallpaper = user("nullshell ipc call wallpaper status")
+    initial_screens = len(json.loads(machine.succeed(wallpaper))["screens"])
+    signature = machine.succeed(user("systemctl --user show-environment | sed -n 's/^HYPRLAND_INSTANCE_SIGNATURE=//p'")).strip()
+    hyprctl = "HYPRLAND_INSTANCE_SIGNATURE=" + shlex.quote(signature) + " hyprctl "
+    machine.succeed(user(hyprctl + "output create headless NULLSHELL-TEST"))
+    machine.wait_until_succeeds(wallpaper + " | grep NULLSHELL-TEST", timeout=timedelta(seconds=15))
+    assert len(json.loads(machine.succeed(wallpaper))["screens"]) == initial_screens + 1
+    machine.succeed(user(hyprctl + "output remove NULLSHELL-TEST"))
+    machine.wait_until_fails(wallpaper + " | grep NULLSHELL-TEST", timeout=timedelta(seconds=15))
+    assert len(json.loads(machine.succeed(wallpaper))["screens"]) == initial_screens
     locker_pid = machine.succeed(user("systemctl --user show nullshell-lock -p MainPID --value")).strip()
     polkit_pid = machine.succeed(user("systemctl --user show nullshell-polkit -p MainPID --value")).strip()
     def auth_request(unit):

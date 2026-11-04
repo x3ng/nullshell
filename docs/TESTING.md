@@ -70,7 +70,8 @@ nix build path:.#legacyPackages.x86_64-linux.tests.desktop-vm --no-link --max-jo
 
 This boots real Hyprland with a virtual GPU, starts the packaged session target,
 opens/closes the panel, verifies Keep awake migration and restart persistence,
-and checks separate locker/Polkit process identities. A real Polkit request is
+checks Darkman availability and wallpaper screen tracking across virtual monitor
+creation/removal, and checks separate locker/Polkit process identities. A real Polkit request is
 cancelled without executing the privileged command. A second request survives a
 desktop restart and succeeds only after authentication. Stopping the session
 target stops its components. The setuid pkexec wrapper is enabled explicitly only
