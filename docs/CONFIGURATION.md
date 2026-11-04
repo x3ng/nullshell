@@ -41,4 +41,5 @@ retains that process's snapshot; use `{"version":1}` to reset explicitly.
 The authoritative parser/defaults are `qml/ConfigRules.js`; `ShellConfig.qml`
 owns file loading and publication. Pages do not read files. This slice covers
 terminal and idle configuration only. Wallpaper, theme, greeter configuration
-and migration from the old `quickshell` state paths remain separate work.
+remain separate settings domains. Legacy state migration is documented in
+[DEPLOYMENT.md](DEPLOYMENT.md).

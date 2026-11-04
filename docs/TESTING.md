@@ -62,9 +62,22 @@ The private-bus Bluetooth check covers confirmation/rejection, PIN/passkey,
 stale replies, cancellation/EOF, oversized input, foreign callers and BlueZ owner
 loss. It needs no real radio. Rust unit tests and clippy cover the helper separately.
 
+## Full desktop and Polkit VM
+
+```sh
+nix build path:.#legacyPackages.x86_64-linux.tests.desktop-vm --no-link --max-jobs 1 --cores 2
+```
+
+This boots real Hyprland with a virtual GPU, starts the packaged session target,
+opens/closes the panel, verifies Keep awake migration and restart persistence,
+and checks separate locker/Polkit process identities. A real Polkit request is
+cancelled without executing the privileged command. A second request survives a
+desktop restart and succeeds only after authentication. Stopping the session
+target stops its components. The setuid pkexec wrapper is enabled explicitly only
+inside this VM for the test; the production module does not enable it implicitly.
+
 ## Remaining acceptance boundaries
 
-Full Hyprland desktop/Polkit lifecycle, service restarts during active requests,
-physical GPU behavior, real Bluetooth hardware and actual laptop suspend/resume
-need further integration/hardware acceptance. The sleep bridge remains hypridle.
+Physical GPU behavior, real Bluetooth hardware and actual laptop suspend/resume
+need final hardware acceptance. The sleep bridge remains hypridle.
 Do not claim the authentication VMs establish real hardware power behavior.

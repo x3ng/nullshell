@@ -37,6 +37,10 @@
       );
       # Explicit, heavier integration test; not part of every local flake check.
       legacyPackages = eachSystem (system: {
+        tests.desktop-vm = import ./nix/tests/desktop-vm.nix {
+          pkgs = nixpkgs.legacyPackages.${system};
+          packages = self.packages.${system};
+        };
         tests.greeter-vm = import ./nix/tests/greeter-vm.nix {
           pkgs = nixpkgs.legacyPackages.${system};
           packages = self.packages.${system};
