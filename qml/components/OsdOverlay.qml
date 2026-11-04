@@ -195,14 +195,7 @@ Scope {
             required property ShellScreen modelData
             screen: modelData
             readonly property bool active: modelData !== null && osd.shown && osd.monitorName === modelData.name
-            property bool surfaceReady: false
-            visible: active || content.opacity > 0
-            onVisibleChanged: { if (!visible) surfaceReady = false; }
-            Connections {
-                target: content.Window.window
-                enabled: window.active && !window.surfaceReady
-                function onFrameSwapped() { window.surfaceReady = true; }
-            }
+            visible: active
             WlrLayershell.layer: WlrLayer.Overlay
             WlrLayershell.keyboardFocus: WlrKeyboardFocus.None
             WlrLayershell.exclusionMode: ExclusionMode.Ignore
@@ -213,18 +206,19 @@ Scope {
             implicitHeight: card.implicitHeight + 14
             color: "transparent"
             mask: Region {}
+            Region {
+                id: osdBlurRegion
+                x: card.x
+                y: card.y
+                width: card.width
+                height: card.height
+                radius: card.radius
+            }
+            BackgroundEffect.blurRegion: window.visible ? osdBlurRegion : null
 
             Item {
                 id: content
                 anchors.fill: parent
-                opacity: window.active && window.surfaceReady ? 1 : 0
-                transform: Translate { y: (1 - content.opacity) * 8 }
-                Behavior on opacity {
-                    NumberAnimation {
-                        duration: window.active ? osd.style.motionHintEnter : osd.style.motionHintExit
-                        easing.type: window.active ? Easing.OutCubic : Easing.InCubic
-                    }
-                }
 
                 OsdCard {
                     id: card

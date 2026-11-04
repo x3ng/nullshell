@@ -11,6 +11,7 @@ Nix 是打包和部署入口之一，不是运行时配置语言。
 
 - [架构与迁移规范](docs/SPEC.md)
 - [配置格式与热加载](docs/CONFIGURATION.md)
+- [界面视觉规范](docs/VISUAL.md)
 - [测试方法与覆盖边界](docs/TESTING.md)
 - [跨发行版构建与安装](docs/BUILDING.md)
 - [仓库与提交规范](AGENTS.md)

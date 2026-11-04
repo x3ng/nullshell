@@ -17,7 +17,7 @@ Scope {
     readonly property int spaceLg: 16
     readonly property int maximumPanelHeight: 700
     // Stable width for tabs, search and details; height adapts to content.
-    readonly property int maximumPanelWidth: 600
+    readonly property int maximumPanelWidth: 740
     readonly property int maximumTooltipWidth: 320
     readonly property int tooltipDelay: 500
     readonly property int stripHeight: 48
@@ -38,15 +38,15 @@ Scope {
     // Neutral, layered surfaces: opacity is not a substitute for backdrop blur.
     readonly property color backdrop: darkMode ? "#50000000" : "#18202730"
     readonly property color panelSurface: darkMode ? "#202328" : "#f4f4f2"
+    readonly property color backgroundSurface: darkMode ? "#191d22" : "#e8ece9"
     readonly property color surface: panelSurface
     readonly property color surfaceRaised: darkMode ? "#292d33" : "#fdfdfc"
     readonly property color surfaceHover: darkMode ? "#343a41" : "#e7eae8"
     readonly property color surfaceSelected: darkMode ? "#3a4545" : "#dce6e1"
-    readonly property color materialTop: darkMode ? "#2b3036" : "#fdfdfc"
-    readonly property color materialBottom: darkMode ? "#22262b" : "#f0f2ef"
     readonly property color materialEdge: darkMode ? "#850d1116" : "#302c3b34"
-    readonly property color materialHighlight: darkMode ? "#12ffffff" : "#c0ffffff"
-    readonly property color materialShadow: darkMode ? "#60000000" : "#24202b25"
+    readonly property color materialShadow: darkMode ? "#40000000" : "#1a202b25"
+    // The compositor blurs only the matching surface region behind this tint.
+    readonly property real glassOpacity: darkMode ? 0.78 : 0.84
     readonly property real frostedOpacity: darkMode ? 0.9 : 0.94
     readonly property color wallpaperScrim: darkMode ? "#420b1118" : "#26e8eeeb"
     readonly property color inputSurface: darkMode ? "#1b1f24" : "#ffffff"

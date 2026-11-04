@@ -36,7 +36,7 @@ ShellRoot {
         height: 720
         title: preview.lockMode
             ? "Quickshell · Lock screen preview" : "Quickshell · Greeter preview"
-        color: loginTheme.panelSurface
+        color: preview.lockMode ? loginTheme.panelSurface : loginTheme.backgroundSurface
         onVisibleChanged: if (visible) Qt.callLater(loginView.focusInput)
 
         WallpaperImage {

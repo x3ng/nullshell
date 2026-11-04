@@ -1,5 +1,12 @@
 # Releases
 
+## Unreleased
+
+Desktop surfaces use flat tonal materials and native rounded compositor blur.
+The command panel has no full-screen dimming scrim; its tint and blur appear
+in the same mapped frame. Greeter and locker retain their separate background
+paths. These changes are development work, not a new approved release.
+
 ## v0.1.1
 
 The greeter now remembers the last successfully authenticated user and session.

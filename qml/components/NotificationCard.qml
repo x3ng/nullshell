@@ -15,7 +15,6 @@ MaterialSurface {
     property var actions: []
     property string activationLabel: ""
     property bool compact: false
-    materialEnabled: !compact
     property bool expandable: true
     property bool expanded: false
     property int maximumBodyHeight: 220
@@ -35,7 +34,8 @@ MaterialSurface {
 
     implicitHeight: content.implicitHeight + pad * 2
     radius: style.radiusCard
-    color: compact ? (hovered ? style.surfaceHover : "transparent") : style.surfaceRaised
+    color: compact ? (hovered ? style.surfaceHover : "transparent")
+        : Qt.alpha(style.surfaceRaised, style.glassOpacity)
     border.width: compact && !activeFocus ? 0 : 1
     border.color: activeFocus ? style.accent : critical ? style.accentWarm : style.materialEdge
     activeFocusOnTab: visible

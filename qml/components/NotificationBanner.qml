@@ -25,6 +25,15 @@ PanelWindow {
     implicitWidth: 1
     implicitHeight: Math.min(stack.implicitHeight + 1, (screen?.height ?? 900) * 0.75)
     mask: Region { item: viewport }
+    Region {
+        id: notificationBlurRegion
+        x: viewport.x
+        y: viewport.y
+        width: viewport.width
+        height: viewport.height
+        radius: banner.style.radiusCard
+    }
+    BackgroundEffect.blurRegion: banner.visible ? notificationBlurRegion : null
 
     Flickable {
         id: viewport
@@ -55,9 +64,6 @@ PanelWindow {
                     onActivated: banner.notifs.activateEntry(wrapper)
                     onDismissRequested: banner.notifs.dismiss(wrapper)
                     onActionRequested: action => banner.notifs.invokeAction(wrapper, action)
-                    opacity: 0
-                    Behavior on opacity { NumberAnimation { duration: 140; easing.type: Easing.OutCubic } }
-                    Component.onCompleted: opacity = 1
                 }
             }
         }

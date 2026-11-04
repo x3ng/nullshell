@@ -40,11 +40,6 @@ ColumnLayout {
         restoreMode: Binding.RestoreNone
     }
     onPanelOpenChanged: if (panelOpen) viewport.contentY = 0
-
-
-
-
-
     Item {
         Layout.fillWidth: true
         Layout.fillHeight: true

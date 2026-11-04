@@ -98,8 +98,7 @@ PanelWindow {
             else search.forceActiveFocus();
         } });
     }
-    // Keep the current route on screen until its exit finishes. Opening resets
-    // search/details; panelOpen still turns off immediately for service cleanup.
+    // Opening resets the route; dismissal unmaps the glass and its blur together.
     function dismiss() { trayMenu.dismiss(); open = false; }
     // The only route dispatcher. Commands and visible controls use this same
     // path; unknown route IDs must not create an empty or hidden page.
@@ -194,11 +193,11 @@ PanelWindow {
     }
     onResultsChanged: syncSelection()
 
-    visible: open || card.opacity > 0
+    visible: open
     property bool surfaceReady: false
     onVisibleChanged: { if (!visible) surfaceReady = false; }
-    // Map an initial transparent frame before starting the entrance. Starting
-    // at open=true can consume the first part of the animation before mapping.
+    // Only animate later page-height changes. The first mapped frame must
+    // already contain the complete glass surface and its matching blur region.
     Connections {
         target: card.Window.window
         enabled: panel.open && !panel.surfaceReady
@@ -216,6 +215,16 @@ PanelWindow {
     WlrLayershell.keyboardFocus: open ? WlrKeyboardFocus.OnDemand : WlrKeyboardFocus.None
     WlrLayershell.namespace: "quickshell-launcher"
 
+    Region {
+        id: panelBlurRegion
+        x: card.x
+        y: card.y
+        width: card.width
+        height: card.height
+        radius: card.radius
+    }
+    BackgroundEffect.blurRegion: panel.visible ? panelBlurRegion : null
+
     TrayMenuPopup { id: trayMenu; style: panel.style; panelWindow: panel }
     readonly property var trayItems: SystemTray.items.values
     onTrayItemsChanged: {
@@ -224,32 +233,23 @@ PanelWindow {
 
     SystemClock { id: clock; precision: SystemClock.Minutes }
 
-    Rectangle {
-        id: backdropRect
+    MouseArea {
+        // Outside clicks dismiss the panel without dimming the desktop.
         anchors.fill: parent
-        color: panel.style.backdrop
-        opacity: card.revealProgress
-        MouseArea { anchors.fill: parent; enabled: panel.open; onClicked: panel.dismiss() }
+        enabled: panel.open
+        onClicked: panel.dismiss()
     }
 
     MaterialSurface {
         id: card
         materialTheme: panel.style
-        property real revealProgress: panel.open && panel.surfaceReady ? 1 : 0
-        opacity: revealProgress
+        materialOpacity: panel.style.glassOpacity
         enabled: panel.open
-        transform: Translate { y: -panel.style.motionDistance * (1 - card.revealProgress) }
-        Behavior on revealProgress {
-            NumberAnimation {
-                duration: panel.open ? panel.style.motionEnter : panel.style.motionExit
-                easing.type: panel.open ? Easing.OutCubic : Easing.InCubic
-            }
-        }
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.top: parent.top
         // Keep the search field stationary as status/search content changes height.
         anchors.topMargin: Math.max(16, Math.round(parent.height * 0.18))
-        width: Math.min(680, parent.width - 32)
+        width: Math.min(panel.style.maximumPanelWidth, parent.width - 32)
         readonly property real contentHeight: panel.showingDetails ? controlDetails.naturalHeight
             : panel.searching ? searchResultsPage.naturalHeight
             : panel.homeTab === "desktop" ? desktopPage.naturalHeight
@@ -270,12 +270,11 @@ PanelWindow {
         }
         height: layoutHeight
         Behavior on height {
-            enabled: panel.open && card.revealProgress > 0
+            enabled: panel.open && panel.surfaceReady
             NumberAnimation { duration: panel.style.motionResize; easing.type: Easing.OutCubic }
         }
         clip: true
         radius: 20
-        color: panel.style.panelSurface
         border.color: panel.style.materialEdge
         border.width: 1
         // Stop clicks in blank areas reaching the outside-dismiss handler.

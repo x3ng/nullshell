@@ -2,6 +2,7 @@ pragma ComponentBehavior: Bound
 
 import QtQuick
 import Quickshell
+import Quickshell.Wayland
 import Quickshell.Widgets
 import ".."
 
@@ -74,6 +75,13 @@ PopupWindow {
     anchor.edges: Edges.Top | Edges.Left
     anchor.gravity: Edges.Bottom | Edges.Right
     color: "transparent"
+    Region {
+        id: trayBlurRegion
+        width: popup.width
+        height: popup.height
+        radius: popup.style.radiusPopup
+    }
+    BackgroundEffect.blurRegion: popup.visible ? trayBlurRegion : null
     grabFocus: true
 
     onVisibleChanged: {
@@ -94,7 +102,7 @@ PopupWindow {
             else popup.dismiss();
         }
         radius: popup.style.radiusPopup
-        color: popup.style.surface
+        color: Qt.alpha(popup.style.surface, popup.style.glassOpacity)
         border.width: 1
         border.color: popup.style.materialEdge
 

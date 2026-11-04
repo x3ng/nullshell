@@ -9,7 +9,7 @@ MaterialSurface {
     required property var flow
     implicitHeight: form.implicitHeight + 48
     radius: theme.radiusPanel
-    color: theme.panelSurface
+    color: Qt.alpha(theme.panelSurface, theme.glassOpacity)
     border.color: theme.materialEdge
     border.width: 1
     signal cancelled()

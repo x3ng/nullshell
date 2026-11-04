@@ -20,7 +20,7 @@ MaterialSurface {
     implicitWidth: 320
     implicitHeight: body.implicitHeight + 2 * style.spaceMd
     radius: style.radiusPopup
-    color: style.surface
+    color: Qt.alpha(style.surface, style.glassOpacity)
     border.color: style.materialEdge
     border.width: 1
     Accessible.name: label + " " + value

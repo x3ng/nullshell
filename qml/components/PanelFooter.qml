@@ -98,23 +98,23 @@ Rectangle {
             tooltip: footer.services.keepAwake ? "Keep awake: on · Click to resume idle" : "Keep awake: off · Click to prevent idle"
             onTriggered: footer.keepAwakeRequested()
         }
-            UtilityButton {
-                id: lockButton
-                Layout.preferredWidth: 36
-                Layout.preferredHeight: 36
-                style: footer.style
-                label: ""
-                iconKind: "lock"
-                iconSize: 20
-                tooltip: "Lock screen"
-                available: footer.lockAvailable
-                onTriggered: footer.lockRequested()
-            }
-            Rectangle {
-                visible: footer.trayItems.length > 0
-                width: 1; height: 22
-                color: footer.style.separator
-            }
+        UtilityButton {
+            id: lockButton
+            Layout.preferredWidth: 36
+            Layout.preferredHeight: 36
+            style: footer.style
+            label: ""
+            iconKind: "lock"
+            iconSize: 20
+            tooltip: "Lock screen"
+            available: footer.lockAvailable
+            onTriggered: footer.lockRequested()
+        }
+        Rectangle {
+            visible: footer.trayItems.length > 0
+            width: 1; height: 22
+            color: footer.style.separator
+        }
         Flickable {
             id: trayViewport
             objectName: "footer-tray-viewport"

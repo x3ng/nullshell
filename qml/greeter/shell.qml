@@ -148,7 +148,7 @@ ShellRoot {
         visible: true
         width: 1280
         height: 800
-        color: root.style.panelSurface
+        color: root.style.backgroundSurface
         title: "Login"
         onVisibleChanged: if (visible) Qt.callLater(loginView.focusInput)
 

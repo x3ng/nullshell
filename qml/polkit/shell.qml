@@ -35,6 +35,13 @@ ShellRoot {
         WlrLayershell.namespace: "quickshell:polkit"
         WlrLayershell.layer: WlrLayer.Overlay
         WlrLayershell.keyboardFocus: WlrKeyboardFocus.Exclusive
+        Region {
+            id: promptBlurRegion
+            width: prompt.width
+            height: prompt.height
+            radius: style.radiusPanel
+        }
+        BackgroundEffect.blurRegion: prompt.visible ? promptBlurRegion : null
         onVisibleChanged: if (visible) Qt.callLater(view.resetInput)
         Flickable {
             anchors.fill: parent
