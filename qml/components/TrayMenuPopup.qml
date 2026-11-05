@@ -81,10 +81,11 @@ PopupWindow {
         height: popup.height
         radius: popup.style.radiusPopup
     }
-    BackgroundEffect.blurRegion: popup.visible ? trayBlurRegion : null
+    BackgroundEffect.blurRegion: popup.visible && popup.style.backdropBlur ? trayBlurRegion : null
     grabFocus: true
 
     onVisibleChanged: {
+        if (visible) style.refreshMaterial();
         if (!visible && open) dismiss();
     }
 

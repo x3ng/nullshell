@@ -15,6 +15,7 @@ PanelWindow {
 
     screen: Quickshell.screens.find(s => s.name === Hyprland.focusedMonitor?.name) ?? Quickshell.screens[0]
     visible: notifs.popups.length > 0
+    onVisibleChanged: if (visible) style.refreshMaterial()
     color: "transparent"
     anchors { top: true; left: true; right: true }
     margins { top: 10 }
@@ -33,7 +34,7 @@ PanelWindow {
         height: viewport.height
         radius: banner.style.radiusCard
     }
-    BackgroundEffect.blurRegion: banner.visible ? notificationBlurRegion : null
+    BackgroundEffect.blurRegion: banner.visible && banner.style.backdropBlur ? notificationBlurRegion : null
 
     Flickable {
         id: viewport

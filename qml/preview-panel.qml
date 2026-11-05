@@ -37,6 +37,7 @@ ShellRoot {
         function quit(): void { Qt.quit(); }
         function page(name: string): void { panel.openOnScreen(panel.preferredScreen); panel.navigate(name); }
         function search(text: string): void { panel.openSearch(text); }
+        function blur(enabled: bool): void { theme.previewBlur = enabled ? 1 : 0; }
         function light(enabled: bool): void { fixture.darkMode = !enabled; }
         function width(value: int): void { panel.maximumCardWidth = Math.max(360, Math.min(1000, value)); }
         function scenario(name: string): bool {
@@ -50,6 +51,7 @@ ShellRoot {
             return JSON.stringify({open: panel.open, page: panel.pageKey, scenario: fixture.scenario,
                 query: panel.query, results: fixture.results.length, card: panel.cardGeometry,
                 selectedKey: panel.selectedKey, selectedIndex: panel.selectedIndex,
+                blur: theme.backdropBlur, materialOpacity: theme.glassOpacity,
                 dark: fixture.darkMode, keepAwake: fixture.keepAwake, lastAction: fixture.lastAction});
         }
     }

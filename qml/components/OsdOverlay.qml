@@ -195,6 +195,7 @@ Scope {
             required property ShellScreen modelData
             screen: modelData
             readonly property bool active: modelData !== null && osd.shown && osd.monitorName === modelData.name
+            onVisibleChanged: if (visible) osd.style.refreshMaterial()
             visible: active
             WlrLayershell.layer: WlrLayer.Overlay
             WlrLayershell.keyboardFocus: WlrKeyboardFocus.None
@@ -214,7 +215,7 @@ Scope {
                 height: card.height
                 radius: card.radius
             }
-            BackgroundEffect.blurRegion: window.visible ? osdBlurRegion : null
+            BackgroundEffect.blurRegion: window.visible && osd.style.backdropBlur ? osdBlurRegion : null
 
             Item {
                 id: content

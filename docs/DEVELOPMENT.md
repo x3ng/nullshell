@@ -51,6 +51,7 @@ preview openPanel
 preview scenario crowded     # normal, empty, crowded, media
 preview width 440            # default 740; narrow layout and workspace wrapping
 preview light true
+preview blur false          # simulate opaque fallback; true simulates blur support
 preview page bluetooth       # overview, desktop, wifi, bluetooth, audio, notifications
 preview search terminal
 preview tick                 # change window titles without changing identities
@@ -74,7 +75,10 @@ same VM confirms that greeter/lock/Polkit preview windows really map.
 
 The full panel currently requires a Wayland compositor; it is not a freely
 resizable ordinary window or an offscreen-only renderer. The IPC width control
-covers layout resizing. Native blur requires compositor protocol support; keep
+covers layout resizing. Material tests use `preview blur` to inject capability results, never to modify
+the host compositor. Run `python3 tests/test_surface_capabilities.py` for the
+read-only Hyprland probe failure/timeout cases without a graphical session.
+Native blur requires compositor protocol support; keep
 software-rendered VM screenshots distinct from physical GPU visual acceptance.
 
 Acceptance covers the default panel, search and details; short/long labels;

@@ -197,7 +197,10 @@ PanelWindow {
 
     visible: open
     property bool surfaceReady: false
-    onVisibleChanged: { if (!visible) surfaceReady = false; }
+    onVisibleChanged: {
+        if (!visible) surfaceReady = false;
+        else style.refreshMaterial();
+    }
     // Only animate later page-height changes. The first mapped frame must
     // already contain the complete glass surface and its matching blur region.
     Connections {
@@ -225,7 +228,7 @@ PanelWindow {
         height: card.height
         radius: card.radius
     }
-    BackgroundEffect.blurRegion: panel.visible ? panelBlurRegion : null
+    BackgroundEffect.blurRegion: panel.visible && panel.style.backdropBlur ? panelBlurRegion : null
 
     TrayMenuPopup { id: trayMenu; style: panel.style; panelWindow: panel }
     onTrayItemsChanged: {

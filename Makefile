@@ -4,7 +4,7 @@ USER_UNIT_DIR ?= $(PREFIX)/lib/systemd/user
 CARGO_BUILD_JOBS ?= 2
 CARGO_TARGET_DIR ?= backend/target
 
-.PHONY: build helper install check check-backend check-preview
+.PHONY: build helper install check check-backend check-preview check-material
 
 build: helper
 
@@ -34,5 +34,8 @@ check-backend:
 	CARGO_BUILD_JOBS=$(CARGO_BUILD_JOBS) cargo test --locked --manifest-path backend/Cargo.toml
 
 # Run inside a Wayland session. Uses only Python and Quickshell from PATH.
+check-material:
+	python3 tests/test_surface_capabilities.py
+
 check-preview:
 	python3 tests/test_panel_preview.py

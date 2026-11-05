@@ -68,6 +68,16 @@ def main():
                 raise AssertionError("Preview IPC did not become ready")
             settle()
             screenshot("normal")
+            # Simulate capability results without altering the host compositor.
+            for light in ["false", "true"]:
+                call("light", light)
+                for blur in ["false", "true"]:
+                    call("blur", blur)
+                    material = settle()
+                    assert material["blur"] == (blur == "true"), material
+                    assert (material["materialOpacity"] < 1) == material["blur"], material
+                    screenshot(("light" if light == "true" else "dark") + ("-glass" if blur == "true" else "-solid"))
+            call("light", "false")
             for scenario in ["empty", "crowded", "media", "normal"]:
                 assert call("scenario", scenario) == "true"
                 for page in ["overview", "wifi", "bluetooth", "audio", "notifications", "desktop"]:

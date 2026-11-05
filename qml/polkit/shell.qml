@@ -41,8 +41,8 @@ ShellRoot {
             height: prompt.height
             radius: style.radiusPanel
         }
-        BackgroundEffect.blurRegion: prompt.visible ? promptBlurRegion : null
-        onVisibleChanged: if (visible) Qt.callLater(view.resetInput)
+        BackgroundEffect.blurRegion: prompt.visible && style.backdropBlur ? promptBlurRegion : null
+        onVisibleChanged: if (visible) { style.refreshMaterial(); Qt.callLater(view.resetInput); }
         Flickable {
             anchors.fill: parent
             contentHeight: view.implicitHeight

@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Window
 import Quickshell
+import Quickshell.Wayland
 
 ShellRoot {
     Theme { id: style; darkMode: Quickshell.env("QS_PREVIEW_LIGHT") !== "1" }
@@ -23,9 +24,18 @@ ShellRoot {
         id: window
         implicitWidth: 480
         implicitHeight: view.implicitHeight
+        minimumSize: Qt.size(480, view.implicitHeight)
+        maximumSize: minimumSize
         visible: true
         title: "Quickshell · Authentication preview"
-        color: style.panelSurface
+        color: "transparent"
+        Region {
+            id: blurRegion
+            width: window.width
+            height: window.height
+            radius: style.radiusPanel
+        }
+        BackgroundEffect.blurRegion: style.backdropBlur ? blurRegion : null
         AuthView {
             id: view
             anchors.fill: parent

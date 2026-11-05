@@ -4,6 +4,12 @@ import QtQuick
 import Quickshell
 
 Scope {
+    id: theme
+    // Internal injection for isolated previews, not a user configuration API.
+    property int previewBlur: -1
+    SurfaceCapabilities { id: capabilities; enabled: theme.previewBlur < 0 }
+    readonly property bool backdropBlur: previewBlur < 0 ? capabilities.blurAvailable : previewBlur === 1
+    function refreshMaterial() { capabilities.refresh(); }
     required property bool darkMode
     // Palette sync: the values below are mirrored in adapters/Hyprland.lua
     // (borders, groupbar). Keep both files in step when changing a colour;
@@ -46,8 +52,8 @@ Scope {
     readonly property color materialEdge: darkMode ? "#850d1116" : "#302c3b34"
     readonly property color materialShadow: darkMode ? "#40000000" : "#1a202b25"
     // The compositor blurs only the matching surface region behind this tint.
-    readonly property real glassOpacity: darkMode ? 0.78 : 0.84
-    readonly property real frostedOpacity: darkMode ? 0.9 : 0.94
+    readonly property real glassOpacity: backdropBlur ? (darkMode ? 0.78 : 0.72) : 1
+    readonly property real frostedOpacity: darkMode ? 0.86 : 0.82
     readonly property color wallpaperScrim: darkMode ? "#420b1118" : "#26e8eeeb"
     readonly property color inputSurface: darkMode ? "#1b1f24" : "#ffffff"
     readonly property color textSelected: textPrimary
