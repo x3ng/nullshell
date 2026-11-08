@@ -16,6 +16,8 @@ ColumnLayout {
     required property var appearance
     required property var notifs
     required property var searchModel
+    required property var trayItems
+    signal menuRequested(var owner, real right, real top)
     required property var controls
     required property date date
     required property bool panelOpen
@@ -90,48 +92,58 @@ ColumnLayout {
                         onEdited: value => page.services.setBrightness(value)
                     }
                 }
-                ChoiceButton {
-                    id: notificationGlance
-                    objectName: "overview-notifications"
+                RowLayout {
                     Layout.fillWidth: true
-                    Layout.minimumWidth: 64
-                    Layout.preferredHeight: 40
-                    style: page.style
-                    label: ""
-                    Accessible.name: "Notifications, " + page.notifs.current.length + " pending"
-                    tooltip: page.notifs.current.length
-                        ? (page.notifs.current[0].appName || "Application") + " · " + (page.notifs.current[0].summary || "Notification")
-                        : "No pending notifications · Open history"
-                    onTriggered: page.actions.execute("notifications")
-                    RowLayout {
-                        anchors.fill: parent
-                        anchors.leftMargin: 10
-                        anchors.rightMargin: 10
-                        spacing: 8
-                        StatusIcon {
-                            kind: "bell"
-                            ink: page.style.textSecondary
-                            Layout.preferredWidth: 18; Layout.preferredHeight: 18
+                    spacing: 8
+                    ChoiceButton {
+                        id: notificationGlance
+                        objectName: "overview-notifications"
+                        Layout.fillWidth: true
+                        Layout.minimumWidth: 64
+                        Layout.preferredHeight: 40
+                        style: page.style
+                        label: ""
+                        Accessible.name: "Notifications, " + page.notifs.current.length + " pending"
+                        tooltip: page.notifs.current.length
+                            ? (page.notifs.current[0].appName || "Application") + " · " + (page.notifs.current[0].summary || "Notification")
+                            : "No pending notifications · Open history"
+                        onTriggered: page.actions.execute("notifications")
+                        RowLayout {
+                            anchors.fill: parent
+                            anchors.leftMargin: 10
+                            anchors.rightMargin: 10
+                            spacing: 8
+                            StatusIcon {
+                                kind: "bell"
+                                ink: page.style.textSecondary
+                                Layout.preferredWidth: 18; Layout.preferredHeight: 18
+                            }
+                            Text {
+                                Layout.fillWidth: true
+                                Layout.minimumWidth: 0
+                                visible: notificationGlance.width >= 110
+                                text: page.notifs.current.length
+                                    ? String(page.notifs.current[0].summary || "Notification").replace(/\s+/g, " ")
+                                    : "No notifications"
+                                textFormat: Text.PlainText
+                                elide: Text.ElideRight
+                                color: page.style.textSecondary
+                                font.family: page.style.fontFamily
+                                font.pixelSize: 15
+                            }
+                            Text {
+                                text: (page.notifs.current.length > 99 ? "99+" : String(page.notifs.current.length)) + "  ›"
+                                color: page.style.textMuted
+                                font.family: page.style.fontFamily
+                                font.pixelSize: 13
+                            }
                         }
-                        Text {
-                            Layout.fillWidth: true
-                            Layout.minimumWidth: 0
-                            visible: notificationGlance.width >= 110
-                            text: page.notifs.current.length
-                                ? String(page.notifs.current[0].summary || "Notification").replace(/\s+/g, " ")
-                                : "No notifications"
-                            textFormat: Text.PlainText
-                            elide: Text.ElideRight
-                            color: page.style.textSecondary
-                            font.family: page.style.fontFamily
-                            font.pixelSize: 15
-                        }
-                        Text {
-                            text: (page.notifs.current.length > 99 ? "99+" : String(page.notifs.current.length)) + "  ›"
-                            color: page.style.textMuted
-                            font.family: page.style.fontFamily
-                            font.pixelSize: 13
-                        }
+                    }
+                    PanelTools {
+                        style: page.style
+                        services: page.services
+                        appearance: page.appearance
+                        actions: page.actions
                     }
                 }
                 Rectangle {
@@ -215,7 +227,15 @@ ColumnLayout {
                         }
                     }
                 }
+                // Workspaces and tray share one wrapping navigation area.
+                Rectangle {
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: 1
+                    Layout.topMargin: 4
+                    color: page.style.separator
+                }
                 WorkspaceStrip {
+                    id: navigationStrip
                     Layout.fillWidth: true
                     Layout.minimumWidth: 0
                     Layout.preferredHeight: implicitHeight
@@ -224,6 +244,11 @@ ColumnLayout {
                     searchModel: page.searchModel
                     workspaces: page.displayedWorkspaces
                     windows: page.displayedWindows
+                    trayItems: page.trayItems
+                    onMenuRequested: (owner, right, top) => {
+                        const pos = navigationStrip.mapToItem(page, right, top);
+                        page.menuRequested(owner, pos.x, pos.y);
+                    }
                 }
             }
         }

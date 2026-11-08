@@ -258,7 +258,8 @@ PanelWindow {
             : panel.homeTab === "desktop" ? desktopPage.naturalHeight
             : overviewPage.naturalHeight
         readonly property real chromeHeight: panel.showingDetails || panel.showingWorkspace ? 0
-            : searchStrip.implicitHeight + footer.implicitHeight + panel.style.panelGap * 2
+            : searchStrip.implicitHeight + (footer.visible ? footer.implicitHeight : 0)
+                + panel.style.panelGap * (footer.visible ? 2 : 1)
         // Fit the active page; long content scrolls under the shared screen limit.
         readonly property real targetHeight: Math.max(0, Math.min(panel.style.maximumPanelHeight,
             parent.height - anchors.topMargin - 16,
@@ -414,6 +415,12 @@ PanelWindow {
                     notifs: panel.notifs
                     searchModel: panel.searchModel
                     controls: panel.hyprControls
+                    trayItems: panel.trayItems
+                    onMenuRequested: (owner, right, top) => {
+                        const pos = overviewPage.mapToItem(panel.contentItem, right, top);
+                        const showMenu = () => trayMenu.openFor(owner, pos.x, pos.y);
+                        if (!showMenu()) Qt.callLater(showMenu);
+                    }
                     panelOpen: panel.open && panel.activePage === panel.pageIndexes.overview
                     onDismissRequested: panel.dismiss()
                 }
@@ -458,31 +465,12 @@ PanelWindow {
             }
             PanelFooter {
                 id: footer
-                visible: !panel.showingDetails && !panel.showingWorkspace
+                visible: panel.searching && !panel.showingDetails
                 Layout.fillWidth: true
                 Layout.preferredHeight: implicitHeight
                 Layout.minimumHeight: implicitHeight
                 Layout.maximumHeight: implicitHeight
                 style: panel.style
-                services: panel.services
-                appearance: panel.appearance
-                searchMode: panel.searching
-                summaryOnly: true
-                centerActions: panel.homeTab === "overview"
-                notificationCount: panel.notifs.current.length
-                notificationHistoryCount: panel.notifs.history.length
-                lockAvailable: panel.actions.available("lock")
-                onNotificationsRequested: panel.showDetails("notifications")
-                onLockRequested: panel.actions.execute("lock")
-                onAppearanceRequested: panel.actions.execute(panel.appearance.darkMode ? "light" : "dark")
-                onKeepAwakeRequested: panel.actions.execute("keep-awake")
-                trayItems: panel.trayItems
-                date: panel.displayDate
-                onMenuRequested: (owner, right, top) => {
-                    const pos = footer.mapToItem(panel.contentItem, right, top);
-                    const showMenu = () => trayMenu.openFor(owner, pos.x, pos.y);
-                    if (!showMenu()) Qt.callLater(showMenu);
-                }
             }
         }
     }

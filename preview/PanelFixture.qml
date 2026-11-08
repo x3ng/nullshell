@@ -14,7 +14,7 @@ Scope {
     property bool darkMode: true
     property bool appearanceAvailable: true
     property bool keepAwake: true
-    property var trayItems: scenario === "empty" ? [] : [tray]
+    property var trayItems: scenario === "empty" ? [] : Array.from({length: scenario === "crowded" ? 6 : 1}, () => tray)
     QtObject {
         id: tray
         property string title: "Preview tray item"
@@ -107,7 +107,8 @@ Scope {
     property string focusedWorkspaceAddress: "preview-1"
     property var workspaces: scenario === "empty" ? [] : Array.from({length: scenario === "crowded" ? 9 : 3}, (_, i) => ({
         address: "preview-" + (i + 1), name: String(i + 1), active: i === 0, exists: true, layout: "dwindle", monitor: "Preview"
-    }))
+    })).concat([{address: "special:scratchpad", name: "scratchpad", special: true,
+        active: false, exists: true, layout: "dwindle", monitor: "Preview"}])
     property var workspaceTargets: workspaces
     property int titleRevision: 0
     property var windows: scenario === "empty" ? [] : workspaces.reduce((all, w, i) => all.concat(
