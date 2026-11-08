@@ -205,6 +205,10 @@ PopupWindow {
 
         ListView {
             id: menuList
+            property var hoveredEntry: null
+            spacing: 3
+            onModelChanged: hoveredEntry = null
+            onContentYChanged: hoveredEntry = null
             anchors.top: header.bottom
             anchors.topMargin: 5
             anchors.bottom: parent.bottom
@@ -240,11 +244,9 @@ PopupWindow {
                     visible: !entry.modelData.isSeparator
                     anchors.fill: parent
                     radius: popup.style.radiusControl
-                    color: entryMouse.containsMouse && entry.modelData.enabled
+                    color: menuList.hoveredEntry === entry && entryMouse.containsMouse && entry.modelData.enabled
                         ? popup.style.surfaceHover
                         : "transparent"
-
-                    Behavior on color { ColorAnimation { duration: 100 } }
                 }
 
                 Item {
@@ -331,6 +333,11 @@ PopupWindow {
                     anchors.fill: parent
                     enabled: !entry.modelData.isSeparator && entry.modelData.enabled
                     hoverEnabled: true
+                    onEntered: menuList.hoveredEntry = entry
+                    onPositionChanged: menuList.hoveredEntry = entry
+                    onExited: {
+                        if (menuList.hoveredEntry === entry) menuList.hoveredEntry = null;
+                    }
                     onClicked: {
                         if (entry.modelData.hasChildren)
                             popup.enterSubmenu(entry.modelData);

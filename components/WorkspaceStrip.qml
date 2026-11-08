@@ -49,10 +49,10 @@ Item {
                     Text {
                         height: 28
                         verticalAlignment: Text.AlignVCenter
-                        text: chip.special ? "◇" : String(chip.modelData.name)
+                        text: chip.special ? "$" : String(chip.modelData.name)
                         textFormat: Text.PlainText
                         font.family: strip.style.fontFamily
-                        font.pixelSize: chip.special ? 16 : 14
+                        font.pixelSize: 14
                         font.weight: Font.Medium
                         color: chip.selected ? strip.style.textPrimary : strip.style.textSecondary
                         width: Math.min(implicitWidth, 64)
@@ -103,13 +103,15 @@ Item {
                 color: "transparent"
                 Rectangle {
                     visible: trayItem.leadingSpace > 0
-                    width: 1; height: 14
+                    width: 1; height: 18
                     anchors.verticalCenter: parent.verticalCenter
-                    color: strip.style.outline
+                    color: strip.style.textMuted
                 }
                 Rectangle {
                     anchors.fill: parent
                     anchors.leftMargin: trayItem.leadingSpace
+                    anchors.topMargin: 4
+                    anchors.bottomMargin: 4
                     radius: strip.style.radiusControl
                     color: trayMouse.containsMouse ? strip.style.surfaceHover : "transparent"
                 }
