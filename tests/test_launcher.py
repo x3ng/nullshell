@@ -22,7 +22,7 @@ with tempfile.TemporaryDirectory(prefix='nullshell-routing-') as tmp:
         path.chmod(0o755)
     env = {k: v for k, v in os.environ.items() if not k.startswith('NULLSHELL_')}
     env.update(HOME=str(root / 'home'), XDG_CONFIG_HOME=str(root / 'config'),
-               XDG_STATE_HOME=str(root / 'state'), PATH=str(probe) + os.pathsep + os.environ['PATH'])
+               XDG_STATE_HOME=str(root / 'state'), XDG_RUNTIME_DIR=str(root), WAYLAND_DISPLAY='test-wayland', PATH=str(probe) + os.pathsep + os.environ['PATH'])
     local = root / 'config/quickshell/nullshell'
     for name in ('shell.qml', 'preview-panel.qml', 'lock/shell.qml', 'polkit/shell.qml', 'greeter/shell.qml'):
         path = local / name
@@ -58,6 +58,7 @@ with tempfile.TemporaryDirectory(prefix='nullshell-routing-') as tmp:
     assert run('preview-panel', launcher=source / 'bin/nullshell')['data'] == str(source)
     sleep = source / 'integration/hypridle.conf'
     assert run('sleep-bridge', extra={'NULLSHELL_SLEEP_CONFIG': str(sleep)})['args'] == ['--config', str(sleep)]
+    assert 'Unknown mode' in run('session-start', success=False)
     (local / 'shell.qml').unlink()
     assert 'Missing nullshell resource' in run('desktop', success=False)
 print('Launcher: source, XDG, packaged greeter, IPC, canonical paths and missing checkout passed')

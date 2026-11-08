@@ -1,7 +1,7 @@
 #!/bin/sh
 set -eu
 
-# Resource selection is shared by service startup, CLI IPC and child processes.
+# Resource selection is shared by direct startup, CLI IPC and child processes.
 # A packaged greeter never discovers a user's editable checkout implicitly.
 prefix=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 mode=${1:-desktop}
@@ -28,7 +28,7 @@ case "$mode" in
     desktop) sh "$helpers/nullshell-migrate-state"; entry=$resources/shell.qml ;;
     locker) sh "$helpers/nullshell-migrate-state"; entry=$resources/lock/shell.qml ;;
     polkit) entry=$resources/polkit/shell.qml ;;
-    lock) exec sh "$helpers/nullshell-lock" "$@" ;;
+    lock) sh "$helpers/nullshell-migrate-state"; exec sh "$helpers/nullshell-lock" "$@" ;;
     migrate-state) exec sh "$helpers/nullshell-migrate-state" "$@" ;;
     ipc)
         entry=$resources/shell.qml
@@ -38,15 +38,12 @@ case "$mode" in
             polkit) entry=$resources/polkit/shell.qml; shift ;;
         esac
         exec quickshell ipc --path "$entry" "$@" ;;
-    session-start)
-        [ -n "${HYPRLAND_INSTANCE_SIGNATURE:-}" ] && [ -n "${WAYLAND_DISPLAY:-}" ] \
-            || { echo 'Start nullshell from a Hyprland session' >&2; exit 1; }
-        systemctl --user import-environment WAYLAND_DISPLAY HYPRLAND_INSTANCE_SIGNATURE XDG_CURRENT_DESKTOP XDG_SESSION_TYPE
-        exec systemctl --user start nullshell-session.target ;;
     sleep-bridge)
         sleep_config=${NULLSHELL_SLEEP_CONFIG:-$resources/integration/hypridle.conf}
         [ -f "$sleep_config" ] || sleep_config=$resources/hypridle.conf
-        exec hypridle --config "$sleep_config" ;;
+        # One bridge per Wayland session; the lock is released when it exits.
+        exec flock --nonblock "${XDG_RUNTIME_DIR:?}/nullshell-sleep-${WAYLAND_DISPLAY:?}.lock" \
+            hypridle --config "$sleep_config" ;;
     greeter) entry=$resources/greeter/shell.qml ;;
     preview-greeter) entry=$resources/preview.qml; export QS_PREVIEW_LOCK=0 ;;
     preview-lock) entry=$resources/preview.qml; export QS_PREVIEW_LOCK=1 ;;
@@ -54,7 +51,7 @@ case "$mode" in
     preview-connectivity) entry=$resources/preview-connectivity.qml ;;
     preview-panel) entry=$resources/preview-panel.qml ;;
     -h|--help)
-        printf '%s\n' 'Usage: nullshell [desktop|locker|polkit|greeter|lock|session-start|migrate-state|ipc|preview-greeter|preview-lock|preview-polkit|preview-connectivity|preview-panel] [arguments]'
+        printf '%s\n' 'Usage: nullshell [desktop|locker|polkit|greeter|lock|sleep-bridge|migrate-state|ipc|preview-greeter|preview-lock|preview-polkit|preview-connectivity|preview-panel] [arguments]'
         exit 0 ;;
     *) printf 'Unknown mode: %s\n' "$mode" >&2; exit 2 ;;
 esac

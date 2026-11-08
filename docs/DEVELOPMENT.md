@@ -69,7 +69,7 @@ real hardware behavior need integration testing separately.
 Use `grim /tmp/nullshell-panel.png` after the frame/resize has settled, then inspect
 the image. The portable `tests/test_panel_preview.py` cycles scenarios and pages, checks
 settled geometry and optionally writes screenshots. The desktop VM invokes the
-same script and separately checks native layer mapping and production service
+same script and separately checks native layer mapping and production process
 isolation. The
 same VM confirms that greeter/lock/Polkit preview windows really map.
 
@@ -106,8 +106,8 @@ source or protocol changes; test it on private buses/VMs before real integration
 Clone this repository to `$XDG_CONFIG_HOME/quickshell/nullshell`. The root
 `shell.qml` is a native Quickshell configuration entry. The runtime package
 provides dependencies/helper and the `nullshell` launcher without QML assets.
-It resolves this checkout for both services and IPC. `quickshell -c nullshell`
-also works with dependencies on PATH, but must not run beside the desktop service.
+It resolves this checkout for both direct startup and IPC. `quickshell -c nullshell`
+also works with dependencies on PATH, but must not run beside an existing desktop process.
 
 Desktop QML is watched by Quickshell. Work with isolated previews first: a live
 reload recreates notification/idle objects, even though persisted state survives.

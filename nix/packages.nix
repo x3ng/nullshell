@@ -59,10 +59,6 @@ let
           --set-default NULLSHELL_DATA_DIR ${assets}/share/nullshell \
           --set NULLSHELL_LIBEXEC_DIR ${../bin} \
           --prefix PATH : "$out/bin:${lib.makeBinPath runtimeDependencies}"
-        mkdir -p $out/lib/systemd/user
-        for unit in ${../integration/systemd}/*; do
-          sed "s|@BINDIR@|$out/bin|g; s|/bin/sh|${pkgs.runtimeShell}|g" "$unit" > "$out/lib/systemd/user/$(basename "$unit")"
-        done
       '';
   # No QML snapshot dependency: editing the checkout does not rebuild runtime.
   runtime =
@@ -72,7 +68,7 @@ let
         meta.mainProgram = "nullshell";
       }
       ''
-        mkdir -p $out/bin $out/lib/systemd/user
+        mkdir -p $out/bin
         makeWrapper ${pkgs.runtimeShell} $out/bin/nullshell \
           --add-flags ${../bin/nullshell} \
           --set NULLSHELL_LIBEXEC_DIR ${../bin} \
@@ -82,9 +78,6 @@ let
         makeWrapper ${pkgs.quickshell}/bin/quickshell $out/bin/quickshell \
           --prefix PATH : "$out/bin:${lib.makeBinPath runtimeDependencies}"
         ln -s ${helper}/bin/nullshell-helper $out/bin/nullshell-helper
-        for unit in ${../integration/systemd}/*; do
-          sed "s|@BINDIR@|$out/bin|g; s|/bin/sh|${pkgs.runtimeShell}|g" "$unit" > "$out/lib/systemd/user/$(basename "$unit")"
-        done
       '';
   greeter =
     pkgs.runCommand "nullshell-greeter"

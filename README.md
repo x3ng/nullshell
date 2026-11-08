@@ -12,15 +12,17 @@ git clone git@github.com:x3ng/nullshell.git ~/.config/quickshell/nullshell
 ```
 
 安装原生 Quickshell、nullshell runtime/helper 和所需系统依赖后，
-`nullshell session-start` 启动会话服务。入口是根目录 `shell.qml`；
-也支持 `quickshell -c nullshell`，但不要和桌面服务同时启动。
+由 Hyprland 的启动配置分别运行 `nullshell desktop --no-duplicate`、
+`nullshell locker --no-duplicate`、`nullshell polkit --no-duplicate` 和
+`nullshell sleep-bridge`。不安装 Quickshell 保活 service。
+入口是根目录 `shell.qml`，也支持 `quickshell -c nullshell`，但不要重复启动桌面。
 
 直接编辑 `Theme.qml`、`components/` 等 QML 文件；无需构建、提交、更新 flake
 或 switch。用 `nullshell preview-panel` 检查布局；锁屏、登录和 Polkit 有独立预览。
 真实 locker 与 Polkit 禁止文件热重载，greeter 使用系统部署的快照。
 状态和缓存仍在 XDG 状态目录，不写进这个 Git 仓库。
 
-Nix 的 `packages.runtime` 安装依赖、helper、启动器与服务，不携带 QML 快照。
+Nix 的 `packages.runtime` 安装依赖、helper、启动器，不携带 QML 快照。
 Home Manager 设置 `programs.nullshell.editable = true` 选择它。
 `packages.helper` 可单独安装；`packages.desktop` 和 `packages.greeter`
 保留完整快照部署。helper 与 QML 只需接口兼容，无需同一 Git 提交。

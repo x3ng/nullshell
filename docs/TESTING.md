@@ -104,13 +104,12 @@ loss. It needs no real radio. Rust unit tests and clippy cover the helper separa
 nix build path:.#legacyPackages.x86_64-linux.tests.desktop-vm --no-link --max-jobs 1 --cores 2
 ```
 
-This boots real Hyprland with a virtual GPU, starts the packaged session target,
+This boots real Hyprland with a virtual GPU, directly launches the desktop, locker, Polkit and sleep bridge,
 opens/closes the panel, verifies Keep awake migration and restart persistence,
 checks Darkman availability and wallpaper screen tracking across virtual monitor
 creation/removal, and checks separate locker/Polkit process identities. A real Polkit request is
 cancelled without executing the privileged command. A second request survives a
-desktop restart and succeeds only after authentication. Stopping the session
-target stops its components. The setuid pkexec wrapper is enabled explicitly only
+desktop restart and succeeds only after authentication. Disconnecting the compositor terminates its direct clients. The setuid pkexec wrapper is enabled explicitly only
 inside this VM for the test; the production module does not enable it implicitly.
 
 ## Remaining acceptance boundaries

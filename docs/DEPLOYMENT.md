@@ -1,27 +1,38 @@
 # Deployment contract
 
-Install and activation are separate operations. Packages do not start a session.
-`nullshell session-start` is called from Hyprland after its environment is ready;
-it imports the display environment into the user manager and starts
-`nullshell-session.target`. Every component requires a Hyprland/Wayland environment.
-There are no global WantedBy links. UWSM/graphical-session.target owns teardown;
-non-UWSM integrations must stop nullshell-session.target on session exit.
+Installation does not start processes or install Quickshell user services.
+The compositor starts each process once, directly. For Hyprland 0.57 Lua:
 
-Desktop, locker and Polkit have independent services. Restarting the desktop
-service does not restart authentication components. Never restart a locked locker
-or an active Polkit agent. `nullshell lock` returns success only after the
-compositor reports the session secured; it exposes no unlock command.
+```lua
+hl.on("hyprland.start", function()
+  hl.exec_cmd("systemctl --user start darkman.service") -- optional appearance provider
+  hl.exec_cmd("nullshell locker --no-duplicate")
+  hl.exec_cmd("nullshell polkit --no-duplicate")
+  hl.exec_cmd("nullshell desktop --no-duplicate")
+  hl.exec_cmd("nullshell sleep-bridge")
+end)
+```
 
-The target also starts `nullshell-sleep.service`, which runs hypridle for logind
-lock/suspend coordination. It has no idle timers and conflicts with another
-hypridle.service. Quickshell owns dim/lock/display-off timers. A Rust replacement
-for this bridge is not required for v0.1 and must pass dedicated sleep tests before
-replacing hypridle.
+Do not also run the old nullshell units, another notification owner, Polkit agent
+or hypridle. Quickshell prevents duplicate configurations with `--no-duplicate`;
+the sleep bridge holds a per-Wayland-display flock. There is no automatic crash
+restart. Direct clients exit on Wayland disconnection; the host's UWSM session
+also provides cgroup cleanup. Manual terminal launches may use `--daemonize`;
+no `disown` is needed for compositor-launched processes.
 
-The desktop unit requests `darkman.service` for automatic appearance changes.
-Install its user unit when using this provider; a missing provider does not block
-the desktop because this is a Wants dependency. Host-specific location and
-appearance policy remain external configuration.
+Desktop, locker and Polkit are independent processes. Restarting the desktop
+does not restart authentication components. Never restart a locked locker or an
+active Polkit agent. `nullshell lock` starts an absent locker directly, then waits
+for the compositor to confirm a secured session. Failure is reported; relaunching
+a crashed locker is not a guarantee of recovering an abandoned session lock.
+
+`nullshell sleep-bridge` runs hypridle for logind lock/suspend coordination, with
+no idle timers. Quickshell owns dim/lock/display-off timers. The Bluetooth helper
+is an on-demand process and requires no service. A future persistent helper must
+justify its own lifecycle independently; it does not supervise Quickshell.
+
+Darkman may keep its upstream service; start it explicitly from the session when
+using that provider. Host-specific location and appearance policy remain external.
 
 ## State
 
@@ -35,7 +46,7 @@ perform this independently. Preview and greeter never perform migration.
 ## Nix
 
 Import `homeManagerModules.default`, set `programs.nullshell.enable = true` for
-user packages/units; separately import `nixosModules.default` and enable
+user runtime packages; separately import `nixosModules.default` and enable
 `programs.nullshell.enable` for PAM/Polkit/UPower integration. Enable
 `programs.nullshell.greeter.enable` only if replacing the display manager is
 intended. Set `programs.nullshell.editable = true` in Home Manager to install
@@ -48,12 +59,14 @@ explicitly select another checkout when supplied consistently to all processes.
 The greeter remains a packaged system-owned snapshot. Missing local QML fails
 with a resource error; the editable runtime does not silently start an old UI.
 Helper and runtime updates require deployment; QML edits do not. For the initial
-migration from bundled QML, deploy the new units and log out/in (or reboot).
+migration from bundled QML, run Home Manager switch to remove the old unit links, then log out/in or reboot.
+Existing old processes are not stopped during activation; do not manually start
+the new processes in that same session.
 Do not live-restart authentication components or mix old locker paths with new IPC.
 
 ## Other distributions
 
-`make install` installs portable resources and user units. Distribution packages
+`make install` installs portable resources and launchers, without user units. Distribution packages
 must provide their native PAM configuration as `/etc/pam.d/nullshell-lock`.
 An Arch-specific include file is in `integration/pam/nullshell-lock.arch`; it is
 not installed on other distributions automatically. Install Quickshell, hypridle,

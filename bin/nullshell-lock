@@ -4,7 +4,9 @@ set -eu
 resources=${NULLSHELL_DATA_DIR:?The nullshell launcher must provide the resource directory}
 request() { [ "$(timeout 1s quickshell ipc --path "$resources/lock/shell.qml" call locker lock 2>/dev/null)" = locked ]; }
 if ! request; then
-    timeout 5s systemctl --user start nullshell-lock.service
+    # Start only when absent; Quickshell owns duplicate detection and detaching.
+    # No supervisor restarts this process after a failure.
+    timeout 5s quickshell --path "$resources/lock/shell.qml" --daemonize --no-duplicate
     accepted=false
     for attempt in $(seq 1 50); do
         if request; then accepted=true; break; fi

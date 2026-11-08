@@ -4,7 +4,6 @@ let
     xwayland disable
     output HEADLESS-1 resolution 1280x720
     seat seat0 fallback true
-    exec ${packages.desktop}/bin/nullshell locker
   '';
 in
 pkgs.testers.runNixOSTest {
@@ -64,18 +63,19 @@ pkgs.testers.runNixOSTest {
 
     def user(command):
         return "su -s /bin/sh preview -c " + shlex.quote(
-            "export XDG_RUNTIME_DIR=/run/nullshell-lock-test WAYLAND_DISPLAY=wayland-1; " + command
+            "export XDG_RUNTIME_DIR=/run/nullshell-lock-test WAYLAND_DISPLAY=wayland-1 QT_QUICK_BACKEND=software; " + command
         )
 
     status = user("nullshell ipc locker call locker status")
-    machine.wait_until_succeeds(status, timeout=timedelta(seconds=30))
+    # Cold request starts the locker directly, with no installed user service.
+    machine.fail(status)
     machine.succeed(user("nullshell lock"))
     assert json.loads(machine.succeed(status))["secure"]
-    machine.succeed(user("wtype wrong-password -k Return"))
-    machine.wait_until_succeeds("journalctl -u lock-test-compositor | grep 'authentication failure'", timeout=timedelta(seconds=15))
+    machine.succeed(user("wtype -s 200 wrong-password -k Return"))
+    machine.wait_until_succeeds("journalctl --no-pager | grep -F 'pam_unix(nullshell-lock:auth): authentication failure'", timeout=timedelta(seconds=15))
     machine.sleep(3)
     assert json.loads(machine.succeed(status))["secure"]
-    machine.succeed(user("wtype -M ctrl -k a -m ctrl test-only-password -k Return"))
+    machine.succeed(user("wtype -s 200 -M ctrl -k a -m ctrl test-only-password -k Return"))
     machine.wait_until_succeeds(status + " | grep '\"locked\":false'", timeout=timedelta(seconds=15))
     # Successful authentication is the only unlock path; the process stays alive.
     assert not json.loads(machine.succeed(status))["secure"]

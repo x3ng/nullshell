@@ -1,5 +1,0 @@
-[Unit]
-Description=nullshell Hyprland session components
-PartOf=graphical-session.target
-Wants=nullshell.service nullshell-lock.service nullshell-polkit.service nullshell-sleep.service
-After=graphical-session.target

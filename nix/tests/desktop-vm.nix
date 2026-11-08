@@ -4,7 +4,11 @@ let
     hl.config({ misc = { disable_hyprland_logo = true, disable_splash_rendering = true } })
     hl.monitor({ output = "", mode = "preferred", position = "auto", scale = 1 })
     hl.on("hyprland.start", function()
-      hl.exec_cmd("${packages.desktop}/bin/nullshell session-start")
+      hl.exec_cmd("systemctl --user start darkman.service")
+      hl.exec_cmd("${packages.desktop}/bin/nullshell locker --no-duplicate")
+      hl.exec_cmd("${packages.desktop}/bin/nullshell polkit --no-duplicate")
+      hl.exec_cmd("${packages.desktop}/bin/nullshell desktop --no-duplicate")
+      hl.exec_cmd("${packages.desktop}/bin/nullshell sleep-bridge")
     end)
   '';
 in
@@ -42,7 +46,6 @@ pkgs.testers.runNixOSTest {
       pkgs.polkit
     ];
     systemd.packages = [
-      packages.desktop
       pkgs.darkman
     ];
     environment.etc."xdg/darkman/config.yaml".text = ''
@@ -74,7 +77,7 @@ pkgs.testers.runNixOSTest {
         raise
     def user(command):
         return "su -s /bin/sh preview -c " + shlex.quote(
-            "export XDG_RUNTIME_DIR=/run/user/1000 WAYLAND_DISPLAY=wayland-1; " + command
+            "export XDG_RUNTIME_DIR=/run/user/1000 WAYLAND_DISPLAY=wayland-1 QT_QUICK_BACKEND=software; " + command
         )
     idle = user("nullshell ipc call idle status")
     machine.wait_until_succeeds(idle + " | grep '\"ready\":true'", timeout=timedelta(seconds=45))
@@ -87,10 +90,17 @@ pkgs.testers.runNixOSTest {
     machine.succeed(user("nullshell ipc call launcher close"))
     wallpaper = user("nullshell ipc call wallpaper status")
     initial_screens = len(json.loads(machine.succeed(wallpaper))["screens"])
-    signature = machine.succeed(user("systemctl --user show-environment | sed -n 's/^HYPRLAND_INSTANCE_SIGNATURE=//p'")).strip()
+    compositor = json.loads(machine.succeed(user("hyprctl instances -j")))[0]
+    signature = compositor["instance"]
     hyprctl = "HYPRLAND_INSTANCE_SIGNATURE=" + shlex.quote(signature) + " hyprctl "
+    def shell_pid(entry):
+        instances = json.loads(machine.succeed(user("quickshell list --all --json")))
+        return next(str(instance["pid"]) for instance in instances
+                    if instance["config_path"] == "${packages.assets}/share/nullshell/" + entry)
     # Preview the actual panel without replacing any of the desktop owners.
-    desktop_pid = machine.succeed(user("systemctl --user show nullshell -p MainPID --value")).strip()
+    desktop_pid = shell_pid("shell.qml")
+    machine.succeed(user("nullshell desktop --daemonize --no-duplicate"))
+    assert shell_pid("shell.qml") == desktop_pid
     machine.succeed(user("nullshell preview-panel > /home/preview/panel-preview.log 2>&1 &"))
     preview = "${pkgs.quickshell}/bin/quickshell ipc -p ${packages.assets}/share/nullshell/preview-panel.qml call preview"
     def preview_call(method):
@@ -102,7 +112,7 @@ pkgs.testers.runNixOSTest {
     machine.succeed(user("python3 ${../../tests/test_panel_preview.py} --qml ${packages.assets}/share/nullshell/preview-panel.qml --keyboard --screenshots /home/preview/panel-screenshots"))
     machine.copy_from_machine("/home/preview/panel-screenshots", "panel-preview")
     assert json.loads(machine.succeed(idle))["keepAwake"]
-    assert machine.succeed(user("systemctl --user show nullshell -p MainPID --value")).strip() == desktop_pid
+    assert shell_pid("shell.qml") == desktop_pid
     # Ordinary preview windows must really map; an offscreen load is not enough.
     for mode, title in [("greeter", "Greeter preview"), ("lock", "Lock screen preview"), ("polkit", "Authentication preview")]:
         machine.succeed(user("nullshell preview-" + mode + " > /home/preview/" + mode + "-preview.log 2>&1 & echo $! > /home/preview/preview.pid"))
@@ -114,8 +124,8 @@ pkgs.testers.runNixOSTest {
     machine.succeed(user(hyprctl + "output remove NULLSHELL-TEST"))
     machine.wait_until_fails(wallpaper + " | grep NULLSHELL-TEST", timeout=timedelta(seconds=15))
     assert len(json.loads(machine.succeed(wallpaper))["screens"]) == initial_screens
-    locker_pid = machine.succeed(user("systemctl --user show nullshell-lock -p MainPID --value")).strip()
-    polkit_pid = machine.succeed(user("systemctl --user show nullshell-polkit -p MainPID --value")).strip()
+    locker_pid = shell_pid("lock/shell.qml")
+    polkit_pid = shell_pid("polkit/shell.qml")
     def auth_request(unit):
         command = "/run/wrappers/bin/pkexec /run/current-system/sw/bin/id -u > /home/preview/polkit-result"
         machine.succeed(user("systemd-run --user --collect --unit=" + unit + " /bin/sh -c " + shlex.quote(command)))
@@ -128,18 +138,25 @@ pkgs.testers.runNixOSTest {
     auth_request("nullshell-auth-accept")
     machine.wait_until_succeeds(polkit + " | grep '\"active\":true'", timeout=timedelta(seconds=15))
     # Restarting desktop UI must preserve an in-progress authentication flow.
-    machine.succeed(user("systemctl --user restart nullshell"))
+    machine.succeed(user("kill " + desktop_pid))
+    machine.wait_until_fails(idle, timeout=timedelta(seconds=10))
+    machine.sleep(3)
+    machine.fail(idle)
+    # No supervisor: it stays stopped until explicitly started again.
+    machine.succeed(user("nullshell desktop --daemonize --no-duplicate"))
     machine.wait_until_succeeds(idle + " | grep '\"ready\":true'", timeout=timedelta(seconds=30))
     assert json.loads(machine.succeed(idle))["keepAwake"]
-    assert machine.succeed(user("systemctl --user show nullshell-lock -p MainPID --value")).strip() == locker_pid
-    assert machine.succeed(user("systemctl --user show nullshell-polkit -p MainPID --value")).strip() == polkit_pid
+    assert shell_pid("lock/shell.qml") == locker_pid
+    assert shell_pid("polkit/shell.qml") == polkit_pid
     assert json.loads(machine.succeed(polkit))["active"]
     machine.succeed(user("wtype -s 200 -M ctrl -k a -m ctrl test-only-password -k Return"))
     machine.wait_until_succeeds("grep -qx 0 /home/preview/polkit-result", timeout=timedelta(seconds=15))
     machine.wait_until_succeeds(polkit + " | grep '\"active\":false'", timeout=timedelta(seconds=15))
-    # Ending the owning session target tears down its components.
-    machine.succeed(user("systemctl --user stop nullshell-session.target"))
-    machine.fail(user("systemctl --user is-active nullshell.service"))
-    machine.fail(user("systemctl --user is-active nullshell-polkit.service"))
+    # Direct clients must exit when their compositor disappears, without units.
+    desktop_pid = shell_pid("shell.qml")
+    machine.succeed(user("kill " + str(compositor["pid"])))
+    for pid in [desktop_pid, locker_pid, polkit_pid]:
+        machine.wait_until_fails("test -d /proc/" + pid, timeout=timedelta(seconds=20))
+    machine.succeed("test ! -d ${packages.desktop}/lib/systemd/user")
   '';
 }

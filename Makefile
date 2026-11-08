@@ -1,6 +1,5 @@
 PREFIX ?= /usr/local
 DESTDIR ?=
-USER_UNIT_DIR ?= $(PREFIX)/lib/systemd/user
 CARGO_BUILD_JOBS ?= 2
 CARGO_TARGET_DIR ?= backend/target
 
@@ -20,8 +19,6 @@ install: helper
 	install -d "$(DESTDIR)$(PREFIX)/share/nullshell"
 	install -m644 integration/hypridle.conf "$(DESTDIR)$(PREFIX)/share/nullshell/hypridle.conf"
 	cp -R *.qml *.js components adapters greeter lock polkit preview wallpaper.json "$(DESTDIR)$(PREFIX)/share/nullshell/"
-	install -d "$(DESTDIR)$(USER_UNIT_DIR)"
-	for unit in integration/systemd/*; do sed 's|@BINDIR@|$(PREFIX)/bin|g' "$$unit" > "$(DESTDIR)$(USER_UNIT_DIR)/$${unit##*/}"; done
 
 check:
 	sh -n bin/nullshell

@@ -30,7 +30,9 @@
 
 独立打包不会替代 compositor、PipeWire、NetworkManager、BlueZ、logind、PAM、
 Polkit 或 portal。nullshell 的目标是统一交互与协调，不重写这些基础服务。
-桌面进程只能随目标会话启动，不得无条件绑定所有 DE 的 graphical-session。
+桌面、locker 和 Polkit 由 Hyprland 显式直接启动，不安装 Quickshell 保活 unit。
+Quickshell 使用 --no-duplicate 防重复启动；退出会话时客户端随 Wayland 断开退出。
+蓝牙 helper 按需运行；仅未来确有常驻需要的 helper 才单独设计 service。
 
 ## 配置与动态数据
 
