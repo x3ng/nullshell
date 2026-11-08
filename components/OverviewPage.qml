@@ -147,7 +147,7 @@ ColumnLayout {
                         ClippingRectangle {
                             Layout.preferredWidth: 42
                             Layout.preferredHeight: 42
-                            radius: 8
+                            radius: page.style.radiusControl
                             color: page.style.surfaceHover
                             Image {
                                 id: cover

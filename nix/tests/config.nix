@@ -3,7 +3,8 @@ let
   source = pkgs.lib.fileset.toSource {
     root = ../..;
     fileset = pkgs.lib.fileset.unions [
-      ../../qml
+      ../../ShellConfig.qml
+      ../../ConfigRules.js
       ../../tests
     ];
   };

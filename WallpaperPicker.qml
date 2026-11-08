@@ -44,7 +44,7 @@ Window {
         palette.window: root.style.surfaceRaised
         palette.highlight: root.style.surfaceSelected
         palette.highlightedText: root.style.textPrimary
-        background: Rectangle { color: root.style.surfaceRaised; radius: 10 }
+        background: Rectangle { color: root.style.surfaceRaised; radius: root.style.radiusControl }
     }
     component Action: Button {
         implicitHeight: 40
@@ -52,7 +52,7 @@ Window {
         font.pixelSize: 14
         palette.buttonText: root.style.textPrimary
         background: Rectangle {
-            radius: 10
+            radius: root.style.radiusControl
             color: parent.down || parent.hovered ? root.style.surfaceHover : root.style.surfaceRaised
             opacity: parent.enabled ? 1 : 0.45
         }

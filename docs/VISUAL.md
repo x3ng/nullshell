@@ -2,8 +2,9 @@
 
 Nullshell follows a restrained, flat Material-style hierarchy. Background,
 panel, raised controls and selected controls use distinct tonal surfaces from
-`qml/Theme.qml`. Elevation is a small shadow where a floating surface needs to
-separate from its background. Cards have no simulated gloss or inner highlight.
+`Theme.qml`. Elevation is a small shadow where a floating surface needs to
+separate from its background. Cards have no simulated gloss or inner highlight. Containers use near-square
+4px outer / 3px inner corners, neutral grey surfaces and restrained blue accents.
 
 The command panel is an on-demand status and search surface, so its overview
 keeps workspace, connectivity, levels, notifications and active media visible

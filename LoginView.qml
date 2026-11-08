@@ -104,7 +104,7 @@ Item {
                         id: powerTrigger
                         anchors.right: parent.right
                         anchors.verticalCenter: parent.verticalCenter
-                        width: 36; height: 36; radius: 8
+                        width: 36; height: 36; radius: root.theme.radiusControl
                         visible: root.showPowerActions
                         color: powerMouse.containsMouse || activeFocus ? root.theme.surfaceHover : "transparent"
                         activeFocusOnTab: visible
@@ -209,7 +209,7 @@ Item {
                         anchors.right: parent.right
                         anchors.rightMargin: 6
                         anchors.verticalCenter: parent.verticalCenter
-                        width: 36; height: 36; radius: 8
+                        width: 36; height: 36; radius: root.theme.radiusControl
                         color: submitArea.containsMouse || activeFocus ? root.theme.accent : root.theme.surfaceSelected
                         opacity: root.busy ? 0.5 : 1
                         activeFocusOnTab: !root.busy

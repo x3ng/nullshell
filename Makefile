@@ -19,7 +19,7 @@ install: helper
 	install -Dm755 bin/nullshell-migrate-state "$(DESTDIR)$(PREFIX)/bin/nullshell-migrate-state"
 	install -d "$(DESTDIR)$(PREFIX)/share/nullshell"
 	install -m644 integration/hypridle.conf "$(DESTDIR)$(PREFIX)/share/nullshell/hypridle.conf"
-	cp -R qml/. "$(DESTDIR)$(PREFIX)/share/nullshell/"
+	cp -R *.qml *.js components adapters greeter lock polkit preview wallpaper.json "$(DESTDIR)$(PREFIX)/share/nullshell/"
 	install -d "$(DESTDIR)$(USER_UNIT_DIR)"
 	for unit in integration/systemd/*; do sed 's|@BINDIR@|$(PREFIX)/bin|g' "$$unit" > "$(DESTDIR)$(USER_UNIT_DIR)/$${unit##*/}"; done
 
@@ -29,6 +29,7 @@ check:
 	sh -n bin/nullshell-migrate-state
 	./bin/nullshell --help
 	python3 tests/test_migration.py
+	python3 tests/test_launcher.py
 
 check-backend:
 	CARGO_BUILD_JOBS=$(CARGO_BUILD_JOBS) cargo test --locked --manifest-path backend/Cargo.toml

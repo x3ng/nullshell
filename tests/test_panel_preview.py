@@ -16,7 +16,7 @@ import time
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--qml", type=Path, default=Path(__file__).resolve().parents[1] / "qml/preview-panel.qml")
+    parser.add_argument("--qml", type=Path, default=Path(__file__).resolve().parents[1] / "preview-panel.qml")
     parser.add_argument("--screenshots", type=Path)
     parser.add_argument("--keyboard", action="store_true")
     args = parser.parse_args()

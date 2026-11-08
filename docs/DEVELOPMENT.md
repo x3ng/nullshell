@@ -46,7 +46,7 @@ sandbox for arbitrary QML.
 In a second terminal at the same checkout, control the running preview:
 
 ```sh
-preview() { quickshell ipc -p "$PWD/qml/preview-panel.qml" call preview "$@"; }
+preview() { quickshell ipc -p "$PWD/preview-panel.qml" call preview "$@"; }
 preview openPanel
 preview scenario crowded     # normal, empty, crowded, media
 preview width 440            # default 740; narrow layout and workspace wrapping
@@ -101,17 +101,20 @@ static screenshots. Test authentication and real backend behavior in VMs.
 Preview work must not require rebuilding Rust. Rebuild the helper only when its
 source or protocol changes; test it on private buses/VMs before real integration.
 
-## Personal dotfiles
+## Editable desktop checkout
 
-Personal configuration belongs in the independent dotfiles repository. A local
-development deployment links application configuration to that checkout, using
-ordinary symlinks on other distributions or mkOutOfStoreSymlink with Home Manager.
-Once links are established, editing existing config files only requires the
-application's reload behavior, not a new commit, input update or switch.
+Clone this repository to `$XDG_CONFIG_HOME/quickshell/nullshell`. The root
+`shell.qml` is a native Quickshell configuration entry. The runtime package
+provides dependencies/helper and the `nullshell` launcher without QML assets.
+It resolves this checkout for both services and IPC. `quickshell -c nullshell`
+also works with dependencies on PATH, but must not run beside the desktop service.
 
-Changing packages, service definitions, the set of managed paths or deployment
-modules may need a new activation. Immutable release profiles deliberately use
-pinned snapshots and are a separate deployment choice, not the daily edit loop.
-Before enabling local links, reconcile the checkout with the migrated config
-layout and verify every target and autostart entry. A development profile whose
-targets do not exist is not a working development environment.
+Desktop QML is watched by Quickshell. Work with isolated previews first: a live
+reload recreates notification/idle objects, even though persisted state survives.
+The locker and Polkit agent disable watching and must not be restarted to preview
+an edit. Inspect their dedicated previews; apply accepted changes on next login.
+The system greeter uses the independently deployed package snapshot.
+
+Personal Hyprland and application configuration remains in the separate dotfiles
+repository, deployed with its own tools. No Home Manager ownership or
+out-of-store symlink is required for the nullshell checkout.

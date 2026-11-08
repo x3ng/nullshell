@@ -277,7 +277,7 @@ PanelWindow {
             NumberAnimation { duration: panel.style.motionResize; easing.type: Easing.OutCubic }
         }
         clip: true
-        radius: 20
+        radius: panel.style.radiusPanel
         border.color: panel.style.materialEdge
         border.width: 1
         // Stop clicks in blank areas reaching the outside-dismiss handler.

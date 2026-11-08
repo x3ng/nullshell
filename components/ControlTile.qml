@@ -32,7 +32,7 @@ Rectangle {
         Rectangle {
             Layout.preferredWidth: 38
             Layout.preferredHeight: 38
-            radius: 12
+            radius: tile.style.radiusControl
             color: tile.active ? tile.style.accent : tile.style.surfaceHover
             StatusIcon {
                 anchors.centerIn: parent

@@ -1,20 +1,29 @@
 #!/bin/sh
 set -eu
 
-# Source checkout and installed layouts both use bin/ next to share/ or qml/.
+# Resource selection is shared by service startup, CLI IPC and child processes.
+# A packaged greeter never discovers a user's editable checkout implicitly.
 prefix=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
-if [ -n "${NULLSHELL_DATA_DIR:-}" ]; then
-    resources=$NULLSHELL_DATA_DIR
-elif [ -d "$prefix/share/nullshell" ]; then
-    resources=$prefix/share/nullshell
-else
-    resources=$prefix/qml
-fi
-export NULLSHELL_DATA_DIR="$resources"
-helpers=${NULLSHELL_LIBEXEC_DIR:-$prefix/bin}
-
 mode=${1:-desktop}
 if [ "$#" -gt 0 ]; then shift; fi
+helpers=${NULLSHELL_LIBEXEC_DIR:-$prefix/bin}
+if [ -n "${NULLSHELL_DATA_DIR:-}" ]; then
+    resources=$NULLSHELL_DATA_DIR
+elif [ "$mode" = greeter ]; then
+    resources=${NULLSHELL_PACKAGED_DATA_DIR:-$prefix/share/nullshell}
+elif [ -n "${NULLSHELL_CONFIG_DIR:-}" ]; then
+    resources=$NULLSHELL_CONFIG_DIR
+elif [ -f "$prefix/shell.qml" ]; then
+    resources=$prefix
+else
+    resources=${XDG_CONFIG_HOME:-$HOME/.config}/quickshell/nullshell
+    if [ ! -f "$resources/shell.qml" ] && [ -d "$prefix/share/nullshell" ]; then
+        resources=$prefix/share/nullshell
+    fi
+fi
+# Canonical paths keep IPC consistent when a checkout is reached through a symlink.
+if [ -d "$resources" ]; then resources=$(CDPATH= cd -- "$resources" && pwd -P); fi
+export NULLSHELL_DATA_DIR="$resources"
 case "$mode" in
     desktop) sh "$helpers/nullshell-migrate-state"; entry=$resources/shell.qml ;;
     locker) sh "$helpers/nullshell-migrate-state"; entry=$resources/lock/shell.qml ;;
@@ -34,7 +43,10 @@ case "$mode" in
             || { echo 'Start nullshell from a Hyprland session' >&2; exit 1; }
         systemctl --user import-environment WAYLAND_DISPLAY HYPRLAND_INSTANCE_SIGNATURE XDG_CURRENT_DESKTOP XDG_SESSION_TYPE
         exec systemctl --user start nullshell-session.target ;;
-    sleep-bridge) exec hypridle --config "$resources/hypridle.conf" ;;
+    sleep-bridge)
+        sleep_config=${NULLSHELL_SLEEP_CONFIG:-$resources/integration/hypridle.conf}
+        [ -f "$sleep_config" ] || sleep_config=$resources/hypridle.conf
+        exec hypridle --config "$sleep_config" ;;
     greeter) entry=$resources/greeter/shell.qml ;;
     preview-greeter) entry=$resources/preview.qml; export QS_PREVIEW_LOCK=0 ;;
     preview-lock) entry=$resources/preview.qml; export QS_PREVIEW_LOCK=1 ;;

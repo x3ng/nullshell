@@ -12,7 +12,7 @@ def main():
     quickshell = shutil.which('quickshell')
     if not quickshell:
         raise SystemExit('quickshell is required')
-    source = Path(__file__).resolve().parents[1] / 'qml'
+    source = Path(__file__).resolve().parents[1]
     cases = [
         ('unsupported', None, False),
         ('enabled', 'printf \'%s\\n\' \'{"option":"decoration:blur:enabled","bool":true}\'', True),

@@ -16,7 +16,7 @@ Rectangle {
     property int iconSize: 20
     signal triggered()
     implicitHeight: 36
-    radius: 8
+    radius: style.radiusControl
     color: selected ? style.surfaceSelected
         : pointer.containsMouse && available ? style.surfaceHover : "transparent"
     border.width: activeFocus ? 1 : 0

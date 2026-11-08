@@ -26,7 +26,7 @@ the full-panel preview commands. Do not deploy to inspect trial layouts.
 From the checkout, an installed nullshell runtime can load the working QML tree:
 
 ```sh
-NULLSHELL_DATA_DIR="$PWD/qml" nullshell preview-connectivity
+NULLSHELL_DATA_DIR="$PWD" nullshell preview-connectivity
 ```
 
 Quickshell watches source changes and reloads the preview. No build, release,
@@ -55,8 +55,8 @@ make install PREFIX=/usr DESTDIR="$pkgdir"
 ```
 
 This installs `bin/nullshell` and `share/nullshell/` without enabling services,
-writing user configuration or touching the active session. The common launcher
-locates resources relative to its installation prefix. For development or special
+writing user configuration or touching the active session. The common launcher prefers the editable XDG checkout when installed without
+a fixed resource override, and otherwise falls back to installed resources. For development or special
 packaging, `NULLSHELL_DATA_DIR` explicitly overrides the resource directory.
 Use a clean package staging directory; this is not an in-place upgrade manager.
 

@@ -38,7 +38,18 @@ Import `homeManagerModules.default`, set `programs.nullshell.enable = true` for
 user packages/units; separately import `nixosModules.default` and enable
 `programs.nullshell.enable` for PAM/Polkit/UPower integration. Enable
 `programs.nullshell.greeter.enable` only if replacing the display manager is
-intended. UI configuration remains in user JSON; modules do not generate it.
+intended. Set `programs.nullshell.editable = true` in Home Manager to install
+`packages.runtime` instead of the bundled desktop. Clone the QML repository to
+`$XDG_CONFIG_HOME/quickshell/nullshell` (default `~/.config/quickshell/nullshell`).
+The module never creates or overwrites that checkout. All desktop/locker/Polkit
+launchers and IPC calls resolve the same directory. `NULLSHELL_CONFIG_DIR` can
+explicitly select another checkout when supplied consistently to all processes.
+
+The greeter remains a packaged system-owned snapshot. Missing local QML fails
+with a resource error; the editable runtime does not silently start an old UI.
+Helper and runtime updates require deployment; QML edits do not. For the initial
+migration from bundled QML, deploy the new units and log out/in (or reboot).
+Do not live-restart authentication components or mix old locker paths with new IPC.
 
 ## Other distributions
 

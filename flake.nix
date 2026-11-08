@@ -25,7 +25,7 @@
           packages = self.packages.${system};
         in
         {
-          inherit (packages) desktop greeter;
+          inherit (packages) desktop greeter runtime;
           preview = import ./nix/tests/preview.nix { inherit pkgs packages; };
           config = import ./nix/tests/config.nix { inherit pkgs; };
           migration = import ./nix/tests/migration.nix { inherit pkgs; };

@@ -2,16 +2,36 @@
 let
   inherit (pkgs) lib;
   helper = import ./backend.nix { inherit pkgs; };
+  # Keep source packaging independent of backend/docs and their build outputs.
+  qmlSource = lib.fileset.toSource {
+    root = ../.;
+    fileset = lib.fileset.unions (
+      map (name: ../. + "/${name}") (
+        builtins.filter (name: lib.hasSuffix ".qml" name || lib.hasSuffix ".js" name) (
+          builtins.attrNames (builtins.readDir ../.)
+        )
+      )
+      ++ [
+        ../components
+        ../adapters
+        ../greeter
+        ../lock
+        ../polkit
+        ../preview
+        ../wallpaper.json
+      ]
+    );
+  };
   assets = pkgs.runCommand "nullshell-assets" { } ''
     mkdir -p $out/share/nullshell
     cp ${../integration/hypridle.conf} $out/share/nullshell/hypridle.conf
-    cp -R ${../qml}/. $out/share/nullshell/
+    cp -R ${qmlSource}/. $out/share/nullshell/
     if find -L $out/share/nullshell -type l | read -r broken; then
       echo "Broken resource symlink: $broken" >&2
       exit 1
     fi
   '';
-  runtime = with pkgs; [
+  runtimeDependencies = with pkgs; [
     helper
     quickshell
     bash
@@ -38,8 +58,30 @@ let
           --add-flags ${../bin/nullshell} \
           --set-default NULLSHELL_DATA_DIR ${assets}/share/nullshell \
           --set NULLSHELL_LIBEXEC_DIR ${../bin} \
-          --prefix PATH : "$out/bin:${lib.makeBinPath runtime}"
+          --prefix PATH : "$out/bin:${lib.makeBinPath runtimeDependencies}"
         mkdir -p $out/lib/systemd/user
+        for unit in ${../integration/systemd}/*; do
+          sed "s|@BINDIR@|$out/bin|g; s|/bin/sh|${pkgs.runtimeShell}|g" "$unit" > "$out/lib/systemd/user/$(basename "$unit")"
+        done
+      '';
+  # No QML snapshot dependency: editing the checkout does not rebuild runtime.
+  runtime =
+    pkgs.runCommand "nullshell-runtime"
+      {
+        nativeBuildInputs = [ pkgs.makeWrapper ];
+        meta.mainProgram = "nullshell";
+      }
+      ''
+        mkdir -p $out/bin $out/lib/systemd/user
+        makeWrapper ${pkgs.runtimeShell} $out/bin/nullshell \
+          --add-flags ${../bin/nullshell} \
+          --set NULLSHELL_LIBEXEC_DIR ${../bin} \
+          --set NULLSHELL_SLEEP_CONFIG ${../integration/hypridle.conf} \
+          --prefix PATH : "$out/bin:${lib.makeBinPath runtimeDependencies}"
+        # Direct `quickshell -c nullshell` gets the same optional backend tools.
+        makeWrapper ${pkgs.quickshell}/bin/quickshell $out/bin/quickshell \
+          --prefix PATH : "$out/bin:${lib.makeBinPath runtimeDependencies}"
+        ln -s ${helper}/bin/nullshell-helper $out/bin/nullshell-helper
         for unit in ${../integration/systemd}/*; do
           sed "s|@BINDIR@|$out/bin|g; s|/bin/sh|${pkgs.runtimeShell}|g" "$unit" > "$out/lib/systemd/user/$(basename "$unit")"
         done
@@ -87,6 +129,7 @@ in
   inherit
     assets
     desktop
+    runtime
     greeter
     preview
     helper

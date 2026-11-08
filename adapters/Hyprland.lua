@@ -1,12 +1,6 @@
 -- Hyprland-only palette adapter. Quickshell saves the last observed Darkman mode.
--- Palette sync: the shell palette lives in qml/Theme.qml. Panel,
--- selection and text colours are mirrored here (202328/f4f4f2, 3a4545/dce6e1,
--- f0f1f3/24272d, e4bb80/805313). The window and groupbar borders are tuned for
--- visibility on top of that palette instead of copied verbatim: the dark
--- active border (649486) is darker than the dark shell accent (79ad9d), the
--- light one (67b99a) is lighter than the light accent (1c7057), and the light
--- inactive border uses 7c8390 where Theme's outline uses c1cbc5. Change both
--- files together.
+-- Keep neutral surfaces and selection colours in sync with Theme.qml.
+-- Window borders use a quieter blue than the shell's interactive accent.
 local M = {}
 
 function M.apply(mode)
@@ -24,7 +18,7 @@ function M.apply(mode)
   if mode ~= "dark" and mode ~= "light" then return end
 
   local dark = mode == "dark"
-  local active = dark and "rgba(649486ff)" or "rgba(67b99aff)"
+  local active = dark and "rgba(6487b8ff)" or "rgba(6585afff)"
   local inactive = dark and "rgba(4a535c80)" or "rgba(7c839080)"
   local locked = dark and "rgba(e4bb80ff)" or "rgba(805313ff)"
   hl.config({
@@ -42,10 +36,10 @@ function M.apply(mode)
       ["col.border_locked_inactive"] = dark and "rgba(69717eff)" or "rgba(7c839080)",
       groupbar = {
         text_color = dark and "rgba(f0f1f3ff)" or "rgba(24272dff)",
-        ["col.active"] = dark and "rgba(3a4545ff)" or "rgba(dce6e1ff)",
-        ["col.inactive"] = dark and "rgba(202328f5)" or "rgba(f4f4f2fa)",
+        ["col.active"] = dark and "rgba(353e4bff)" or "rgba(e0e7f0ff)",
+        ["col.inactive"] = dark and "rgba(202328f5)" or "rgba(f4f4f5fa)",
         ["col.locked_active"] = dark and "rgba(51432dff)" or "rgba(f0e3cdff)",
-        ["col.locked_inactive"] = dark and "rgba(292d33ff)" or "rgba(e7eae8ff)",
+        ["col.locked_inactive"] = dark and "rgba(292d33ff)" or "rgba(e6e8ebff)",
       },
     },
   })

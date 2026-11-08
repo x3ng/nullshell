@@ -35,35 +35,35 @@ Scope {
     readonly property int motionDistance: 8
     readonly property int motionHintEnter: 100
     readonly property int motionHintExit: 80
-    readonly property int radiusPanel: 24
-    readonly property int radiusInput: 14
-    readonly property int radiusPopup: 12
-    readonly property int radiusCard: 16
-    readonly property int radiusControl: 10
+    readonly property int radiusPanel: 4
+    readonly property int radiusInput: 3
+    readonly property int radiusPopup: 4
+    readonly property int radiusCard: 3
+    readonly property int radiusControl: 3
     readonly property int radiusSmall: 3
     // Neutral, layered surfaces: opacity is not a substitute for backdrop blur.
     readonly property color backdrop: darkMode ? "#50000000" : "#18202730"
-    readonly property color panelSurface: darkMode ? "#202328" : "#f4f4f2"
-    readonly property color backgroundSurface: darkMode ? "#191d22" : "#e8ece9"
+    readonly property color panelSurface: darkMode ? "#202328" : "#f4f4f5"
+    readonly property color backgroundSurface: darkMode ? "#1b1d21" : "#e9eaec"
     readonly property color surface: panelSurface
-    readonly property color surfaceRaised: darkMode ? "#292d33" : "#fdfdfc"
-    readonly property color surfaceHover: darkMode ? "#343a41" : "#e7eae8"
-    readonly property color surfaceSelected: darkMode ? "#3a4545" : "#dce6e1"
-    readonly property color materialEdge: darkMode ? "#850d1116" : "#302c3b34"
-    readonly property color materialShadow: darkMode ? "#40000000" : "#1a202b25"
+    readonly property color surfaceRaised: darkMode ? "#292d33" : "#fdfdfe"
+    readonly property color surfaceHover: darkMode ? "#34373d" : "#e6e8eb"
+    readonly property color surfaceSelected: darkMode ? "#353e4b" : "#e0e7f0"
+    readonly property color materialEdge: darkMode ? "#70535962" : "#30434a55"
+    readonly property color materialShadow: darkMode ? "#40000000" : "#1a20242b"
     // The compositor blurs only the matching surface region behind this tint.
     readonly property real glassOpacity: backdropBlur ? (darkMode ? 0.78 : 0.72) : 1
     readonly property real frostedOpacity: darkMode ? 0.86 : 0.82
-    readonly property color wallpaperScrim: darkMode ? "#420b1118" : "#26e8eeeb"
+    readonly property color wallpaperScrim: darkMode ? "#420b1118" : "#26e9ebef"
     readonly property color inputSurface: darkMode ? "#1b1f24" : "#ffffff"
     readonly property color textSelected: textPrimary
-    readonly property color outline: darkMode ? "#4a535c" : "#c1cbc5"
-    readonly property color separator: darkMode ? "#373e45" : "#dce1dc"
+    readonly property color outline: darkMode ? "#4a535c" : "#c4c8cf"
+    readonly property color separator: darkMode ? "#373e45" : "#dcdfe4"
     readonly property color textPrimary: darkMode ? "#f0f1f3" : "#24272d"
     readonly property color textSecondary: darkMode ? "#bdc1ca" : "#525965"
     readonly property color textMuted: darkMode ? "#969da9" : "#69717e"
-    readonly property color accent: darkMode ? "#79ad9d" : "#1c7057"
-    readonly property color accentInk: darkMode ? "#132a23" : "#ffffff"
+    readonly property color accent: darkMode ? "#8aafe6" : "#3565a6"
+    readonly property color accentInk: darkMode ? "#15253e" : "#ffffff"
     readonly property color danger: darkMode ? "#e99e9b" : "#a33d3b"
     readonly property color accentWarm: darkMode ? "#e4bb80" : "#805313"
 

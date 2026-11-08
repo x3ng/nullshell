@@ -12,9 +12,14 @@ in
 {
   options.programs.nullshell = {
     enable = lib.mkEnableOption "nullshell desktop packages and session-scoped units";
+    editable = lib.mkOption {
+      type = lib.types.bool;
+      default = false;
+      description = "Load QML from XDG_CONFIG_HOME/quickshell/nullshell; install only the runtime and services.";
+    };
     package = lib.mkOption {
       type = lib.types.package;
-      default = packages.desktop;
+      default = if cfg.editable then packages.runtime else packages.desktop;
       description = "Packaged nullshell desktop runtime.";
     };
   };

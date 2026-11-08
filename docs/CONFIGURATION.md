@@ -38,7 +38,7 @@ notification UI. Invalid configuration at first startup uses package defaults.
 Missing files at first startup are normal. Removing a previously loaded file
 retains that process's snapshot; use `{"version":1}` to reset explicitly.
 
-The authoritative parser/defaults are `qml/ConfigRules.js`; `ShellConfig.qml`
+The authoritative parser/defaults are `ConfigRules.js`; `ShellConfig.qml`
 owns file loading and publication. Pages do not read files. This slice covers
 terminal and idle configuration only. Wallpaper, theme, greeter configuration
 remain separate settings domains. Legacy state migration is documented in
