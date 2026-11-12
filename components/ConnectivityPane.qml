@@ -33,7 +33,7 @@ ColumnLayout {
         confirmForget = false;
         password.clear(); password.revealed = false;
         pairingInput.clear();
-        system.bluetoothScanRequested = false;
+        system.stopBluetoothScan();
         system.cancelBluetoothPairing();
     }
     onActiveChanged: { if (!active) reset(); }
@@ -44,8 +44,8 @@ ColumnLayout {
         selectedKey = key(device);
         confirmForget = false;
         password.clear(); password.revealed = false;
-        if (wifi) system.wifiError = "";
-        else system.bluetoothError = "";
+        if (wifi) system.clearWifiError();
+        else system.clearBluetoothError();
         revealRequested();
         Qt.callLater(() => { if (pane.active && pane.passwordNeeded && !device.known) password.forceActiveFocus(); });
     }

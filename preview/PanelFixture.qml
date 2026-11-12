@@ -92,6 +92,9 @@ Scope {
     function wifiPasswordValid(device, password) { return true; }
     function cancelBluetoothPairing() { pairingDevice = null; }
     function answerBluetoothPairing(answer) { lastAction = "pairing response"; }
+    function stopBluetoothScan() { bluetoothScanRequested = false; }
+    function clearWifiError() { wifiError = ""; }
+    function clearBluetoothError() { bluetoothError = ""; }
     function toggleBluetoothScan() { bluetoothScanRequested = !bluetoothScanRequested; }
     function connectWifi(device, password) { lastAction = "connect wifi"; return true; }
     function disconnectWifi(device) { lastAction = "disconnect wifi"; }

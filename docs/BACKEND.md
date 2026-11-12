@@ -35,3 +35,30 @@ Build with `make helper` or Cargo directly. Use `cargo test --locked` for input
 validation and `tests/test_bluetooth.py HELPER` under a private `dbus-run-session`
 for mock BlueZ integration. The latter needs Python's dbus-next only as a test
 dependency. Neither test touches a physical adapter.
+
+## QML ownership and call path
+
+`components/ConnectivityPane.qml` calls `SystemControls` methods and reads its
+pairing properties. It does not start processes or parse protocol messages.
+`SystemControls.qml` owns native device state, eligibility checks, discovery,
+connection feedback and the trust/connect policy after successful pairing.
+`adapters/BluetoothPairing.qml` owns the short-lived process, JSON Lines,
+prompt IDs, validation, startup failure, deadlines and cancellation. Its
+`start()`/`answer()`/`cancel()` methods report acceptance; `finished()` reports
+the terminal result. Pairing properties exposed to the page are read-only.
+
+A `cancelled` event clears only the prompt, not the operation. Local cancellation
+clears the UI immediately, ignores late results and waits for helper cleanup
+before another process may start. A six-second fallback stops a stuck helper;
+the helper itself owns BlueZ CancelPairing and UnregisterAgent. Switching away
+from the connectivity page or closing the panel continues to cancel pairing.
+Device removal and disabling Bluetooth also cancel the request.
+
+This adapter is QML-side protocol glue, not an expansion of the Rust backend.
+Native networking, audio, power and ordinary Bluetooth operations remain in
+Quickshell. Existing service files can be split when needed; there is no generic
+helper RPC layer or requirement to wrap every native property.
+
+Run `make check-pairing` for offscreen QML tests with a synthetic stdio helper
+(success, prompt cancellation, failure, crash, missing executable and stuck
+cancellation). These tests neither use BlueZ nor replace real-radio integration.

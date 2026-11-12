@@ -3,7 +3,7 @@ DESTDIR ?=
 CARGO_BUILD_JOBS ?= 2
 CARGO_TARGET_DIR ?= backend/target
 
-.PHONY: build helper install check check-backend check-preview check-material
+.PHONY: build helper install check check-backend check-pairing check-preview check-material
 
 build: helper
 
@@ -27,6 +27,9 @@ check:
 	./bin/nullshell --help
 	python3 tests/test_migration.py
 	python3 tests/test_launcher.py
+
+check-pairing:
+	python3 tests/test_pairing_adapter.py
 
 check-backend:
 	CARGO_BUILD_JOBS=$(CARGO_BUILD_JOBS) cargo test --locked --manifest-path backend/Cargo.toml

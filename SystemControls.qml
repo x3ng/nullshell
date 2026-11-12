@@ -8,6 +8,7 @@ import Quickshell.Networking
 import Quickshell.Bluetooth
 import Quickshell.Services.UPower
 import "components/ConnectionFeedback.js" as ConnectionFeedback
+import "adapters"
 
 // Native service objects own device state and ordinary actions. Pairing alone
 // uses an on-demand BlueZ agent bridge because this version has no Agent1 API.
@@ -20,10 +21,9 @@ Scope {
     property string wifiError: ""
     property string bluetoothError: ""
     property bool bluetoothScanRequested: false
-    property var pairingDevice: null
-    property string pairingPrompt: ""
-    property string pairingCode: ""
-    property int pairingRequestId: 0
+    readonly property var pairingDevice: pairing.device
+    readonly property string pairingPrompt: pairing.prompt
+    readonly property string pairingCode: pairing.code
     signal feedback(string key, string summary, string body, bool critical)
     property var connectionTracker: ConnectionFeedback.create()
 
@@ -60,7 +60,10 @@ Scope {
     }
     function scheduleConnectionObservation() { Qt.callLater(observeConnections); }
     onWifiNetworksChanged: scheduleConnectionObservation()
-    onBluetoothDevicesChanged: scheduleConnectionObservation()
+    onBluetoothDevicesChanged: {
+        if (pairingDevice && !bluetoothDevices.includes(pairingDevice)) cancelBluetoothPairing();
+        scheduleConnectionObservation();
+    }
     onWifiEnabledChanged: {
         if (!wifiEnabled) ConnectionFeedback.silence(connectionTracker, "wifi:");
         scheduleConnectionObservation();
@@ -196,108 +199,37 @@ Scope {
         return true;
     }
 
-    // The native Bluetooth module has no Agent1 API. The short-lived helper
-    // bridges BlueZ's own KeyboardDisplay agent to JSON; device state stays native.
-    Process {
-        id: pairingAgent
-        property bool hasStarted: false
-        stdinEnabled: true
-        command: ["nullshell-helper", "bluetooth-agent",
-            root.pairingDevice?.address ?? "", root.pairingDevice?.adapter?.adapterId ?? ""]
-        stdout: SplitParser {
-            onRead: data => {
-                try { root.handlePairingEvent(JSON.parse(data)); } catch (_) {}
+    BluetoothPairing {
+        id: pairing
+        onFinished: (device, success, message) => {
+            if (!success) {
+                root.bluetoothError = message;
+                root.feedback(root.bluetoothKey(device), "Bluetooth pairing failed", message, false);
+                return;
             }
-        }
-        onStarted: hasStarted = true
-        onExited: (code, status) => {
-            pairingDeadline.stop();
-            if (root.pairingDevice) {
-                root.bluetoothError = "Pairing agent stopped. Try again.";
-                root.pairingDevice = null;
-                root.pairingPrompt = "";
-                root.pairingCode = "";
-            }
+            // Native services remain the source of truth. A vanished device or
+            // disabled radio must not receive follow-up trust/connect actions.
+            if (!root.bluetoothEnabled || !root.bluetoothDevices.includes(device)) return;
+            device.trusted = true;
+            root.observeConnections();
+            ConnectionFeedback.request(root.connectionTracker, root.bluetoothKey(device), Date.now());
+            device.connected = true;
+            root.scheduleConnectionObservation();
         }
     }
     function pairBluetooth(device) {
-        if (!bluetoothEnabled || pairingAgent.running || pairingDevice || device.paired
-                || !bluetoothDevices.includes(device)) return false;
+        if (!bluetoothEnabled || !device || device.paired || !bluetoothDevices.includes(device)) return false;
+        if (!pairing.start(device)) return false;
         bluetoothError = "";
-        pairingPrompt = "";
-        pairingCode = "";
-        pairingDevice = device;
-        bluetoothScanRequested = false;
-        pairingAgent.hasStarted = false;
-        pairingDeadline.restart();
-        pairingStartupCheck.restart();
-        pairingAgent.running = true;
+        stopBluetoothScan();
         return true;
     }
-    function handlePairingEvent(event) {
-        if (!pairingDevice || event.version !== 1) return;
-        if (event.type === "prompt") {
-            pairingRequestId = event.id;
-            pairingPrompt = event.kind;
-            pairingCode = event.code || "";
-        } else if (event.type === "done") {
-            pairingDeadline.stop();
-            const device = pairingDevice;
-            pairingDevice = null;
-            pairingPrompt = "";
-            pairingCode = "";
-            if (!event.success) {
-                bluetoothError = event.error || "Pairing failed. Try again with the device in pairing mode.";
-                feedback(bluetoothKey(device), "Bluetooth pairing failed", bluetoothError, false);
-            } else {
-                // Trust only after the user's requested pairing has succeeded.
-                device.trusted = true;
-                observeConnections();
-                ConnectionFeedback.request(connectionTracker, bluetoothKey(device), Date.now());
-                device.connected = true;
-                scheduleConnectionObservation();
-            }
-        }
-    }
-    function answerBluetoothPairing(answer) {
-        if (!pairingDevice || !pairingAgent.running || !["confirm", "authorize", "pin", "passkey"].includes(pairingPrompt)) return false;
-        if (["confirm", "authorize"].includes(pairingPrompt) && !["yes", "no"].includes(answer)) return false;
-        if (pairingPrompt === "passkey" && !/^[0-9]{1,6}$/.test(answer)) return false;
-        if (pairingPrompt === "pin" && (!answer || answer.length > 16 || /[\x00-\x1f\x7f]/.test(answer))) return false;
-        pairingAgent.write(JSON.stringify({version: 1, id: pairingRequestId, answer: answer}) + "\n");
-        pairingPrompt = "";
-        pairingCode = "";
-        return true;
-    }
-    function cancelBluetoothPairing() {
-        if (!pairingDevice) return false;
-        pairingDevice.cancelPair();
-        pairingDeadline.stop();
-        pairingDevice = null;
-        pairingPrompt = "";
-        pairingCode = "";
-        if (pairingAgent.running) pairingAgent.write('{"version":1,"cancel":true}\n');
-        return true;
-    }
-    Timer {
-        id: pairingStartupCheck
-        interval: 1000
-        onTriggered: {
-            if (root.pairingDevice && !pairingAgent.running && !pairingAgent.hasStarted) {
-                root.cancelBluetoothPairing();
-                root.bluetoothError = "Cannot start pairing. Check that nullshell-helper is installed.";
-            }
-        }
-    }
-    Timer {
-        id: pairingDeadline
-        interval: 95000
-        onTriggered: {
-            root.cancelBluetoothPairing();
-            pairingAgent.running = false;
-            root.bluetoothError = "Pairing agent did not respond. Try again.";
-        }
-    }
+    function answerBluetoothPairing(answer) { return pairing.answer(answer); }
+    function cancelBluetoothPairing() { return pairing.cancel(); }
+    function stopBluetoothScan() { bluetoothScanRequested = false; }
+    function clearWifiError() { wifiError = ""; }
+    function clearBluetoothError() { bluetoothError = ""; }
+
     function forgetBluetooth(device) {
         if (!bluetoothEnabled || bluetoothDeviceBusy(device) || !bluetoothDevices.includes(device) || !device.paired) return false;
         bluetoothError = "";
