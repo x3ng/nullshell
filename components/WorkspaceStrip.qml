@@ -13,6 +13,7 @@ Item {
     required property var workspaces
     required property var windows
     property var trayItems: []
+    property Component toolsComponent: null
     signal menuRequested(var owner, real right, real top)
     implicitHeight: entries.implicitHeight
     // Center a short group; let a larger group wrap within the available width.
@@ -149,6 +150,26 @@ Item {
                     text: [trayItem.modelData.tooltipTitle || trayItem.modelData.title || trayItem.modelData.id || "",
                         trayItem.modelData.tooltipDescription || ""].filter(part => part !== "").join("\n")
                 }
+            }
+        }
+        Item {
+            // Keep the separator with the tools when the group wraps.
+            readonly property real leadingSpace: strip.workspaces.length || strip.trayItems.length ? 12 : 0
+            visible: strip.toolsComponent !== null
+            width: visible ? toolsLoader.implicitWidth + leadingSpace : 0
+            height: 32
+            Rectangle {
+                visible: parent.leadingSpace > 0
+                width: 1
+                height: 18
+                anchors.verticalCenter: parent.verticalCenter
+                color: strip.style.separator
+            }
+            Loader {
+                id: toolsLoader
+                anchors.right: parent.right
+                anchors.verticalCenter: parent.verticalCenter
+                sourceComponent: strip.toolsComponent
             }
         }
     }

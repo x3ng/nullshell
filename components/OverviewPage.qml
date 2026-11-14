@@ -139,12 +139,6 @@ ColumnLayout {
                             }
                         }
                     }
-                    PanelTools {
-                        style: page.style
-                        services: page.services
-                        appearance: page.appearance
-                        actions: page.actions
-                    }
                 }
                 Rectangle {
                     Layout.fillWidth: true
@@ -227,7 +221,7 @@ ColumnLayout {
                         }
                     }
                 }
-                // Workspaces and tray share one wrapping navigation area.
+                // Navigation, tray and quick tools form one centered group.
                 Rectangle {
                     Layout.fillWidth: true
                     Layout.preferredHeight: 1
@@ -245,6 +239,14 @@ ColumnLayout {
                     workspaces: page.displayedWorkspaces
                     windows: page.displayedWindows
                     trayItems: page.trayItems
+                    toolsComponent: Component {
+                        PanelTools {
+                            style: page.style
+                            services: page.services
+                            appearance: page.appearance
+                            actions: page.actions
+                        }
+                    }
                     onMenuRequested: (owner, right, top) => {
                         const pos = navigationStrip.mapToItem(page, right, top);
                         page.menuRequested(owner, pos.x, pos.y);
