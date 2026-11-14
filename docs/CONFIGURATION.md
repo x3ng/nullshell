@@ -54,8 +54,16 @@ read a desktop user's home directory.
 
 ## Appearance snapshots (version 1)
 
-Darkman remains the user-session mode provider, including automatic solar changes,
-manual changes and the application Settings portal. The desktop exports its actual
+The desktop owns a manual light/dark choice, persisted in
+`$XDG_STATE_HOME/nullshell/appearance-mode` (existing choices are retained; a fresh
+installation defaults to dark). The appearance button and light/dark actions
+change this choice; there is no automatic schedule or location dependency.
+The shell publishes `prefer-light` / `prefer-dark` through GSettings; the GTK
+Settings portal forwards this preference to applications. Errors are exposed by
+`nullshell ipc appearance status`; application failure does not disable the shell
+button. Restarting the desktop reapplies the saved choice.
+
+The desktop exports its actual
 `Theme.qml` colours and observed mode whenever they change, when greeter sync is
 enabled. Lock and Polkit retain their existing user-session theme and
 `appearance-mode` state; they do not consume the greeter's shared snapshots.
@@ -109,8 +117,7 @@ Updates are coalesced; a failed export retries on the next colour/mode change or
 desktop restart, not by periodic polling. Theme files persist after logout.
 Greeter loads the latest result on startup and watches updates while running; it
 never needs to run merely to receive an export. Without a running user session,
-it retains the last exported mode, even across sunrise/sunset. This is intentional:
-greeter does not run an independent scheduler or location client.
+it retains the last exported mode. Greeter does not run a scheduler or location client.
 
 
 ## Independent greeter wallpaper snapshots (version 1)

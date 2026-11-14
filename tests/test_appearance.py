@@ -1,14 +1,12 @@
 #!/usr/bin/env python3
-"""Real socket -> QML -> unprivileged exporter -> watched snapshot, isolated."""
+"""Manual QML mode -> persistent state, application preference and greeter export."""
 import json
 import os
 from pathlib import Path
 import shutil
-import socket
 import subprocess
 import sys
 import tempfile
-import threading
 import time
 from test_wallpaper import png
 
@@ -33,7 +31,6 @@ with tempfile.TemporaryDirectory(prefix="ns-theme-", dir="/tmp") as directory:
     (tools / "nullshell-helper").symlink_to(HELPER)
     runtime = base / "runtime"
     runtime.mkdir(mode=0o700)
-    (runtime / "darkman").mkdir()
     shared = base / "relocated shared directory" / "theme.json"
     shared.parent.mkdir()
     wallpaper_file = shared.parent / "wallpaper.json"
@@ -67,6 +64,7 @@ ShellRoot {
     env = dict(os.environ, HOME=str(base), XDG_STATE_HOME=str(state),
                XDG_CONFIG_HOME=str(base / "config"), XDG_CACHE_HOME=str(base / "cache"),
                XDG_RUNTIME_DIR=str(runtime), QT_QPA_PLATFORM="offscreen", QT_QUICK_BACKEND="software",
+               GSETTINGS_BACKEND="keyfile",
                DBUS_SESSION_BUS_ADDRESS="unix:path=" + str(base / "no-session-bus"),
                DBUS_SYSTEM_BUS_ADDRESS="unix:path=" + str(base / "no-system-bus"),
                NULLSHELL_APPEARANCE_SOURCE_USER="fixture-user", USER="fixture-user",
@@ -74,40 +72,6 @@ ShellRoot {
                NULLSHELL_WALLPAPER_FILE=str(wallpaper_file), PATH=str(tools) + ":" + os.environ["PATH"])
     for key in ("WAYLAND_DISPLAY", "DISPLAY", "HYPRLAND_INSTANCE_SIGNATURE"):
         env.pop(key, None)
-    server = socket.socket(socket.AF_UNIX)
-    server.bind(str(runtime / "darkman/control.sock"))
-    server.listen()
-    watchers = []
-    current = ["dark"]
-
-    def broadcast(value):
-        current[0] = value
-        for connection in watchers[:]:
-            try:
-                connection.sendall((value + "\n").encode())
-            except OSError:
-                watchers.remove(connection)
-
-    def handle(connection):
-        try:
-            for line in connection.makefile("r"):
-                if line.strip() == "watch":
-                    watchers.append(connection)
-                    connection.sendall((current[0] + "\n").encode())
-                elif line.startswith("set "):
-                    broadcast(line.strip().split()[1])
-        except OSError:
-            pass
-
-    def accept():
-        while True:
-            try:
-                connection, _ = server.accept()
-            except OSError:
-                return
-            threading.Thread(target=handle, args=(connection,), daemon=True).start()
-
-    threading.Thread(target=accept, daemon=True).start()
     log = base / "qml.log"
 
     def ipc(method, *args):
@@ -131,6 +95,13 @@ ShellRoot {
         temp.write_text(text)
         temp.replace(shared)
 
+    def broadcast(mode):
+        # All mode changes are explicit user commands, with no scheduling peer.
+        assert ipc("setMode", "true" if mode == "dark" else "false").returncode == 0
+
+    def preference():
+        return subprocess.check_output(["gsettings", "get", "org.gnome.desktop.interface", "color-scheme"], env=env, text=True).strip()
+
     with log.open("w") as output:
         process = subprocess.Popen(["quickshell", "--path", str(entry)], env=env,
                                    stdout=output, stderr=output, umask=0o077)
@@ -138,7 +109,7 @@ ShellRoot {
             dark = wait(lambda s: s["available"] and s["snapshot"] and s["snapshot"]["mode"] == "dark")
             assert not dark["writeError"]
             assert shared.stat().st_mode & 0o777 == 0o640
-            # Automatic event, then manual command through the real adapter.
+            # Explicit manual commands through the production state owner.
             broadcast("light")
             light = wait(lambda s: s["snapshot"] and s["snapshot"]["mode"] == "light")
             assert light["snapshot"]["colors"]["backgroundSurface"] != dark["snapshot"]["colors"]["backgroundSurface"]
@@ -186,8 +157,24 @@ ShellRoot {
         finally:
             process.terminate()
             process.wait(timeout=5)
-            server.close()
+
     assert shared.exists(), "Snapshot must survive publisher exit"
+    assert (state / "nullshell/appearance-mode").read_text().strip() == "dark"
+    assert preference() == "'prefer-dark'"
+    # Restore a persisted light choice without any external mode service.
+    (state / "nullshell/appearance-mode").write_text("light\n")
+    with log.open("a") as output:
+        restarted = subprocess.Popen(["quickshell", "--path", str(entry)], env=env, stdout=output, stderr=output)
+        try:
+            wait(lambda s: s["snapshot"] and s["snapshot"]["mode"] == "light")
+            until = time.monotonic() + 5
+            while preference() != "'prefer-light'" and time.monotonic() < until:
+                time.sleep(.05)
+            assert preference() == "'prefer-light'"
+        finally:
+            restarted.terminate()
+            restarted.wait(timeout=5)
+    replace(json.dumps(custom))
     # A separate late-starting consumer requires no desktop or mode provider.
     entry.write_text('''import QtQuick
 import Quickshell
@@ -224,4 +211,4 @@ ShellRoot {
     assert not (base / "missing").exists()
     text = "\n".join(line for line in log.read_text().splitlines() if "Appearance snapshot:" not in line)
     assert not any(x in text for x in ("ReferenceError", "TypeError", "SyntaxError", "Cannot assign")), text
-print("Appearance socket events, manual switching, relocated paths, atomic permissions, validation and recovery passed")
+print("Appearance manual persistence, application preference, relocated paths, atomic permissions, validation and recovery passed")

@@ -1,4 +1,4 @@
--- Hyprland-only palette adapter. Quickshell saves the last observed Darkman mode.
+-- Hyprland-only palette adapter. Quickshell persists the manual mode.
 -- Keep neutral surfaces and selection colours in sync with Theme.qml.
 -- Window borders use a quieter blue than the shell's interactive accent.
 local M = {}

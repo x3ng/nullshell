@@ -106,7 +106,7 @@ nix build path:.#legacyPackages.x86_64-linux.tests.desktop-vm --no-link --max-jo
 
 This boots real Hyprland with a virtual GPU, directly launches the desktop, locker, Polkit and sleep bridge,
 opens/closes the panel, verifies Keep awake migration and restart persistence,
-checks Darkman availability and wallpaper screen tracking across virtual monitor
+checks manual appearance availability and wallpaper screen tracking across virtual monitor
 creation/removal, and checks separate locker/Polkit process identities. A real Polkit request is
 cancelled without executing the privileged command. A second request survives a
 desktop restart and succeeds only after authentication. Disconnecting the compositor terminates its direct clients. The setuid pkexec wrapper is enabled explicitly only
@@ -119,9 +119,9 @@ need final hardware acceptance. The sleep bridge remains hypridle.
 Do not claim the authentication VMs establish real hardware power behavior.
 
 
-Appearance synchronization: `make check-appearance` runs real QML socket/file
-subscriptions with a synthetic Darkman peer and temporary XDG/shared paths. It
-checks manual/automatic mode updates, invalid snapshot recovery, independent
+Appearance synchronization: `make check-appearance` runs real QML file
+subscriptions with temporary XDG/shared paths and an isolated keyfile GSettings
+backend. It checks manual changes, restart persistence, application preference, invalid snapshot recovery, independent
 wallpaper events, source-file replacement, fit-only no-copy, byte limits, fixed
 slots and cleanup. The Nix `appearance` check runs the same tests. No host service
 is contacted. Greeter VM coverage checks source/reader/unrelated-account

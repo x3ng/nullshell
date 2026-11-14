@@ -61,7 +61,8 @@ packaging, `NULLSHELL_DATA_DIR` explicitly overrides the resource directory.
 Use a clean package staging directory; this is not an in-place upgrade manager.
 
 Current desktop adapters use systemd/util-linux tools, hypridle, coreutils, bash, the Rust helper, BlueZ tools,
-NetworkManager tools, brightnessctl, Hyprland and Darkman. The on-screen keyboard
+NetworkManager tools, brightnessctl, Hyprland, GLib gsettings and desktop schemas.
+Application colour preference uses a writable GSettings backend and GTK Settings portal. The on-screen keyboard
 uses optional wvkbd. Audio/media/battery use the corresponding Quickshell APIs and
 system services. Dependency names and optional feature handling will be refined
 when the adapters are separated; do not interpret this resource package as a

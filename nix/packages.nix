@@ -45,9 +45,10 @@ let
     hyprland
     hypridle
     wvkbd
-    darkman
+    glib
     util-linux
   ];
+  schemaPath = "${pkgs.gsettings-desktop-schemas}/share/gsettings-schemas/${pkgs.gsettings-desktop-schemas.name}";
   desktop =
     pkgs.runCommand "nullshell-desktop"
       {
@@ -60,6 +61,7 @@ let
           --add-flags ${../bin/nullshell} \
           --set-default NULLSHELL_DATA_DIR ${assets}/share/nullshell \
           --set NULLSHELL_LIBEXEC_DIR ${../bin} \
+          --prefix XDG_DATA_DIRS : "${schemaPath}" \
           --prefix PATH : "$out/bin:${lib.makeBinPath runtimeDependencies}"
       '';
   # No QML snapshot dependency: editing the checkout does not rebuild runtime.
@@ -75,9 +77,11 @@ let
           --add-flags ${../bin/nullshell} \
           --set NULLSHELL_LIBEXEC_DIR ${../bin} \
           --set NULLSHELL_SLEEP_CONFIG ${../integration/hypridle.conf} \
+          --prefix XDG_DATA_DIRS : "${schemaPath}" \
           --prefix PATH : "$out/bin:${lib.makeBinPath runtimeDependencies}"
         # Direct `quickshell -c nullshell` gets the same optional backend tools.
         makeWrapper ${pkgs.quickshell}/bin/quickshell $out/bin/quickshell \
+          --prefix XDG_DATA_DIRS : "${schemaPath}" \
           --prefix PATH : "$out/bin:${lib.makeBinPath runtimeDependencies}"
         ln -s ${helper}/bin/nullshell-helper $out/bin/nullshell-helper
       '';

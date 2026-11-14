@@ -77,7 +77,7 @@ ShellRoot {
         }
     }
 
-    // Darkman owns the appearance preference; the shell mirrors it locally.
+    // The shell owns the persistent manual appearance preference.
     // Pages fit their content under one height limit; details own their header.
     SystemClock { id: panelClock; precision: SystemClock.Minutes }
     LauncherPanel {

@@ -5,7 +5,6 @@ The compositor starts each process once, directly. For Hyprland 0.57 Lua:
 
 ```lua
 hl.on("hyprland.start", function()
-  hl.exec_cmd("systemctl --user start darkman.service") -- optional appearance provider
   hl.exec_cmd("nullshell locker --no-duplicate")
   hl.exec_cmd("nullshell polkit --no-duplicate")
   hl.exec_cmd("nullshell desktop --no-duplicate")
@@ -31,8 +30,10 @@ no idle timers. Quickshell owns dim/lock/display-off timers. The Bluetooth helpe
 is an on-demand process and requires no service. A future persistent helper must
 justify its own lifecycle independently; it does not supervise Quickshell.
 
-Darkman may keep its upstream service; start it explicitly from the session when
-using that provider. Host-specific location and appearance policy remain external.
+Appearance is manual and persisted by the shell. Install GLib `gsettings`,
+`gsettings-desktop-schemas` and a writable GSettings backend (normally dconf).
+Route `org.freedesktop.impl.portal.Settings` to the GTK portal. Do not run a
+competing automatic colour provider. No location service is required.
 
 ## State
 

@@ -6,12 +6,15 @@ import Quickshell.Io
 import Quickshell.Hyprland
 import "components/HyprlandControlCommands.js" as Commands
 
-// Apply the observed Darkman mode to the compositor. Darkman owns the portal.
+// Publish the manual preference through GTK Settings portal and Hyprland.
 Scope {
     id: root
     property string mode: ""
     property string compositorError: ""
-    readonly property string error: compositorError
+    property string preferenceError: ""
+    readonly property string error: preferenceError || compositorError
+    property string appliedPreference: ""
+    property string applyingPreference: ""
     property string applyingMode: ""
     property string appliedMode: ""
     property int compositorGeneration: 0
@@ -33,6 +36,12 @@ Scope {
 
     function apply() {
         if (mode !== "dark" && mode !== "light") return;
+        if (!preference.running && mode !== appliedPreference) {
+            applyingPreference = mode;
+            preference.command = ["gsettings", "set", "org.gnome.desktop.interface",
+                "color-scheme", mode === "dark" ? "prefer-dark" : "prefer-light"];
+            preference.running = true;
+        }
         if (update.running || mode === appliedMode || !Quickshell.env("HYPRLAND_INSTANCE_SIGNATURE")) return;
         applyingMode = mode;
         applyingGeneration = compositorGeneration;
@@ -40,6 +49,20 @@ Scope {
         update.command = ["hyprctl", "eval",
             "dofile(" + Commands.luaString(Quickshell.shellPath("adapters/Hyprland.lua")) + ").apply('" + applyingMode + "')"];
         update.running = true;
+    }
+
+    Process {
+        id: preference
+        stderr: StdioCollector {
+            onStreamFinished: if (text.trim()) console.warn("Appearance preference:", text.trim())
+        }
+        onExited: (code, status) => {
+            if (code === 0 && status === 0) {
+                root.appliedPreference = root.applyingPreference;
+                root.preferenceError = "";
+            } else root.preferenceError = "Could not publish application colour preference";
+            if (root.mode !== root.applyingPreference) Qt.callLater(root.apply);
+        }
     }
 
     Process {

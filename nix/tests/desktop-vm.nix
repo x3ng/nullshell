@@ -4,7 +4,6 @@ let
     hl.config({ misc = { disable_hyprland_logo = true, disable_splash_rendering = true } })
     hl.monitor({ output = "", mode = "preferred", position = "auto", scale = 1 })
     hl.on("hyprland.start", function()
-      hl.exec_cmd("systemctl --user start darkman.service")
       hl.exec_cmd("${packages.desktop}/bin/nullshell locker --no-duplicate")
       hl.exec_cmd("${packages.desktop}/bin/nullshell polkit --no-duplicate")
       hl.exec_cmd("${packages.desktop}/bin/nullshell desktop --no-duplicate")
@@ -45,14 +44,10 @@ pkgs.testers.runNixOSTest {
       pkgs.grim
       pkgs.polkit
     ];
-    systemd.packages = [
-      pkgs.darkman
-    ];
-    environment.etc."xdg/darkman/config.yaml".text = ''
-      lat: 31.2
-      lng: 121.5
-      usegeoclue: false
-    '';
+    programs.dconf.enable = true;
+    xdg.portal.enable = true;
+    xdg.portal.extraPortals = [ pkgs.xdg-desktop-portal-gtk ];
+    xdg.portal.config.hyprland."org.freedesktop.impl.portal.Settings" = [ "gtk" ];
     fonts.packages = [ pkgs.dejavu_fonts ];
     programs.bash.loginShellInit = ''
       if [ "$(tty)" = /dev/tty1 ]; then
@@ -84,6 +79,13 @@ pkgs.testers.runNixOSTest {
     assert json.loads(machine.succeed(idle))["keepAwake"]
     appearance = user("nullshell ipc call appearance status")
     machine.wait_until_succeeds(appearance + " | grep '\"available\":true'", timeout=timedelta(seconds=30))
+    # The published application preference must follow manual changes, without darkman.
+    portal = user("busctl --user call org.freedesktop.portal.Desktop /org/freedesktop/portal/desktop org.freedesktop.portal.Settings Read ss org.freedesktop.appearance color-scheme")
+    for mode, value in [("light", 2), ("dark", 1)]:
+        machine.succeed(user("nullshell ipc call appearance setMode " + mode))
+        machine.wait_until_succeeds(portal + " | grep 'u " + str(value) + "'", timeout=timedelta(seconds=30))
+        assert json.loads(machine.succeed(appearance))["mode"] == mode
+        assert machine.succeed("cat /home/preview/.local/state/nullshell/appearance-mode").strip() == mode
     polkit = user("nullshell ipc polkit call polkit status")
     machine.wait_until_succeeds(polkit + " | grep '\"registered\":true'", timeout=timedelta(seconds=30))
     machine.succeed(user("nullshell ipc call launcher toggle"))
