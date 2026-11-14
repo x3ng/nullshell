@@ -17,6 +17,11 @@ ShellRoot {
     }
     AppearanceState { id: appearance }
     Theme { id: theme; darkMode: appearance.darkMode }
+    AppearanceExport {
+        id: appearanceExport
+        theme: theme
+        ready: appearance.appearanceKnown
+    }
     DesktopServices {
         id: desktop
         controlsVisible: launcher.open
@@ -26,6 +31,7 @@ ShellRoot {
             notifications.notifyLocal(key, {summary: summary, body: body, critical: critical})
     }
     WallpaperState { id: wallpaperState }
+    WallpaperExport { id: wallpaperExport; wallpaper: wallpaperState }
     WallpaperWindows { wallpaper: wallpaperState }
     WallpaperPicker { id: wallpaperPicker; wallpaper: wallpaperState; style: theme }
     IdlePolicy {
@@ -106,7 +112,7 @@ ShellRoot {
         target: "wallpaper"
         function showPicker(): void { launcher.dismiss(); wallpaperPicker.showPicker(); }
         function status(): string {
-            return JSON.stringify({loaded: wallpaperState.loaded, error: wallpaperState.error,
+            return JSON.stringify({loaded: wallpaperState.loaded, error: wallpaperState.error || wallpaperExport.error,
                 screens: Quickshell.screens.map(screen => ({name: screen.name, wallpaper: wallpaperState.entryFor(screen.name)}))});
         }
     }
@@ -119,7 +125,7 @@ ShellRoot {
         function status(): string {
             return JSON.stringify({mode: appearance.darkMode ? "dark" : "light",
                 ready: appearance.appearanceKnown, available: appearance.appearanceAvailable,
-                error: appearance.appearanceError});
+                error: appearance.appearanceError || appearanceExport.error});
         }
     }
 

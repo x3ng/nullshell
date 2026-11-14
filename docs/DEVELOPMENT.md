@@ -118,3 +118,68 @@ The system greeter uses the independently deployed package snapshot.
 Personal Hyprland and application configuration remains in the separate dotfiles
 repository, deployed with its own tools. No Home Manager ownership or
 out-of-store symlink is required for the nullshell checkout.
+
+## Local greeter QML installation
+
+The package remains the default code source. On NixOS, enabling the greeter also
+installs `nullshell-install-greeter` and configures
+`programs.nullshell.greeter.interfaceDirectory` (default
+`/var/lib/nullshell-greeter-ui`). This is separate from mutable theme data and
+from the greeter account's login state. Deploy this module/runtime support once;
+subsequent QML edits do not require a flake update or host switch.
+
+After inspecting the working-tree preview, install the current checkout:
+
+```sh
+sudo nullshell-install-greeter --source "$PWD"
+# Equivalent convenience target from this checkout:
+make install-greeter
+```
+
+The installed command already knows the directory chosen by the system module.
+It does not infer a username, HOME or checkout location. A portable installation
+can invoke `sudo ./bin/nullshell-install-greeter --source "$PWD" --destination DIR`
+and set `NULLSHELL_GREETER_OVERRIDE_DIR=DIR` for the greeter launcher. Install its
+normal packaged resources/dependencies first with Make and the distribution's
+greetd configuration. The command requires coreutils, findutils and util-linux;
+there is no runtime Python or Nix dependency. The destination parent must already
+exist and be root-managed.
+
+The command **copies**, never moves, QML/JS and their source resource directories
+(`components`, `adapters`, `greeter`, optional `assets`) into a root-owned snapshot.
+It includes the package's static `wallpaper.json` if present. It does not copy Git,
+backend binaries, desktop HOME config or runtime state. Extra static images/fonts
+belong in `assets/`. Device files and links escaping the installed snapshot are rejected; internal
+shared-component symlinks are preserved. Files become 0644 and
+directories 0755. A `greeter-interface.version` marker must match resource interface
+version 1, and the snapshot's allocated size must not exceed 64 MiB.
+
+This is structure/version validation, **not execution of user QML as root**, and
+not a proof of QML syntax, runtime module availability or successful login. Preview
+with the intended runtime before installing. An API marker does not certify every
+arbitrary Qt/Quickshell import a custom interface may add.
+
+A complete snapshot is published by atomically changing `current`. Greeter code
+watching is disabled; theme/wallpaper data watching remains enabled. A running
+greeter pins its selected snapshot with a shared file lock, so resource cleanup
+cannot remove images/imports it may still need. Unused snapshots are collected on
+install/reset. There is no automatic rollback or version-history archive; at most
+four selected/in-use snapshots may exist, and another installation refuses if
+that limit is reached. An interrupted installation is cleaned on the next command.
+
+Installation never restarts greetd, the locker or Polkit. The next greeter launch
+uses the installed interface. If needed, repair from another working TTY and
+restart greetd only when no authentication or graphical session must be preserved.
+TTY recovery is an operating-system prerequisite, not guaranteed by this installer.
+An invalid installed interface is reported rather than silently replaced.
+
+To explicitly return to the package on the next launch:
+
+```sh
+sudo nullshell-install-greeter --reset
+```
+
+This removes the override selection and collects unused copies, without touching
+appearance data or login state. The greeter entry remains `greeter.qml` at the
+resource root and loads `greeter/shell.qml`; the complete snapshot is needed for
+shared components. Lock and Polkit entries are not changed by this installation.

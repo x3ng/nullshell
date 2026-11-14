@@ -3,7 +3,7 @@ set -eu
 
 # Resource selection is shared by direct startup, CLI IPC and child processes.
 # A packaged greeter never discovers a user's editable checkout implicitly.
-prefix=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
+prefix=$(CDPATH='' cd -- "$(dirname -- "$0")/.." && pwd)
 mode=${1:-desktop}
 if [ "$#" -gt 0 ]; then shift; fi
 helpers=${NULLSHELL_LIBEXEC_DIR:-$prefix/bin}
@@ -11,6 +11,31 @@ if [ -n "${NULLSHELL_DATA_DIR:-}" ]; then
     resources=$NULLSHELL_DATA_DIR
 elif [ "$mode" = greeter ]; then
     resources=${NULLSHELL_PACKAGED_DATA_DIR:-$prefix/share/nullshell}
+    # The installer owns this pointer; user HOME is never an implicit code source.
+    override=${NULLSHELL_GREETER_OVERRIDE_DIR:-}
+    if [ -n "$override" ] && { [ -e "$override/current" ] || [ -L "$override/current" ]; }; then
+        # Serialize pointer selection with install/reset, then pin only the QML
+        # snapshot. Installation can proceed while this greeter remains alive.
+        exec 7<"$override/.install.lock"
+        flock -s 7
+        if [ -L "$override/current" ]; then
+            generation=$(readlink -- "$override/current")
+            case "$generation" in .qml.??????) ;; *) echo 'Invalid greeter QML pointer' >&2; exit 1 ;; esac
+            case "$generation" in *[!a-zA-Z0-9.]*) echo 'Invalid greeter QML generation' >&2; exit 1 ;; esac
+            candidate=$override/$generation
+            exec 8<"$candidate/.in-use"
+            flock -s 8
+            [ "$(cat -- "$candidate/greeter-interface.version")" = 1 ] || {
+                echo 'Installed greeter QML requires a different interface version' >&2; exit 1;
+            }
+            resources=$candidate
+        elif [ -e "$override/current" ]; then
+            echo 'Invalid greeter QML pointer' >&2
+            exit 1
+        fi
+        flock -u 7
+        exec 7<&-
+    fi
 elif [ -n "${NULLSHELL_CONFIG_DIR:-}" ]; then
     resources=$NULLSHELL_CONFIG_DIR
 elif [ -f "$prefix/shell.qml" ]; then
@@ -22,7 +47,7 @@ else
     fi
 fi
 # Canonical paths keep IPC consistent when a checkout is reached through a symlink.
-if [ -d "$resources" ]; then resources=$(CDPATH= cd -- "$resources" && pwd -P); fi
+if [ -d "$resources" ]; then resources=$(CDPATH='' cd -- "$resources" && pwd -P); fi
 export NULLSHELL_DATA_DIR="$resources"
 case "$mode" in
     desktop) sh "$helpers/nullshell-migrate-state"; entry=$resources/shell.qml ;;
@@ -44,7 +69,7 @@ case "$mode" in
         # One bridge per Wayland session; the lock is released when it exits.
         exec flock --nonblock "${XDG_RUNTIME_DIR:?}/nullshell-sleep-${WAYLAND_DISPLAY:?}.lock" \
             hypridle --config "$sleep_config" ;;
-    greeter) entry=$resources/greeter/shell.qml ;;
+    greeter) entry=$resources/greeter.qml ;;
     preview-greeter) entry=$resources/preview.qml; export QS_PREVIEW_LOCK=0 ;;
     preview-lock) entry=$resources/preview.qml; export QS_PREVIEW_LOCK=1 ;;
     preview-polkit) entry=$resources/polkit/preview.qml ;;

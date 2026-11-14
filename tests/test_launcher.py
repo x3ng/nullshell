@@ -24,7 +24,7 @@ with tempfile.TemporaryDirectory(prefix='nullshell-routing-') as tmp:
     env.update(HOME=str(root / 'home'), XDG_CONFIG_HOME=str(root / 'config'),
                XDG_STATE_HOME=str(root / 'state'), XDG_RUNTIME_DIR=str(root), WAYLAND_DISPLAY='test-wayland', PATH=str(probe) + os.pathsep + os.environ['PATH'])
     local = root / 'config/quickshell/nullshell'
-    for name in ('shell.qml', 'preview-panel.qml', 'lock/shell.qml', 'polkit/shell.qml', 'greeter/shell.qml'):
+    for name in ('shell.qml', 'preview-panel.qml', 'lock/shell.qml', 'polkit/shell.qml', 'greeter.qml'):
         path = local / name
         path.parent.mkdir(parents=True, exist_ok=True)
         path.touch()
@@ -47,9 +47,27 @@ with tempfile.TemporaryDirectory(prefix='nullshell-routing-') as tmp:
     assert 'Missing nullshell resource' in run('greeter', success=False)
     packaged = root / 'snapshot'
     (packaged / 'greeter').mkdir(parents=True)
-    (packaged / 'greeter/shell.qml').touch()
+    (packaged / 'greeter.qml').touch()
     value = run('greeter', extra={'NULLSHELL_PACKAGED_DATA_DIR': str(packaged)})
-    assert value['args'] == ['--path', str(packaged / 'greeter/shell.qml')]
+    assert value['args'] == ['--path', str(packaged / 'greeter.qml')]
+    # Optional installed QML wins over the package, never over an explicit preview.
+    override = root / 'managed interface'
+    generation = override / '.qml.abc123'
+    generation.mkdir(parents=True)
+    (generation / '.in-use').touch()
+    (override / '.install.lock').touch()
+    (generation / 'greeter.qml').touch()
+    (generation / 'greeter-interface.version').write_text('1\n')
+    (override / 'current').symlink_to(generation.name)
+    integration = {'NULLSHELL_PACKAGED_DATA_DIR': str(packaged), 'NULLSHELL_GREETER_OVERRIDE_DIR': str(override)}
+    assert run('greeter', extra=integration)['data'] == str(generation)
+    assert run('greeter', extra=integration | {'NULLSHELL_DATA_DIR': str(packaged)})['data'] == str(packaged)
+    (generation / 'greeter-interface.version').write_text('99\n')
+    assert 'interface version' in run('greeter', extra=integration, success=False)
+    (override / 'current').unlink()
+    assert run('greeter', extra=integration)['data'] == str(packaged)
+    (override / 'current').symlink_to('../../escape')
+    assert 'Invalid greeter QML pointer' in run('greeter', extra=integration, success=False)
     link = root / 'checkout with spaces'
     link.symlink_to(local, target_is_directory=True)
     assert run('preview-panel', extra={'NULLSHELL_CONFIG_DIR': str(link)})['data'] == str(local)

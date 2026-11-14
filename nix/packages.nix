@@ -19,7 +19,9 @@ let
         ../polkit
         ../preview
         ../wallpaper.json
+        ../greeter-interface.version
       ]
+      ++ lib.optionals (builtins.pathExists ../assets) [ ../assets ]
     );
   };
   assets = pkgs.runCommand "nullshell-assets" { } ''
@@ -89,12 +91,13 @@ let
         mkdir -p $out/bin
         makeWrapper ${pkgs.runtimeShell} $out/bin/nullshell-greeter \
           --add-flags '${../bin/nullshell} greeter' \
-          --set-default NULLSHELL_DATA_DIR ${assets}/share/nullshell \
+          --set-default NULLSHELL_PACKAGED_DATA_DIR ${assets}/share/nullshell \
           --prefix PATH : ${
             lib.makeBinPath [
               pkgs.quickshell
               pkgs.systemd
               pkgs.coreutils
+              pkgs.util-linux
             ]
           }
       '';

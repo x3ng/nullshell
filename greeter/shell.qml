@@ -1,3 +1,4 @@
+import ".."
 import QtQuick
 import QtQuick.Window
 import Quickshell
@@ -6,6 +7,7 @@ import Quickshell.Services.Greetd
 
 ShellRoot {
     id: root
+    Component.onCompleted: Quickshell.watchFiles = false
     readonly property var style: loginTheme
     property bool busy: false
     property bool awaitingReply: false
@@ -116,7 +118,11 @@ ShellRoot {
         }
     }
 
-    Theme { id: loginTheme; darkMode: true }
+    AppearanceSnapshot {
+        id: appearance
+        path: Quickshell.env("NULLSHELL_APPEARANCE_FILE")
+    }
+    Theme { id: loginTheme; darkMode: appearance.darkMode; colors: appearance.colors }
     SessionCatalog { id: catalog }
     FileView {
         id: loginState
@@ -152,10 +158,21 @@ ShellRoot {
         title: "Login"
         onVisibleChanged: if (visible) Qt.callLater(loginView.focusInput)
 
+        GreeterWallpaper {
+            id: background
+            anchors.fill: parent
+            fallbackColor: root.style.backgroundSurface
+        }
+        Rectangle {
+            anchors.fill: parent
+            visible: background.ready
+            color: root.style.wallpaperScrim
+        }
         LoginView {
             id: loginView
             anchors.fill: parent
             theme: root.style
+            transparentBackground: true
             userName: root.rememberedUser
             editableUser: true
             sessions: catalog.sessions

@@ -24,8 +24,22 @@ ShellRoot {
             loginView.busy = busy;
         }
         function light(enabled: bool): void { preview.lightMode = enabled; }
+        function appearanceStatus(): string {
+            return JSON.stringify({valid: appearance.valid, dark: loginTheme.darkMode,
+                background: String(loginTheme.backgroundSurface), accent: String(loginTheme.accent), error: appearance.error, wallpaperReady: greeterBackground.ready, wallpaperError: greeterBackground.error});
+        }
+        function size(width: int, height: int): void { window.width = width; window.height = height; }
+        function quit(): void { Qt.quit(); }
     }
-    Theme { id: loginTheme; darkMode: !preview.lightMode }
+    AppearanceSnapshot {
+        id: appearance
+        path: Quickshell.env("NULLSHELL_APPEARANCE_FILE")
+    }
+    Theme {
+        id: loginTheme
+        darkMode: appearance.valid ? appearance.darkMode : !preview.lightMode
+        colors: appearance.colors
+    }
     WallpaperState { id: wallpaperState }
     SessionCatalog { id: catalog }
 
@@ -57,11 +71,22 @@ ShellRoot {
             visible: preview.lockMode
             color: loginTheme.wallpaperScrim
         }
+        GreeterWallpaper {
+            id: greeterBackground
+            anchors.fill: parent
+            visible: !preview.lockMode
+            fallbackColor: loginTheme.backgroundSurface
+        }
+        Rectangle {
+            anchors.fill: parent
+            visible: !preview.lockMode && greeterBackground.ready
+            color: loginTheme.wallpaperScrim
+        }
         LoginView {
             id: loginView
             anchors.fill: parent
             theme: loginTheme
-            transparentBackground: preview.lockMode
+            transparentBackground: true
             cardOpacity: preview.lockMode ? loginTheme.frostedOpacity : 1
             frosted: preview.lockMode
             userName: Quickshell.env("USER")

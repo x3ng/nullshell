@@ -117,3 +117,24 @@ inside this VM for the test; the production module does not enable it implicitly
 Physical GPU behavior, real Bluetooth hardware and actual laptop suspend/resume
 need final hardware acceptance. The sleep bridge remains hypridle.
 Do not claim the authentication VMs establish real hardware power behavior.
+
+
+Appearance synchronization: `make check-appearance` runs real QML socket/file
+subscriptions with a synthetic Darkman peer and temporary XDG/shared paths. It
+checks manual/automatic mode updates, invalid snapshot recovery, independent
+wallpaper events, source-file replacement, fit-only no-copy, byte limits, fixed
+slots and cleanup. The Nix `appearance` check runs the same tests. No host service
+is contacted. Greeter VM coverage checks source/reader/unrelated-account
+permissions and a mode update during an actual greetd authentication conversation.
+For visual checks set `NULLSHELL_APPEARANCE_FILE` and `NULLSHELL_WALLPAPER_FILE`
+when starting the working-tree greeter preview; these are data inputs, not QML
+installation paths. Verify both palettes, wallpaper/no wallpaper and feedback
+states; preview loading is not authentication acceptance.
+
+The greeter VM also exercises the portable QML installer through the configured
+NixOS wrapper: packaged startup, root-owned installation, unprivileged rejection,
+resource-version mismatch, external-link rejection, local-override authentication,
+update without restarting the greeter, retention of its pinned resources, and
+explicit reset/cleanup back to packaged QML. Installer structure checks never
+execute a submitted interface as root. They do not replace working-tree previews
+or guarantee authentication for arbitrary custom QML.

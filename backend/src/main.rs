@@ -1,4 +1,7 @@
 //! A bounded, on-demand BlueZ Agent1 client. No default-agent registration.
+mod appearance;
+mod wallpaper;
+
 use futures_util::StreamExt;
 use serde::Deserialize;
 use serde_json::json;
@@ -368,6 +371,20 @@ async fn run(
 #[tokio::main(flavor = "current_thread")]
 async fn main() {
     let args: Vec<_> = std::env::args().skip(1).collect();
+    if args.first().map(String::as_str) == Some("appearance-export") {
+        if let Err(error) = appearance::run(&args[1..]) {
+            eprintln!("Appearance export: {error}");
+            std::process::exit(1);
+        }
+        return;
+    }
+    if args.first().map(String::as_str) == Some("wallpaper-export") {
+        if let Err(error) = wallpaper::run(&args[1..]) {
+            eprintln!("Wallpaper export: {error}");
+            std::process::exit(1);
+        }
+        return;
+    }
     if args == ["--version"] {
         println!("nullshell-helper {}", env!("CARGO_PKG_VERSION"));
         return;

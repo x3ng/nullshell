@@ -28,6 +28,7 @@
           inherit (packages) desktop greeter runtime;
           preview = import ./nix/tests/preview.nix { inherit pkgs packages; };
           config = import ./nix/tests/config.nix { inherit pkgs; };
+          appearance = import ./nix/tests/appearance.nix { inherit pkgs packages; };
           migration = import ./nix/tests/migration.nix { inherit pkgs; };
           bluetooth = import ./nix/tests/bluetooth.nix {
             inherit pkgs;

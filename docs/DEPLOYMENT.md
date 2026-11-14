@@ -77,3 +77,13 @@ Do not run a second notification daemon or Polkit agent in the same session.
 The Lua adapter ships with the resources and is loaded by absolute resource path;
 it does not require personal dotfiles Lua modules. The existing layer namespaces
 are retained for compatibility with compositor layer rules.
+
+## Optional local greeter QML override
+
+After deploying the module/runtime support once, use
+`sudo nullshell-install-greeter --source "$PWD"` from the reviewed checkout to
+install code for the next greeter launch. The module supplies the destination;
+`--reset` explicitly returns to packaged QML. Neither command restarts services
+or modifies the mutable appearance/wallpaper snapshots. See
+[DEVELOPMENT.md](DEVELOPMENT.md#local-greeter-qml-installation) for resource limits,
+compatibility, cleanup, portable installation and TTY recovery.

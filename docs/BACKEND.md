@@ -62,3 +62,48 @@ helper RPC layer or requirement to wrap every native property.
 Run `make check-pairing` for offscreen QML tests with a synthetic stdio helper
 (success, prompt cancellation, failure, crash, missing executable and stuck
 cancellation). These tests neither use BlueZ nor replace real-radio integration.
+
+## Appearance export
+
+`nullshell-helper appearance-export SHARED_FILE` is an independent,
+unprivileged one-shot subcommand, not part of the Bluetooth JSONL conversation.
+It reads one appearance v1 JSON document (at most 16 KiB) until stdin EOF, validates
+it, and atomically writes the shared target with mode 0640, inheriting the
+installed directory's setgid group.
+Failures go to stderr with nonzero exit status. User-session state remains
+independent and is not rewritten by this command. No service or
+D-Bus connection is started. See CONFIGURATION.md for the installation contract.
+
+## Wallpaper export
+
+`nullshell-helper wallpaper-export SHARED_FILE` reads a separate v1 request
+(maximum 8 KiB) containing `source` and `fit`. It copies at most 16 MiB of raster
+image data, atomically publishes a relative-resource descriptor, and retains only
+two fixed image slots plus one fixed pending file. It never changes the appearance
+snapshot. Fit-only updates preserve image bytes/revision; source-file change
+notifications cause a fresh byte comparison. An empty source publishes no image
+then removes managed assets. See CONFIGURATION.md for exact failure and cleanup
+semantics. File locking requires Rust 1.89 or newer.
+
+
+## Policy versus mechanism
+
+QML/JS decides what to publish (actual theme colours and the global wallpaper),
+when to publish (provider/file events), and how to report or coalesce updates.
+Rust implements the bounded filesystem transaction: validation, file locking,
+permissions, copy-if-changed, atomic publication and cleanup. It does not choose
+a theme, locate a user configuration, schedule mode changes or control greetd.
+
+The thin interface is an explicit subcommand and destination plus one versioned
+JSON document on stdin. Successful exit means publication completed, not merely
+accepted; nonzero exit means failure, with diagnostics on stderr. Colour and
+wallpaper operations are independent, not an all-settings RPC. Reader schemas
+reject unknown fields/versions. The production-QML-to-helper integration test
+checks the actual palette contract across JS and Rust; changing either side must
+keep that test passing rather than silently widening the accepted protocol.
+
+QML code installation is a different, administrative file operation, implemented
+by the portable `nullshell-install-greeter` script. It does not use or extend these
+mutable-data APIs. Its resource-interface marker covers entry layout and the
+existing native greetd/data interfaces; it is not a guarantee for arbitrary custom
+Qt imports. The greeter still has no dependency on the Rust exporter at runtime.

@@ -1,0 +1,127 @@
+#!/bin/sh
+# Administrative file installation only. Never execute QML or restart a service.
+set -eu
+fail() { printf '%s\n' "$*" >&2; exit 1; }
+source_dir=
+destination=
+reset=false
+while [ "$#" -gt 0 ]; do
+    case "$1" in
+        --source) [ "$#" -ge 2 ] || fail 'Missing source'; source_dir=$2; shift 2 ;;
+        --destination) [ "$#" -ge 2 ] || fail 'Missing destination'; [ -z "$destination" ] || fail 'Destination specified twice'; destination=$2; shift 2 ;;
+        --reset) reset=true; shift ;;
+        -h|--help)
+            echo 'Usage: nullshell-install-greeter --destination DIRECTORY [--source CHECKOUT | --reset]'
+            exit 0 ;;
+        *) fail "Unknown argument: $1" ;;
+    esac
+done
+[ "$(id -u)" = 0 ] || fail 'Run the install command with sudo; preview QML as your normal user first.'
+[ -n "$destination" ] || fail 'Specify the system-configured --destination directory.'
+case "$destination" in /*) ;; *) fail 'Destination must be absolute.' ;; esac
+[ ! -L "$destination" ] || fail 'Destination must not be a symlink.'
+destination=$(realpath -m -- "$destination")
+case "$destination" in /|/etc|/usr|/usr/local|/var|/var/lib|/home|/tmp) fail 'Use a dedicated installation directory.' ;; esac
+# Refuse user-controlled ancestors. A root-owned sticky /tmp is suitable for tests.
+ancestor=$(dirname -- "$destination")
+while :; do
+    if [ -e "$ancestor" ]; then
+        [ "$(stat -c %u -- "$ancestor")" = 0 ] || fail 'Installation ancestors must be root-owned.'
+        mode=$(stat -c %a -- "$ancestor")
+        [ "$((0$mode & 0022))" = 0 ] || [ "$((0$mode & 01000))" != 0 ] || fail 'Installation ancestor is writable by other accounts.'
+    fi
+    [ "$ancestor" != / ] || break
+    ancestor=$(dirname -- "$ancestor")
+done
+if [ -e "$destination" ]; then
+    [ -d "$destination" ] && [ "$(stat -c %u -- "$destination")" = 0 ] || fail 'Destination must be a root-owned directory.'
+    mode=$(stat -c %a -- "$destination")
+    [ "$((0$mode & 0022))" = 0 ] || fail 'Destination must not be writable by other accounts.'
+fi
+[ -d "$(dirname -- "$destination")" ] || fail 'Create the root-owned parent directory first.'
+mkdir -m 0755 -- "$destination" 2>/dev/null || [ -d "$destination" ] || fail 'Could not create installation directory.'
+[ ! -L "$destination" ] && [ "$(stat -c %u -- "$destination")" = 0 ] || fail 'Installation directory changed ownership or became a symlink.'
+chmod 0755 -- "$destination"
+exec 9>"$destination/.install.lock"
+chmod 0644 -- "$destination/.install.lock"
+flock -x 9
+stage=
+pointer="$destination/.current.pending"
+cleanup() {
+    [ -z "$stage" ] || rm -rf -- "$stage"
+    rm -f -- "$pointer"
+}
+trap cleanup EXIT
+trap 'exit 1' HUP INT TERM
+rm -f -- "$pointer"
+collect() {
+    current=$(readlink -- "$destination/current" 2>/dev/null || true)
+    for candidate in "$destination"/.qml.*; do
+        [ -d "$candidate" ] && [ ! -L "$candidate" ] || continue
+        [ "${candidate##*/}" != "$current" ] || continue
+        # A running greeter pins its snapshot. No version history is retained.
+        (
+            if [ -f "$candidate/.in-use" ]; then
+                exec 8<"$candidate/.in-use"
+                flock -xn 8 || exit 0
+            fi
+            rm -rf -- "$candidate"
+        )
+    done
+}
+if "$reset"; then
+    [ -z "$source_dir" ] || fail '--reset cannot be combined with --source.'
+    [ ! -e "$destination/current" ] || [ -L "$destination/current" ] || fail 'current is not a managed symlink.'
+    rm -f -- "$destination/current"
+    collect
+    echo 'Packaged greeter QML will be used on the next launch. No service was restarted.'
+    exit 0
+fi
+[ -n "$source_dir" ] || fail 'Specify --source CHECKOUT.'
+source_dir=$(CDPATH='' cd -- "$source_dir" && pwd -P)
+[ -f "$source_dir/greeter-interface.version" ] || fail 'Missing greeter interface version.'
+[ "$(cat -- "$source_dir/greeter-interface.version")" = 1 ] || fail 'Unsupported greeter interface version.'
+for required in greeter.qml greeter/shell.qml LoginView.qml Theme.qml; do
+    [ -f "$source_dir/$required" ] || fail "Missing resource: $required"
+done
+collect
+count=$(find "$destination" -mindepth 1 -maxdepth 1 -type d -name '.qml.*' | wc -l)
+[ "$count" -lt 4 ] || fail 'Four QML snapshots are still selected or in use; finish old greeter sessions before installing again.'
+stage=$(mktemp -d "$destination/.qml.XXXXXX")
+: > "$stage/.in-use"
+# Only source resources, never HOME config, runtime state, backend binaries or Git.
+for resource in "$source_dir"/*.qml "$source_dir"/*.js; do
+    [ -e "$resource" ] || continue
+    cp -P -- "$resource" "$stage/"
+done
+for resource in components adapters greeter assets; do
+    [ ! -e "$source_dir/$resource" ] || cp -RP -- "$source_dir/$resource" "$stage/"
+done
+cp -P -- "$source_dir/greeter-interface.version" "$stage/"
+[ ! -f "$source_dir/wallpaper.json" ] || cp -P -- "$source_dir/wallpaper.json" "$stage/"
+# cp -P never follows source links. Existing shared-component links are allowed
+# only when they resolve inside the completed snapshot, never into HOME or /etc.
+[ -z "$(find "$stage" ! -type f ! -type d ! -type l -print -quit)" ] || fail 'QML resources contain a device, socket or FIFO.'
+find "$stage" -type l -exec sh -c '
+    root=$1; shift
+    for link do
+        target=$(realpath -e -- "$link") || exit 1
+        case "$target" in "$root/"*) ;; *) echo "Resource link escapes installed snapshot" >&2; exit 1 ;; esac
+    done
+' sh "$stage" {} + || fail 'Resource links must resolve inside the installed snapshot.'
+for required in greeter.qml greeter/shell.qml LoginView.qml Theme.qml; do
+    [ -f "$stage/$required" ] || fail "Incomplete snapshot: $required"
+done
+[ "$(cat -- "$stage/greeter-interface.version")" = 1 ] || fail 'Source changed during installation.'
+[ "$(du -sk -- "$stage" | cut -f1)" -le 65536 ] || fail 'Greeter QML resources exceed 64 MiB.'
+chown -R 0:0 -- "$stage"
+find "$stage" -type d -exec chmod 0755 {} +
+find "$stage" -type f -exec chmod 0644 {} +
+# Publish only complete snapshots. No authentication process is signalled.
+sync -f "$stage"
+ln -s -- "${stage##*/}" "$pointer"
+mv -Tf -- "$pointer" "$destination/current"
+stage=
+sync -f "$destination"
+collect
+echo 'Greeter QML installed for the next launch. No service was restarted.'

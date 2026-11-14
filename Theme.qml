@@ -11,6 +11,8 @@ Scope {
     readonly property bool backdropBlur: previewBlur < 0 ? capabilities.blurAvailable : previewBlur === 1
     function refreshMaterial() { capabilities.refresh(); }
     required property bool darkMode
+    // Complete validated snapshots may override colours without replacing QML.
+    property var colors: ({})
     // Palette sync: the values below are mirrored in adapters/Hyprland.lua
     // (borders, groupbar). Keep both files in step when changing a colour;
     // accent is intentionally darker in Hyprland borders than in the shell.
@@ -42,30 +44,30 @@ Scope {
     readonly property int radiusControl: 3
     readonly property int radiusSmall: 3
     // Neutral, layered surfaces: opacity is not a substitute for backdrop blur.
-    readonly property color backdrop: darkMode ? "#50000000" : "#18202730"
-    readonly property color panelSurface: darkMode ? "#202328" : "#f4f4f5"
-    readonly property color backgroundSurface: darkMode ? "#1b1d21" : "#e9eaec"
+    readonly property color backdrop: colors.backdrop || (darkMode ? "#50000000" : "#18202730")
+    readonly property color panelSurface: colors.panelSurface || (darkMode ? "#202328" : "#f4f4f5")
+    readonly property color backgroundSurface: colors.backgroundSurface || (darkMode ? "#1b1d21" : "#e9eaec")
     readonly property color surface: panelSurface
-    readonly property color surfaceRaised: darkMode ? "#292d33" : "#fdfdfe"
-    readonly property color surfaceHover: darkMode ? "#34373d" : "#e6e8eb"
-    readonly property color surfaceSelected: darkMode ? "#353e4b" : "#e0e7f0"
-    readonly property color materialEdge: darkMode ? "#70535962" : "#30434a55"
-    readonly property color materialShadow: darkMode ? "#40000000" : "#1a20242b"
+    readonly property color surfaceRaised: colors.surfaceRaised || (darkMode ? "#292d33" : "#fdfdfe")
+    readonly property color surfaceHover: colors.surfaceHover || (darkMode ? "#34373d" : "#e6e8eb")
+    readonly property color surfaceSelected: colors.surfaceSelected || (darkMode ? "#353e4b" : "#e0e7f0")
+    readonly property color materialEdge: colors.materialEdge || (darkMode ? "#70535962" : "#30434a55")
+    readonly property color materialShadow: colors.materialShadow || (darkMode ? "#40000000" : "#1a20242b")
     // The compositor blurs only the matching surface region behind this tint.
     readonly property real glassOpacity: backdropBlur ? (darkMode ? 0.78 : 0.72) : 1
     readonly property real frostedOpacity: darkMode ? 0.86 : 0.82
-    readonly property color wallpaperScrim: darkMode ? "#420b1118" : "#26e9ebef"
-    readonly property color inputSurface: darkMode ? "#1b1f24" : "#ffffff"
+    readonly property color wallpaperScrim: colors.wallpaperScrim || (darkMode ? "#420b1118" : "#26e9ebef")
+    readonly property color inputSurface: colors.inputSurface || (darkMode ? "#1b1f24" : "#ffffff")
     readonly property color textSelected: textPrimary
-    readonly property color outline: darkMode ? "#4a535c" : "#c4c8cf"
-    readonly property color separator: darkMode ? "#373e45" : "#dcdfe4"
-    readonly property color textPrimary: darkMode ? "#f0f1f3" : "#24272d"
-    readonly property color textSecondary: darkMode ? "#bdc1ca" : "#525965"
-    readonly property color textMuted: darkMode ? "#969da9" : "#69717e"
-    readonly property color accent: darkMode ? "#8aafe6" : "#3565a6"
-    readonly property color accentInk: darkMode ? "#15253e" : "#ffffff"
-    readonly property color danger: darkMode ? "#e99e9b" : "#a33d3b"
-    readonly property color accentWarm: darkMode ? "#e4bb80" : "#805313"
+    readonly property color outline: colors.outline || (darkMode ? "#4a535c" : "#c4c8cf")
+    readonly property color separator: colors.separator || (darkMode ? "#373e45" : "#dcdfe4")
+    readonly property color textPrimary: colors.textPrimary || (darkMode ? "#f0f1f3" : "#24272d")
+    readonly property color textSecondary: colors.textSecondary || (darkMode ? "#bdc1ca" : "#525965")
+    readonly property color textMuted: colors.textMuted || (darkMode ? "#969da9" : "#69717e")
+    readonly property color accent: colors.accent || (darkMode ? "#8aafe6" : "#3565a6")
+    readonly property color accentInk: colors.accentInk || (darkMode ? "#15253e" : "#ffffff")
+    readonly property color danger: colors.danger || (darkMode ? "#e99e9b" : "#a33d3b")
+    readonly property color accentWarm: colors.accentWarm || (darkMode ? "#e4bb80" : "#805313")
 
     // Typography scale; every text size in the shell maps to one of these.
     readonly property int fontSizeMicro: 10
