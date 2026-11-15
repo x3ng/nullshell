@@ -19,8 +19,9 @@ Scope {
         {id: "session", description: "Lock, sleep, log out, restart or shut down", title: "Power and session", keywords: "power shutdown reboot logout suspend 电源 关机 重启 注销 休眠 锁屏", icon: "power", enabled: true},
         {id: "appearance", description: "Light, dark, automatic and location settings", title: "Appearance settings", keywords: "theme auto solar 深色 浅色 自动 定位 主题 外观", icon: "brightness", enabled: true},
         {id: "auto", description: "Follow local sunrise and sunset", title: "Use automatic appearance", keywords: "theme solar 自动 主题 日出 日落", icon: "clock", enabled: appearance.appearanceAvailable},
+        {id: "appearance-resume", description: "Clear the temporary appearance override", title: "Resume automatic appearance", keywords: "theme solar 恢复 自动 主题", icon: "clock", enabled: appearance.appearanceAvailable && appearance.automatic && appearance.overrideUntil > 0},
         {id: "desktop", description: "Browse windows, workspaces and layouts", title: "Manage windows and workspaces", keywords: "desktop layout float fullscreen move close 桌面 窗口 工作区 布局 平铺 浮动 全屏 移动 关闭", icon: "window", enabled: true},
-        {id: "overview", description: "Return to current desktop status", title: "Show desktop status", keywords: "status settings 总览 状态 系统 设置 控制", icon: "app", enabled: true},
+        {id: "overview", description: "Adjust frequent controls and see current status", title: "Open quick controls", keywords: "status settings 总览 状态 系统 设置 控制 快捷", icon: "app", enabled: true},
         {id: "wifi", description: "Choose a network and manage connections", title: "Wi-Fi settings", keywords: "network wireless 网络 无线", icon: "wifi", enabled: true},
         {id: "bluetooth", description: "Connect, pair and manage devices", title: "Bluetooth settings", keywords: "devices 蓝牙 设备", icon: "bluetooth", enabled: true},
         {id: "audio", description: "Choose output and microphone devices", title: "Audio devices", keywords: "sound volume output input 声音 音频 音量 输出 输入", icon: "headphones", enabled: true},
@@ -66,6 +67,7 @@ Scope {
         case "mic-mute": return services.toggleMicMute();
         case "keep-awake": return services.toggleKeepAwake();
         case "auto": return appearance.selectMode("auto");
+        case "appearance-resume": appearance.resumeAutomatic(); return true;
         case "light": return appearance.setTheme(false);
         case "dark": return appearance.setTheme(true);
         case "keyboard": return keyboard.toggle();

@@ -199,3 +199,27 @@ for Qt Quick so rounded clipping uses the actual rendering path. It does not use
 input or capture host windows. This complements the Hyprland VM and permits
 interaction/visual checks without KVM. The screenshot helper captures the actual
 panel card; inspect both palettes and narrow/wide appearance states before release.
+
+### Quick controls interaction contract
+
+The empty-query home page is Quick controls. Radio icons perform
+one immediate action; their separate labelled rows and arrows open detail pages.
+Selected radio icons mean enabled, not connected. A busy or unavailable control
+cannot toggle, while its details remain reachable. Volume's icon toggles mute;
+its arrow opens audio devices. Search keeps explicit action names separate from
+settings-page names.
+
+Appearance settings and explicit light/dark/resume actions remain searchable;
+appearance does not occupy a home-page row. Power opens a menu containing lock,
+and destructive session actions retain confirmation. The footer packs workspace,
+tray and awake/power controls into centered rows, with consistent gaps within and
+between groups. Each wrapped row is centered independently. Keyboard focus exposes the
+same tooltips as hover. Escape returns from details/search to home before closing.
+
+The headless preview regression covers split targets, appearance settings,
+disabled/busy actions, both palettes and narrow/wide home layouts, in addition to
+the existing detail, search and session-menu checks. Preview actions remain fake.
+
+Known keyboard limitation: when the overview overflows, Tab can focus a control
+outside the visible scroll area without scrolling it into view. Pointer scrolling
+still reaches it; keyboard focus-following needs a separate follow-up.

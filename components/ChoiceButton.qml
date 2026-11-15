@@ -38,7 +38,7 @@ Rectangle {
     Keys.onSpacePressed: { if (available) triggered(); }
     ShellToolTip {
         style: choice.style
-        visible: mouse.containsMouse && choice.tooltip !== ""
+        visible: (mouse.containsMouse || choice.activeFocus) && choice.tooltip !== ""
         text: choice.tooltip
     }
 

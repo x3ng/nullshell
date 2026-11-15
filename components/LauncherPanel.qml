@@ -26,7 +26,7 @@ PanelWindow {
     property bool open: false
     property string homeTab: "overview"
     readonly property var homeTabDefinitions: [
-        {key: "overview", label: "Overview"},
+        {key: "overview", label: "Quick controls"},
         {key: "desktop", label: "Desktop"}
     ]
     readonly property var detailSections: ["wifi", "bluetooth", "audio", "notifications", "appearance", "session"]

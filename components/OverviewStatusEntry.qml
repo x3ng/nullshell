@@ -1,82 +1,80 @@
 pragma ComponentBehavior: Bound
-
 import QtQuick
 import QtQuick.Layouts
-import QtQuick.Controls
 import ".."
 
-Rectangle {
+RowLayout {
     id: entry
     required property Theme style
     required property var actions
     required property string icon
     required property string title
     required property string detail
-    property string secondary: ""
     required property string action
+    property string secondary: ""
+    property string error: ""
+    property string toggleAction: ""
+    property string toggleTooltip: ""
     property bool online: false
     property bool available: true
     Layout.fillWidth: true
     Layout.preferredWidth: 1
     Layout.minimumWidth: 0
-    implicitHeight: 44
-    radius: entry.style.radiusControl
-    color: entryMouse.containsMouse ? entry.style.surfaceHover : "transparent"
-    border.width: activeFocus ? 1 : 0
-    border.color: entry.style.accent
-    activeFocusOnTab: true
-    Accessible.role: Accessible.Button
-    Accessible.name: title + ": " + detail + (secondary ? ", " + secondary : "")
-    Accessible.onPressAction: entry.actions.execute(entry.action)
-    Keys.onReturnPressed: entry.actions.execute(entry.action)
-    Keys.onEnterPressed: entry.actions.execute(entry.action)
-    Keys.onSpacePressed: entry.actions.execute(entry.action)
-    RowLayout {
-        anchors.fill: parent
-        anchors.leftMargin: 10
-        anchors.rightMargin: 10
-        spacing: 10
-        StatusIcon {
-            Layout.preferredWidth: 20
-            Layout.preferredHeight: 20
-            kind: entry.icon
-            ink: entry.online ? entry.style.accent : entry.style.textMuted
-        }
-        Text {
-            Layout.fillWidth: true
-            Layout.minimumWidth: 0
-            text: entry.detail
-            textFormat: Text.PlainText
-            font.family: entry.style.fontFamily
-            font.pixelSize: 16
-            font.weight: Font.Medium
-            color: entry.available ? entry.style.textPrimary : entry.style.textMuted
-            elide: Text.ElideRight
-            maximumLineCount: 1
-        }
-        Text {
-            Layout.maximumWidth: entry.width * 0.42
-            visible: entry.secondary !== ""
-            text: entry.secondary
-            textFormat: Text.PlainText
-            font.family: entry.style.fontFamily
-            font.pixelSize: 14
-            color: entry.style.textSecondary
-            elide: Text.ElideRight
-            maximumLineCount: 1
-        }
-    }
-    ShellToolTip {
+    implicitHeight: 52
+    spacing: 4
+    UtilityButton {
+        objectName: "quick-" + entry.action + "-toggle"
+        Layout.preferredWidth: 40
+        Layout.preferredHeight: 40
         style: entry.style
-        visible: entryMouse.containsMouse || entry.activeFocus
-        text: entry.title + " · " + entry.detail + (entry.secondary ? " · " + entry.secondary : "")
+        label: ""
+        iconKind: entry.icon
+        checkable: true
+        selected: entry.online
+        available: entry.available && entry.actions.available(entry.toggleAction)
+        tooltip: entry.toggleTooltip
+        onTriggered: entry.actions.execute(entry.toggleAction)
     }
-    MouseArea {
-        id: entryMouse
-        anchors.fill: parent
-        hoverEnabled: true
-        cursorShape: Qt.PointingHandCursor
-        onClicked: entry.actions.execute(entry.action)
+    ChoiceButton {
+        objectName: "quick-" + entry.action + "-details"
+        Layout.fillWidth: true
+        Layout.minimumWidth: 0
+        Layout.preferredHeight: 48
+        style: entry.style
+        label: ""
+        tooltip: "Open " + entry.title + " settings · " + (entry.error || entry.detail)
+        Accessible.name: tooltip + ", " + entry.detail
+        onTriggered: entry.actions.execute(entry.action)
+        RowLayout {
+            anchors.fill: parent
+            anchors.margins: 6
+            spacing: 6
+            ColumnLayout {
+                Layout.fillWidth: true
+                Layout.minimumWidth: 0
+                spacing: 2
+                Text {
+                    Layout.fillWidth: true
+                    text: entry.title
+                    color: entry.style.textSecondary
+                    font.family: entry.style.fontFamily
+                    font.pixelSize: 12
+                }
+                Text {
+                    Layout.fillWidth: true
+                    text: entry.error || (entry.detail + (entry.secondary ? " · " + entry.secondary : ""))
+                    textFormat: Text.PlainText
+                    elide: Text.ElideRight
+                    color: entry.error ? entry.style.danger : entry.available ? entry.style.textPrimary : entry.style.textMuted
+                    font.family: entry.style.fontFamily
+                    font.pixelSize: 14
+                }
+            }
+            Text {
+                text: "›"
+                color: entry.style.textSecondary
+                font.pixelSize: 22
+            }
+        }
     }
-
 }

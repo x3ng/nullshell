@@ -15,160 +15,174 @@ Item {
     property var trayItems: []
     property Component toolsComponent: null
     signal menuRequested(var owner, real right, real top)
-    implicitHeight: entries.implicitHeight
-    // Center a short group; let a larger group wrap within the available width.
-    readonly property real contentSpan: {
-        const chips = entries.children.filter(child => child.width > 0 && child.visible);
-        return chips.reduce((sum, child) => sum + child.width, 0) + Math.max(0, chips.length - 1) * entries.spacing;
-    }
-    Flow {
-        id: entries
-        width: Math.min(strip.width, strip.contentSpan)
-        x: (strip.width - width) / 2
-        spacing: 3
-        Repeater {
-            model: strip.workspaces
-            ChoiceButton {
-                id: chip
-                required property var modelData
-                readonly property bool special: modelData.special || String(modelData.address).startsWith("special:")
-                readonly property var apps: strip.windows.filter(w => w.workspaceAddress === modelData.address)
-                width: contents.implicitWidth + 14
-                height: 32
-                style: strip.style
-                label: ""
-                tone: "toggle"
-                selected: modelData.address === strip.controls.focusedWorkspaceAddress
-                available: strip.controls.available && !strip.controls.busy
-                tooltip: (special ? "Special workspace " : "Workspace ") + String(modelData.name).replace(/^special:/, "") + " · " + apps.length + (apps.length === 1 ? " window" : " windows")
-                Accessible.name: tooltip
-                onTriggered: strip.controls.focusWorkspace(modelData.address)
-                Row {
-                    id: contents
-                    anchors.centerIn: parent
-                    spacing: 4
-                    Text {
-                        height: 28
-                        verticalAlignment: Text.AlignVCenter
-                        text: chip.special ? "$" : String(chip.modelData.name)
-                        textFormat: Text.PlainText
-                        font.family: strip.style.fontFamily
-                        font.pixelSize: 14
-                        font.weight: Font.Medium
-                        color: chip.selected ? strip.style.textPrimary : strip.style.textSecondary
-                        width: Math.min(implicitWidth, 64)
-                        elide: Text.ElideRight
+    implicitHeight: footer.implicitHeight + 8
+    Item {
+        id: footer
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.top: parent.top
+        anchors.topMargin: 4
+        implicitHeight: entries.implicitHeight
+        Item {
+            id: entries
+            objectName: "footer-entries"
+            width: parent.width
+            // Flow only centers its bounding box. Pack and center each row so
+            // the last, shorter row stays balanced as workspaces come and go.
+            readonly property var rows: {
+                const result = [];
+                let row = {items: [], width: 0, height: 0};
+                for (const child of children) {
+                    if (!child.visible || child.width <= 0 || child.height <= 0) continue;
+                    let gap = row.items.length ? (row.items[row.items.length - 1].item.group === child.group ? 3 : 8) : 0;
+                    if (row.items.length && row.width + gap + child.width > width) {
+                        result.push(row);
+                        row = {items: [], width: 0, height: 0};
+                        gap = 0;
                     }
-                    Repeater {
-                        model: chip.apps.slice(0, 3)
-                        Item {
-                            required property var modelData
-                            width: 16; height: 28
-                            IconImage {
-                                id: appIcon
-                                anchors.centerIn: parent
-                                implicitSize: 16
-                                source: strip.searchModel.desktopIconSource(strip.searchModel.desktopEntryFor(modelData))
-                                visible: status === Image.Ready
-                            }
-                            StatusIcon {
-                                anchors.centerIn: parent
-                                width: 16; height: 16
-                                kind: "window"
-                                ink: strip.style.textMuted
-                                visible: !appIcon.visible
+                    row.items.push({item: child, offset: row.width + gap});
+                    row.width += gap + child.width;
+                    row.height = Math.max(row.height, child.height);
+                }
+                if (row.items.length) result.push(row);
+                return result;
+            }
+            implicitHeight: rows.reduce((height, row) => height + row.height, 0) + Math.max(0, rows.length - 1) * 3
+            function arrange() {
+                let top = 0;
+                for (const row of rows) {
+                    for (const cell of row.items) {
+                        cell.item.x = (width - row.width) / 2 + cell.offset;
+                        cell.item.y = top + (row.height - cell.item.height) / 2;
+                    }
+                    top += row.height + 3;
+                }
+            }
+            onRowsChanged: arrange()
+            onWidthChanged: arrange()
+            Component.onCompleted: arrange()
+            Repeater {
+                model: strip.workspaces
+                ChoiceButton {
+                    id: chip
+                    readonly property string group: "workspace"
+                    required property var modelData
+                    readonly property bool special: modelData.special || String(modelData.address).startsWith("special:")
+                    readonly property var apps: strip.windows.filter(w => w.workspaceAddress === modelData.address)
+                    width: contents.implicitWidth + 14
+                    height: 32
+                    style: strip.style
+                    label: ""
+                    tone: "toggle"
+                    selected: modelData.address === strip.controls.focusedWorkspaceAddress
+                    available: strip.controls.available && !strip.controls.busy
+                    tooltip: (special ? "Special workspace " : "Workspace ") + String(modelData.name).replace(/^special:/, "") + " · " + apps.length + (apps.length === 1 ? " window" : " windows")
+                    Accessible.name: tooltip
+                    onTriggered: strip.controls.focusWorkspace(modelData.address)
+                    Row {
+                        id: contents
+                        anchors.centerIn: parent
+                        spacing: 4
+                        Text {
+                            height: 28
+                            verticalAlignment: Text.AlignVCenter
+                            text: chip.special ? "$" : String(chip.modelData.name)
+                            textFormat: Text.PlainText
+                            font.family: strip.style.fontFamily
+                            font.pixelSize: 14
+                            font.weight: Font.Medium
+                            color: chip.selected ? strip.style.textPrimary : strip.style.textSecondary
+                            width: Math.min(implicitWidth, 64)
+                            elide: Text.ElideRight
+                        }
+                        Repeater {
+                            model: chip.apps.slice(0, 3)
+                            Item {
+                                required property var modelData
+                                width: 16; height: 28
+                                IconImage {
+                                    id: appIcon
+                                    anchors.centerIn: parent
+                                    implicitSize: 16
+                                    source: strip.searchModel.desktopIconSource(strip.searchModel.desktopEntryFor(modelData))
+                                    visible: status === Image.Ready
+                                }
+                                StatusIcon {
+                                    anchors.centerIn: parent
+                                    width: 16; height: 16
+                                    kind: "window"
+                                    ink: strip.style.textMuted
+                                    visible: !appIcon.visible
+                                }
                             }
                         }
+                        Text {
+                            visible: chip.apps.length > 3
+                            height: 28
+                            verticalAlignment: Text.AlignVCenter
+                            text: "+" + (chip.apps.length - 3)
+                            color: strip.style.textMuted
+                            font.family: strip.style.fontFamily
+                            font.pixelSize: 13
+                        }
+                    }
+                }
+            }
+            Repeater {
+                model: strip.trayItems
+                Rectangle {
+                    id: trayItem
+                    readonly property string group: "tray"
+                    required property var modelData
+                    required property int index
+                    width: 32; height: 32
+                    radius: strip.style.radiusControl
+                    color: "transparent"
+                    Rectangle {
+                        anchors.fill: parent
+                        anchors.topMargin: 4
+                        anchors.bottomMargin: 4
+                        radius: strip.style.radiusControl
+                        color: trayMouse.containsMouse ? strip.style.surfaceHover : "transparent"
+                    }
+                    IconImage {
+                        id: trayIcon
+                        anchors.centerIn: parent
+                        implicitSize: 16
+                        source: trayItem.modelData.icon
+                        visible: status === Image.Ready
                     }
                     Text {
-                        visible: chip.apps.length > 3
-                        height: 28
-                        verticalAlignment: Text.AlignVCenter
-                        text: "+" + (chip.apps.length - 3)
-                        color: strip.style.textMuted
-                        font.family: strip.style.fontFamily
-                        font.pixelSize: 13
+                        anchors.centerIn: parent
+                        visible: !trayIcon.visible
+                        text: (trayItem.modelData.title || trayItem.modelData.id || "?").slice(0, 1)
+                        color: strip.style.textSecondary
+                        font.pixelSize: strip.style.fontSizeBody
+                    }
+                    MouseArea {
+                        id: trayMouse
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        acceptedButtons: Qt.LeftButton | Qt.RightButton
+                        onClicked: event => {
+                            if (event.button === Qt.RightButton || trayItem.modelData.onlyMenu) {
+                                const pos = trayItem.mapToItem(strip, trayItem.width, 0);
+                                strip.menuRequested(trayItem.modelData, pos.x, pos.y);
+                            } else trayItem.modelData.activate();
+                        }
+                    }
+                    ShellToolTip {
+                        style: strip.style
+                        visible: trayMouse.containsMouse && text !== ""
+                        text: [trayItem.modelData.tooltipTitle || trayItem.modelData.title || trayItem.modelData.id || "",
+                            trayItem.modelData.tooltipDescription || ""].filter(part => part !== "").join("\n")
                     }
                 }
-            }
-        }
-        Repeater {
-            model: strip.trayItems
-            Rectangle {
-                id: trayItem
-                required property var modelData
-                required property int index
-                readonly property int leadingSpace: index === 0 && strip.workspaces.length > 0 ? 8 : 0
-                width: 26 + leadingSpace; height: 32
-                radius: strip.style.radiusControl
-                color: "transparent"
-                Rectangle {
-                    visible: trayItem.leadingSpace > 0
-                    width: 1; height: 18
-                    anchors.verticalCenter: parent.verticalCenter
-                    color: strip.style.textMuted
-                }
-                Rectangle {
-                    anchors.fill: parent
-                    anchors.leftMargin: trayItem.leadingSpace
-                    anchors.topMargin: 4
-                    anchors.bottomMargin: 4
-                    radius: strip.style.radiusControl
-                    color: trayMouse.containsMouse ? strip.style.surfaceHover : "transparent"
-                }
-                IconImage {
-                    id: trayIcon
-                    anchors.centerIn: parent
-                    anchors.horizontalCenterOffset: trayItem.leadingSpace / 2
-                    implicitSize: 16
-                    source: trayItem.modelData.icon
-                    visible: status === Image.Ready
-                }
-                Text {
-                    anchors.centerIn: parent
-                    anchors.horizontalCenterOffset: trayItem.leadingSpace / 2
-                    visible: !trayIcon.visible
-                    text: (trayItem.modelData.title || trayItem.modelData.id || "?").slice(0, 1)
-                    color: strip.style.textSecondary
-                    font.pixelSize: strip.style.fontSizeBody
-                }
-                MouseArea {
-                    id: trayMouse
-                    anchors.fill: parent
-                    hoverEnabled: true
-                    acceptedButtons: Qt.LeftButton | Qt.RightButton
-                    onClicked: event => {
-                        if (event.button === Qt.RightButton || trayItem.modelData.onlyMenu) {
-                            const pos = trayItem.mapToItem(strip, trayItem.width, 0);
-                            strip.menuRequested(trayItem.modelData, pos.x, pos.y);
-                        } else trayItem.modelData.activate();
-                    }
-                }
-                ShellToolTip {
-                    style: strip.style
-                    visible: trayMouse.containsMouse && text !== ""
-                    text: [trayItem.modelData.tooltipTitle || trayItem.modelData.title || trayItem.modelData.id || "",
-                        trayItem.modelData.tooltipDescription || ""].filter(part => part !== "").join("\n")
-                }
-            }
-        }
-        Item {
-            // Keep the separator with the tools when the group wraps.
-            readonly property real leadingSpace: strip.workspaces.length || strip.trayItems.length ? 12 : 0
-            visible: strip.toolsComponent !== null
-            width: visible ? toolsLoader.implicitWidth + leadingSpace : 0
-            height: 32
-            Rectangle {
-                visible: parent.leadingSpace > 0
-                width: 1
-                height: 18
-                anchors.verticalCenter: parent.verticalCenter
-                color: strip.style.separator
             }
             Loader {
                 id: toolsLoader
-                anchors.right: parent.right
-                anchors.verticalCenter: parent.verticalCenter
+                objectName: "footer-tools"
+                readonly property string group: "tools"
                 sourceComponent: strip.toolsComponent
             }
         }

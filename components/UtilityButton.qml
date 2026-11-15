@@ -66,7 +66,7 @@ Rectangle {
     }
     ShellToolTip {
         style: button.style
-        visible: pointer.containsMouse && button.tooltip !== ""
+        visible: (pointer.containsMouse || button.activeFocus) && button.tooltip !== ""
         text: button.tooltip
     }
 }

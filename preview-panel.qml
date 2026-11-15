@@ -13,7 +13,12 @@ ShellRoot {
     QtObject {
         id: actionAdapter
         readonly property var session: fixture.session
-        function available(action) { return true; }
+        function available(action) {
+            if (action === "wifi-toggle") return fixture.wifiAvailable && !fixture.wifiBusy;
+            if (action === "bluetooth-toggle") return fixture.bluetoothAvailable && !fixture.bluetoothBusy;
+            if (["light", "dark", "appearance-resume"].includes(action)) return fixture.appearanceAvailable;
+            return true;
+        }
         function execute(action) { fixture.execute(action); }
     }
     LauncherPanel {
@@ -60,7 +65,22 @@ ShellRoot {
             return true;
         }
         function tick(): void { fixture.titleRevision++; }
+        function footerGeometry(): string {
+            const entries = root.findItem(panel.contentItem, "footer-entries");
+            const tools = root.findItem(panel.contentItem, "footer-tools");
+            return JSON.stringify({width: entries.width, toolsX: tools.x, toolsWidth: tools.width});
+        }
+        function scrollOverview(bottom: bool): void {
+            const view = root.findItem(panel.contentItem, "overview-scroll");
+            if (view) view.contentY = bottom ? Math.max(0, view.contentHeight - view.height) : 0;
+        }
         function action(name: string): void { fixture.execute(name); }
+        function quickState(name: string): void {
+            fixture.wifiBusy = fixture.bluetoothBusy = name === "busy";
+            fixture.wifiAvailable = fixture.bluetoothAvailable = fixture.appearanceAvailable = name !== "unavailable";
+            fixture.wifiError = name === "error" ? "Could not change Wi-Fi state" : "";
+            fixture.bluetoothError = name === "error" ? "Could not change Bluetooth state" : "";
+        }
         function sessionState(name: string): void {
             fixture.session.busy = name === "busy";
             fixture.session.supported = name !== "unavailable";

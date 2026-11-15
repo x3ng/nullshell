@@ -19,10 +19,14 @@ GridLayout {
         actions: summary.actions
         icon: "wifi"
         title: "Wi-Fi"
-        secondary: summary.network ? Math.round(summary.network.signalStrength * 100) + "% signal" : ""
+        error: summary.system.wifiError
+        secondary: summary.system.wifiEnabled && !summary.system.wifiBusy && summary.network ? Math.round(summary.network.signalStrength * 100) + "% signal" : ""
         detail: !summary.system.wifiAvailable ? "Unavailable"
+            : summary.system.wifiBusy ? "Changing Wi-Fi…"
             : summary.system.wifiEnabled ? summary.system.wifiConnection || "Not connected" : "Wi-Fi off"
-        online: summary.system.wifiEnabled && summary.system.wifiNetworks.some(network => network.connected)
+        online: summary.system.wifiEnabled
+        toggleAction: "wifi-toggle"
+        toggleTooltip: summary.system.wifiBusy ? "Changing Wi-Fi…" : summary.system.wifiEnabled ? "Turn off Wi-Fi" : "Turn on Wi-Fi"
         available: summary.system.wifiAvailable
         action: "wifi"
     }
@@ -31,14 +35,18 @@ GridLayout {
         actions: summary.actions
         icon: "bluetooth"
         title: "Bluetooth"
-        secondary: summary.devices.length ? [
+        error: summary.system.bluetoothError
+        secondary: summary.system.bluetoothEnabled && !summary.system.bluetoothBusy && summary.devices.length ? [
             summary.devices[0].batteryAvailable ? Math.round(summary.devices[0].battery * 100) + "% battery" : "",
             summary.devices.length > 1 ? "+" + (summary.devices.length - 1) : ""
         ].filter(text => text !== "").join(" · ") : ""
         detail: !summary.system.bluetoothAvailable ? "Unavailable"
+            : summary.system.bluetoothBusy ? "Changing Bluetooth…"
             : !summary.system.bluetoothEnabled ? "Off"
             : summary.devices.length ? (summary.devices[0].name || summary.devices[0].address) : "Not connected"
-        online: summary.system.bluetoothEnabled && summary.system.bluetoothConnected.length > 0
+        online: summary.system.bluetoothEnabled
+        toggleAction: "bluetooth-toggle"
+        toggleTooltip: summary.system.bluetoothBusy ? "Changing Bluetooth…" : summary.system.bluetoothEnabled ? "Turn off Bluetooth" : "Turn on Bluetooth"
         available: summary.system.bluetoothAvailable
         action: "bluetooth"
     }

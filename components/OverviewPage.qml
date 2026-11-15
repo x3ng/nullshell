@@ -6,7 +6,7 @@ import QtQuick.Controls
 import Quickshell.Widgets
 import ".."
 
-// The empty query is a glanceable summary, not a settings dashboard.
+// Quick actions are separate from the labelled detail-navigation targets.
 // Full lists and less frequent commands remain in details and global search.
 ColumnLayout {
     id: page
@@ -221,7 +221,7 @@ ColumnLayout {
                         }
                     }
                 }
-                // Navigation, tray and quick tools form one centered group.
+                // Center every row of navigation, tray and quick tools.
                 Rectangle {
                     Layout.fillWidth: true
                     Layout.preferredHeight: 1
@@ -243,7 +243,6 @@ ColumnLayout {
                         PanelTools {
                             style: page.style
                             services: page.services
-                            appearance: page.appearance
                             actions: page.actions
                         }
                     }

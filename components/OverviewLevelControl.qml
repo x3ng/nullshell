@@ -101,7 +101,7 @@ Item {
         Layout.preferredHeight: 32
         style: level.style
         label: ""
-        iconKind: "headphones"
+        iconKind: "chevron"
         iconSize: 20
         tooltip: "Audio devices and microphone"
         onTriggered: level.actions.execute(level.detailsAction)

@@ -86,6 +86,15 @@ def main():
                 raise AssertionError("Preview IPC did not become ready")
             settle()
             screenshot("normal")
+            # With only the tools remaining, resizing must still recenter them.
+            call("scenario", "empty")
+            for width in ["440", "740", "440"]:
+                call("width", width)
+                settle()
+                footer = json.loads(call("footerGeometry"))
+                assert abs(footer["toolsX"] - (footer["width"] - footer["toolsWidth"]) / 2) < 1, footer
+            call("width", "740")
+            call("scenario", "normal")
             # Simulate capability results without altering the host compositor.
             for light in ["false", "true"]:
                 call("light", light)
@@ -124,6 +133,37 @@ def main():
             narrow = settle()
             assert narrow["card"]["width"] == 440 and not narrow["dark"], narrow
             screenshot("narrow-light")
+            # Quick toggles stay on the homepage; labelled arrows navigate.
+            for section in ["wifi", "bluetooth"]:
+                call("page", "overview")
+                assert call("activateControl", "quick-" + section + "-toggle") == "true"
+                assert state()["page"] == "overview"
+                assert state()["lastAction"] == section + "-toggle"
+                assert call("activateControl", "quick-" + section + "-details") == "true"
+                assert state()["page"] == "detail:" + section
+            call("page", "overview")
+            for width in ["440", "740"]:
+                call("width", width)
+                for light in ["false", "true"]:
+                    call("light", light)
+                    settle()
+                    screenshot("quick-controls-" + width + "-" + light)
+                    call("scrollOverview", "true")
+                    settle()
+                    screenshot("quick-footer-" + width + "-" + light)
+                    call("scrollOverview", "false")
+            for condition in ["busy", "unavailable"]:
+                call("quickState", condition)
+                for section in ["wifi", "bluetooth"]:
+                    assert call("activateControl", "quick-" + section + "-toggle") == "false"
+                    assert call("activateControl", "quick-" + section + "-details") == "true"
+                    call("page", "overview")
+                settle()
+                screenshot("quick-" + condition)
+            call("quickState", "error")
+            settle()
+            screenshot("quick-error")
+            call("quickState", "normal")
             # Exercise the actual production buttons with fixture-only side effects.
             call("page", "appearance")
             settle()

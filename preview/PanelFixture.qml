@@ -205,8 +205,12 @@ Scope {
         lastAction = action;
         if (["overview", "desktop", "wifi", "bluetooth", "audio", "notifications", "appearance", "session"].includes(action)) navigateRequested(action);
         else if (action === "auto") selectMode("auto");
+        else if (action === "appearance-resume") resumeAutomatic();
         else if (action === "keep-awake") keepAwake = !keepAwake;
-        else if (action === "light" || action === "dark") darkMode = action === "dark";
+        else if (action === "light" || action === "dark") {
+            darkMode = action === "dark";
+            if (automatic) overrideUntil = 1794736800;
+        }
         else if (action === "wifi-toggle") wifiEnabled = !wifiEnabled;
         else if (action === "bluetooth-toggle") bluetoothEnabled = !bluetoothEnabled;
         else if (action === "output-mute") outputAudio.muted = !outputAudio.muted;
