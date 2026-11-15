@@ -6,6 +6,7 @@ import QtQuick.Controls
 import Quickshell
 import Quickshell.Wayland
 import ".."
+import "../SearchQuery.js" as SearchQuery
 
 PanelWindow {
     id: panel
@@ -51,7 +52,15 @@ PanelWindow {
     property int selectionRevision: 0
     readonly property var sink: services.sink
     readonly property var player: services.player
+    readonly property bool commandScope: query.trim().startsWith(">")
+    readonly property string commandFilter: SearchQuery.commandFilter(query)
     readonly property var results: searchModel.results
+
+    function setCommandFilter(value) {
+        if (!commandScope || !["all", "panel", "operation"].includes(value)) return;
+        query = SearchQuery.withCommandFilter(query, value);
+        Qt.callLater(() => { if (panel.open) { search.forceActiveFocus(); search.cursorPosition = search.text.length; } });
+    }
 
     function handleKey(event) {
         if (!(event.modifiers & Qt.ControlModifier)) return;
@@ -315,7 +324,7 @@ PanelWindow {
                     id: search
                     anchors.fill: parent
                     anchors.leftMargin: 10
-                    anchors.rightMargin: 4
+                    anchors.rightMargin: panel.commandScope ? scopeHints.implicitWidth + 16 : 4
                     anchors.topMargin: panel.style.spaceSm
                     anchors.bottomMargin: panel.style.spaceSm
                     verticalAlignment: TextInput.AlignVCenter
@@ -346,8 +355,9 @@ PanelWindow {
                     anchors.leftMargin: 10
                     anchors.rightMargin: 4
                     spacing: 12
-                    visible: search.text.length === 0 && search.preeditText.length === 0
+                    visible: panel.commandScope || (search.text.length === 0 && search.preeditText.length === 0)
                     SearchStatus {
+                        visible: !panel.commandScope
                         style: panel.style
                         services: panel.services
                         date: panel.displayDate
@@ -355,26 +365,34 @@ PanelWindow {
                     }
                     Item { Layout.fillWidth: true; Layout.minimumWidth: 0 }
                     RowLayout {
+                        id: scopeHints
                         spacing: 6
                         Repeater {
-                            model: [
+                            model: panel.commandScope ? [
+                                {prefix: ">", label: "All", filter: "all"},
+                                {prefix: ">?", label: "Panels", filter: "panel"},
+                                {prefix: ">!", label: "Actions", filter: "operation"}
+                            ].filter(hint => hint.filter !== panel.commandFilter) : [
                                 {prefix: "@", label: "Windows"},
                                 {prefix: ">", label: "Commands"},
                                 {prefix: "/", label: "Applications"}
                             ]
                             ChoiceButton {
+                                id: scopeHint
                                 required property var modelData
+                                readonly property var hint: modelData || ({prefix: "", label: "", filter: ""})
+                                objectName: panel.commandScope ? "command-filter-" + hint.filter : "search-scope-" + hint.prefix
                                 Layout.preferredHeight: 28
                                 Layout.preferredWidth: hintText.implicitWidth + 14
                                 style: panel.style
                                 label: ""
-                                tooltip: "Search " + modelData.label.toLowerCase() + " · Type " + modelData.prefix + " to filter"
-                                Accessible.name: "Search " + modelData.label.toLowerCase()
-                                onTriggered: panel.openSearch(modelData.prefix + " ")
+                                tooltip: "Search " + hint.label.toLowerCase() + " · Type " + hint.prefix + " to filter"
+                                Accessible.name: "Search " + hint.label.toLowerCase()
+                                onTriggered: panel.commandScope ? panel.setCommandFilter(hint.filter) : panel.openSearch(hint.prefix + " ")
                                 Text {
                                     id: hintText
                                     anchors.centerIn: parent
-                                    text: modelData.prefix + (searchStrip.width >= 600 ? " " + modelData.label : "")
+                                    text: scopeHint.hint.prefix + (panel.commandScope || searchStrip.width >= 600 ? " " + scopeHint.hint.label : "")
                                     color: panel.style.textSecondary
                                     font.family: panel.style.fontFamily
                                     font.pixelSize: 12
@@ -432,6 +450,7 @@ PanelWindow {
                     searchModel: panel.searchModel
                     selectedIndex: panel.selectedIndex
                     active: panel.searching && !panel.showingDetails
+                    commandScope: panel.commandScope
                     onActivateRequested: index => panel.activate(index)
                 }
                 ControlDetails {

@@ -13,12 +13,18 @@ ColumnLayout {
     required property var searchModel
     required property int selectedIndex
     required property bool active
+    property bool commandScope: false
     signal activateRequested(int index)
 
     function showSelection(index) { resultList.positionViewAtIndex(index, ListView.Contain); }
     function resetScroll() { resultList.positionViewAtBeginning(); }
-    function kindLabel(kind) {
-        return kind === "WINDOW" ? "Window" : kind === "APP" ? "Application" : "Command";
+    function kindLabel(row) {
+        return row.kind === "WINDOW" ? "Window" : row.kind === "APP" ? "Application"
+            : row.actionType === "panel" ? "Panel" : "Action";
+    }
+    function actionHint(row) {
+        if (row.enabled === false) return "Unavailable";
+        return row.kind !== "ACTION" || row.actionType === "panel" ? "↵ Open →" : "↵ Run";
     }
 
     readonly property real naturalHeight: resultHeading.implicitHeight + spacing
@@ -117,7 +123,7 @@ ColumnLayout {
                     Text {
                         Layout.fillWidth: true
                         text: resultRow.modelData.enabled === false ? "Currently unavailable"
-                            : resultRow.modelData.detail || page.kindLabel(resultRow.modelData.kind)
+                            : resultRow.modelData.detail || page.kindLabel(resultRow.modelData)
                         textFormat: Text.PlainText
                         color: page.style.textMuted
                         elide: Text.ElideRight
@@ -126,12 +132,12 @@ ColumnLayout {
                     }
                 }
                 Text {
-                    text: resultRow.index === page.selectedIndex && resultRow.modelData.enabled !== false
-                        ? "↵" : page.kindLabel(resultRow.modelData.kind)
+                    text: resultRow.index === page.selectedIndex
+                        ? page.actionHint(resultRow.modelData) : page.kindLabel(resultRow.modelData)
                     color: resultRow.index === page.selectedIndex ? page.style.textSecondary : page.style.textMuted
                     font.family: page.style.fontFamily
-                    font.pixelSize: resultRow.index === page.selectedIndex ? 18 : page.style.fontSizeCaption
-                    Layout.preferredWidth: 70
+                    font.pixelSize: page.style.fontSizeCaption
+                    Layout.preferredWidth: 84
                     horizontalAlignment: Text.AlignRight
                 }
             }
@@ -161,6 +167,7 @@ ColumnLayout {
                 horizontalAlignment: Text.AlignHCenter
                 text: page.searchModel.scope === "ALL"
                     ? "Try an app name, window title or command. Use >, @ or / to narrow the search."
+                    : page.commandScope ? "Try another keyword, or use > to include panels and actions."
                     : "Try a different name, or remove the prefix to search everything."
                 wrapMode: Text.Wrap
                 color: page.style.textMuted

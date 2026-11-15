@@ -65,6 +65,7 @@ ShellRoot {
             return true;
         }
         function tick(): void { fixture.titleRevision++; }
+        function activateSelected(): void { panel.activate(panel.selectedIndex); }
         function footerGeometry(): string {
             const entries = root.findItem(panel.contentItem, "footer-entries");
             const tools = root.findItem(panel.contentItem, "footer-tools");
@@ -119,7 +120,8 @@ ShellRoot {
         }
         function status(): string {
             return JSON.stringify({open: panel.open, page: panel.pageKey, scenario: fixture.scenario,
-                query: panel.query, results: fixture.results.length, card: panel.cardGeometry,
+                query: panel.query, results: panel.results.length, card: panel.cardGeometry,
+                commandFilter: panel.commandFilter, resultTypes: panel.results.map(row => row.actionType || row.kind),
                 selectedKey: panel.selectedKey, selectedIndex: panel.selectedIndex,
                 blur: theme.backdropBlur, materialOpacity: theme.glassOpacity,
                 appearanceMode: fixture.selectedMode, location: fixture.locationStatus, overrideUntil: fixture.overrideUntil,

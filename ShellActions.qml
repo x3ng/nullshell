@@ -15,6 +15,7 @@ Scope {
     SessionActions { id: sessionActions }
     signal navigateRequested(string section)
     signal wallpaperRequested()
+    readonly property var panelActions: ["overview", "desktop", "wifi", "bluetooth", "audio", "notifications", "appearance", "session", "wallpaper", "brightness"]
     readonly property var entries: [
         {id: "session", description: "Lock, sleep, log out, restart or shut down", title: "Power and session", keywords: "power shutdown reboot logout suspend 电源 关机 重启 注销 休眠 锁屏", icon: "power", enabled: true},
         {id: "appearance", description: "Light, dark, automatic and location settings", title: "Appearance settings", keywords: "theme auto solar 深色 浅色 自动 定位 主题 外观", icon: "brightness", enabled: true},
@@ -39,11 +40,11 @@ Scope {
         {id: "lock", description: "Secure the current session", title: "Lock screen", keywords: "session 锁屏 锁定", icon: "window", enabled: hyprControls.available && !hyprControls.busy}
     ].concat(services.controls.powerProfiles.map(profile => ({
         id: "power:" + profile,
-        title: "Power profile: " + profile,
+        title: "Use power profile: " + profile,
         description: "Change performance and energy use",
         keywords: "battery energy 电源 性能 节能 均衡",
         icon: "battery", enabled: services.controls.powerAvailable
-    })))
+    }))).map(action => Object.assign({}, action, {actionType: panelActions.includes(action.id) ? "panel" : "operation"}))
 
     // Shared by search and buttons. The service still validates at dispatch time.
     function available(id) {

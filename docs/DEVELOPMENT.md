@@ -223,3 +223,19 @@ the existing detail, search and session-menu checks. Preview actions remain fake
 Known keyboard limitation: when the overview overflows, Tab can focus a control
 outside the visible scroll area without scrolling it into view. Pointer scrolling
 still reaches it; keyboard focus-following needs a separate follow-up.
+
+### Command browsing
+
+A bare `>` lists the command catalog. `>?` browses panels and `>!` selects actions;
+keywords follow the prefix, with or without a space. The search field shows the
+other command scopes as clickable hints on its right. Clicking a hint replaces
+only the prefix, preserves keywords and returns typing focus to search. There is
+no separate filter row or hidden filter state: deleting `?` or `!` returns to all
+commands, and reopening the panel starts with the usual empty query.
+
+Each command carries an explicit panel/operation classification from ShellActions.
+Search rows show Panel or Action, with Open or Run hints on the selected result;
+unavailable results cannot execute. The power/session command opens its menu,
+where destructive actions retain confirmation. No new direct power action is
+introduced by filtering. Preview command entries are synthetic and execute no
+system operations.

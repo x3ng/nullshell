@@ -4,6 +4,7 @@ import QtQuick
 import Quickshell
 import Quickshell.Wayland
 import Quickshell.Hyprland
+import "SearchQuery.js" as SearchQuery
 
 Scope {
     id: searchModel
@@ -18,10 +19,11 @@ Scope {
         : (query.trim().startsWith("/") || /^apps:/i.test(query.trim())) ? "APP" : "ALL"
     readonly property string searchText: {
         const value = query.trim();
-        return (scope === "ACTION" || scope === "WINDOW" ? value.slice(1)
+        return (scope === "ACTION" ? SearchQuery.commandText(value) : scope === "WINDOW" ? value.slice(1)
             : scope === "APP" ? value.slice(value.startsWith("/") ? 1 : 5) : value).trim();
     }
-    readonly property string scopeLabel: scope === "ACTION" ? "Commands"
+    readonly property string scopeLabel: scope === "ACTION"
+        ? (SearchQuery.commandFilter(query) === "panel" ? "Panels" : SearchQuery.commandFilter(query) === "operation" ? "Actions" : "Commands")
         : scope === "WINDOW" ? "Open windows" : scope === "APP" ? "Applications" : "Results"
 
     function matchScore(text, needle) {
@@ -76,8 +78,10 @@ Scope {
                 return {key: "action:" + action.id, kind: "ACTION", title: action.title,
                     detail: action.description || "Desktop command", keywords: keywords,
                     icon: action.icon || "app", enabled: action.enabled !== false,
+                    actionType: action.actionType || "operation",
                     target: action, order: order};
-            }).filter(row => matches(row.title + " " + row.keywords))
+            }).filter(row => (SearchQuery.commandFilter(query) === "all" || row.actionType === SearchQuery.commandFilter(query))
+                && matches(row.title + " " + row.keywords))
                 .map(row => { row.score = ranked(row.title, row.title + " " + row.keywords); return row; }) : [];
         const kindOrder = {WINDOW: 0, APP: 1, ACTION: 2};
         return windows.concat(apps, commands).sort((a, b) => a.score - b.score

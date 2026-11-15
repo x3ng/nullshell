@@ -125,6 +125,57 @@ def main():
             changed = settle()
             assert changed["results"] == before["results"]
             assert changed["selectedKey"] == before["selectedKey"]
+            call("search", ">")
+            assert settle()["results"] == 6
+            for width in ["440", "740"]:
+                call("width", width)
+                for light in ["false", "true"]:
+                    call("light", light)
+                    for mode in ["all", "panel", "operation"]:
+                        call("search", {"all": ">", "panel": ">?", "operation": ">!"}[mode])
+                        filtered = settle()
+                        assert filtered["commandFilter"] == mode
+                        assert filtered["results"] == (6 if mode == "all" else 3)
+                        assert filtered["selectedIndex"] == 0
+                        if mode != "all": assert set(filtered["resultTypes"]) == {mode}
+                        screenshot("commands-" + width + "-" + light + "-" + mode)
+            call("search", ">")
+            if args.keyboard:
+                subprocess.run(["wtype", "?"], check=True, timeout=5)
+                assert settle()["commandFilter"] == "panel"
+                subprocess.run(["wtype", "-k", "BackSpace"], check=True, timeout=5)
+                assert settle()["commandFilter"] == "all"
+            call("search", "> power")
+            assert settle()["results"] == 2
+            call("activateControl", "command-filter-operation")
+            assert settle()["results"] == 1
+            assert state()["query"] == ">! power"
+            call("activateControl", "command-filter-panel")
+            assert settle()["results"] == 1 and state()["query"] == ">? power"
+            call("activateControl", "command-filter-all")
+            assert settle()["results"] == 2 and state()["query"] == "> power"
+            call("search", ">!power")
+            assert settle()["results"] == 1
+            call("activateSelected")
+            assert state()["lastAction"] == "activate power:balanced"
+            assert state()["commandFilter"] == "all"
+            call("search", "> keyboard")
+            settle()
+            previous = state()["lastAction"]
+            call("activateSelected")
+            assert state()["lastAction"] == previous and state()["query"] == "> keyboard"
+            screenshot("commands-unavailable")
+            call("activateControl", "command-filter-panel")
+            assert settle()["results"] == 0
+            screenshot("commands-empty")
+            call("search", "terminal")
+            assert settle()["commandFilter"] == "all"
+            call("search", ">")
+            call("activateControl", "command-filter-panel")
+            call("close")
+            call("openPanel")
+            call("search", ">")
+            assert settle()["commandFilter"] == "all"
             call("action", "keep-awake")
             assert not state()["keepAwake"]
             call("width", "440")

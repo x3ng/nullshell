@@ -1,5 +1,6 @@
 import QtQuick
 import Quickshell
+import "../SearchQuery.js" as SearchQuery
 
 // Deliberately no native services, processes, FileViews or persistent state.
 // Every command below only changes these synthetic, in-memory objects.
@@ -193,9 +194,22 @@ Scope {
     function removeCurrent(index) { current = current.filter((_, i) => i !== index); }
     function removeHistory(index) { history = history.filter((_, i) => i !== index); }
 
-    property string scope: "ALL"
-    property string scopeLabel: "Preview results"
-    property var results: !query.trim() || scenario === "empty" ? [] : windows.map((w, i) => ({
+    readonly property string scope: query.trim().startsWith(">") ? "ACTION" : "ALL"
+    readonly property string scopeLabel: scope === "ACTION"
+        ? (SearchQuery.commandFilter(query) === "panel" ? "Panels" : SearchQuery.commandFilter(query) === "operation" ? "Actions" : "Commands") : "Preview results"
+    readonly property var commandRows: [
+        {key: "session", title: "Power and session", actionType: "panel", detail: "Lock, sleep or leave the session", icon: "power", enabled: true},
+        {key: "appearance", title: "Appearance settings", actionType: "panel", detail: "Light, dark and automatic", icon: "brightness", enabled: true},
+        {key: "wifi", title: "Wi-Fi settings", actionType: "panel", detail: "Choose a network", icon: "wifi", enabled: true},
+        {key: "dark", title: "Use dark appearance", actionType: "operation", detail: "Switch desktop and applications", icon: "moon", enabled: true},
+        {key: "power:balanced", title: "Use power profile: balanced", actionType: "operation", detail: "Change performance and energy use", icon: "battery", enabled: true},
+        {key: "keyboard", title: "Show screen keyboard", actionType: "operation", detail: "No keyboard available", icon: "keyboard", enabled: false}
+    ]
+    property var results: scope === "ACTION" ? commandRows
+        .filter(row => (SearchQuery.commandFilter(query) === "all" || row.actionType === SearchQuery.commandFilter(query))
+            && (row.title + " " + row.detail).toLowerCase().includes(SearchQuery.commandText(query).toLowerCase()))
+        .map(row => Object.assign({}, row, {kind: "ACTION", entry: null}))
+        : !query.trim() || scenario === "empty" ? [] : windows.map((w, i) => ({
         key: w.address, kind: "WINDOW", title: w.title, detail: "Workspace " + (i + 1), enabled: true, entry: null
     }))
     function desktopEntryFor(window) { return null; }
