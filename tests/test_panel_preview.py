@@ -52,16 +52,23 @@ def main():
         if args.screenshots:
             path = args.screenshots / (name + ".png")
             assert call("capture", str(path)) == "true"
+            # grabToImage returns before PNG encoding completes. A nonempty
+            # file is not a completion signal; require a fully decoded image.
+            from PIL import Image
+            decoded = None
             for _ in range(50):
-                if path.exists() and path.stat().st_size > 0: break
-                time.sleep(.1)
-            assert path.exists(), "Preview capture did not finish"
+                try:
+                    with Image.open(path) as image:
+                        image.load()
+                        decoded = image.convert("RGB")
+                    break
+                except (OSError, ValueError):
+                    time.sleep(.1)
+            assert decoded is not None, "Preview capture did not finish encoding"
             if name.startswith("appearance-"):
-                from PIL import Image
-                with Image.open(path) as image:
-                    body = image.convert("RGB").crop((20, 70, image.width - 20, image.height - 20))
-                    colors = body.getcolors(body.width * body.height)
-                    assert max(count for count, _ in colors) < body.width * body.height * .99, "Appearance content was not rendered"
+                body = decoded.crop((20, 70, decoded.width - 20, decoded.height - 20))
+                colors = body.getcolors(body.width * body.height)
+                assert max(count for count, _ in colors) < body.width * body.height * .99, "Appearance content was not rendered"
 
     with tempfile.TemporaryDirectory(prefix="nullshell-preview-test-") as temporary:
         log = Path(temporary) / "preview.log"

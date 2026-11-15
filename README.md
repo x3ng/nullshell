@@ -1,6 +1,7 @@
 # nullshell
 
-按需出现的 Linux 桌面 shell，以 command panel 为中心，不提供常驻任务栏。
+Quickshell 的辅助工具与 QML 界面配置。helper 只补充原生能力缺口，不替代或接管 Quickshell。
+界面以按需出现的 command panel 为中心，不提供常驻任务栏。
 
 基于 Quickshell / Qt Quick；首先支持 Hyprland。项目独立于个人 dotfiles，
 Nix 是打包和部署入口之一，不是运行时配置语言。
@@ -18,14 +19,18 @@ git clone git@github.com:x3ng/nullshell.git ~/.config/quickshell/nullshell
 入口是根目录 `shell.qml`，也支持 `quickshell -c nullshell`，但不要重复启动桌面。
 
 直接编辑 `Theme.qml`、`components/` 等 QML 文件；无需构建、提交、更新 flake
-或 switch。用 `nullshell preview-panel` 检查布局；锁屏、登录和 Polkit 有独立预览。
+或 switch。在源码目录用 `./bin/nullshell preview-panel` 检查布局；锁屏、登录和 Polkit 有独立预览。
 真实 locker 与 Polkit 禁止文件热重载，greeter 使用系统部署的快照。
 状态和缓存仍在 XDG 状态目录，不写进这个 Git 仓库。
 
-Nix 的 `packages.runtime` 安装依赖、helper、启动器，不携带 QML 快照。
-Home Manager 设置 `programs.nullshell.editable = true` 选择它。
-`packages.helper` 可单独安装；`packages.desktop` 和 `packages.greeter`
-保留完整快照部署。helper 与 QML 只需接口兼容，无需同一 Git 提交。
+Nix 默认包就是 `packages.runtime`：安装上游 Quickshell、helper、启动器和依赖，
+不携带用户 QML，不包装全局 Quickshell，不主动管理用户配置。
+用户可以自行使用 Home Manager 管理配置；这不是安装前提，当前也没有专用 HM 模块。
+本机个人 nix-config 仍只安装软件和提供必要环境，配置由外部管理。
+`packages.helper` 可单独安装；`packages.greeter` 使用独立的系统资源快照。
+用户启动器使用原生 `-c nullshell`（以及 `nullshell/lock`、`nullshell/polkit`）。
+helper 与 QML 只需接口兼容，无需同一 Git 提交。
+启动不会自动导入旧配置或状态；需要迁移时显式执行 `nullshell migrate-state`。
 
 - [架构与迁移规范](docs/SPEC.md)
 - [配置格式与热加载](docs/CONFIGURATION.md)

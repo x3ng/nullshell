@@ -28,11 +28,10 @@ let
 in
 pkgs.runCommand "nullshell-appearance-check"
   {
-    XDG_DATA_DIRS = "${pkgs.gsettings-desktop-schemas}/share/gsettings-schemas/${pkgs.gsettings-desktop-schemas.name}";
     nativeBuildInputs = [
+      packages.runtime
       pkgs.quickshell
       pkgs.glib
-      pkgs.gsettings-desktop-schemas
       pkgs.python3
     ];
   }

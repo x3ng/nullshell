@@ -54,16 +54,16 @@ iteration; use the VM tests for session integration.
 make install PREFIX=/usr DESTDIR="$pkgdir"
 ```
 
-This installs `bin/nullshell` and `share/nullshell/` without enabling services,
-writing user configuration or touching the active session. The common launcher prefers the editable XDG checkout when installed without
-a fixed resource override, and otherwise falls back to installed resources. For development or special
-packaging, `NULLSHELL_DATA_DIR` explicitly overrides the resource directory.
+This installs runtime commands and integration descriptors without enabling services,
+writing user configuration or touching the active session. Native Quickshell
+configuration discovery selects user QML; there is no packaged desktop fallback.
+`make install-assets` separately stages system-owned greeter/test resources.
+Only isolated previews accept `NULLSHELL_DATA_DIR` as a source override.
 Use a clean package staging directory; this is not an in-place upgrade manager.
 
 Current desktop adapters use systemd/util-linux tools, hypridle, coreutils, bash, the Rust helper, BlueZ tools,
-NetworkManager tools, brightnessctl, Hyprland, GLib gsettings and desktop schemas.
-Application colour preference uses a writable GSettings backend and either the
-GTK or optional nullshell Settings portal backend. The on-screen keyboard
+NetworkManager tools, brightnessctl, Hyprland.
+Application colour preference is published by the nullshell Settings portal backend. The on-screen keyboard
 uses optional wvkbd. Audio/media/battery use the corresponding Quickshell APIs and
 system services. Dependency names and optional feature handling will be refined
 when the adapters are separated; do not interpret this resource package as a

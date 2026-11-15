@@ -1,5 +1,15 @@
 # Releases
 
+## Unreleased — installation boundary
+
+Keep upstream Quickshell and native named configuration discovery. Install the
+helper/runtime independently of user QML; greeter resources remain separate.
+Configuration management, including optional consumer-owned Home Manager use,
+is an explicit user choice. Legacy state migration is now an explicit command.
+
+The entries below describe historical releases, not current acceptance results.
+This checkpoint does not create or restore release tags.
+
 ## v0.2.0 — 2026-11-05
 
 Consolidated desktop release following the v0.1.1 baseline.

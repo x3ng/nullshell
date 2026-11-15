@@ -1,12 +1,11 @@
 #!/bin/sh
 set -eu
 [ -e /etc/pam.d/nullshell-lock ] || { echo 'nullshell-lock PAM service is missing' >&2; exit 1; }
-resources=${NULLSHELL_DATA_DIR:?The nullshell launcher must provide the resource directory}
-request() { [ "$(timeout 1s quickshell ipc --path "$resources/lock/shell.qml" call locker lock 2>/dev/null)" = locked ]; }
+request() { [ "$(timeout 1s quickshell ipc -c nullshell/lock call locker lock 2>/dev/null)" = locked ]; }
 if ! request; then
     # Start only when absent; Quickshell owns duplicate detection and detaching.
     # No supervisor restarts this process after a failure.
-    timeout 5s quickshell --path "$resources/lock/shell.qml" --daemonize --no-duplicate
+    timeout 5s quickshell -c nullshell/lock --daemonize --no-duplicate
     accepted=false
     for attempt in $(seq 1 50); do
         if request; then accepted=true; break; fi
@@ -16,7 +15,7 @@ if ! request; then
 fi
 # A successful request is not yet a secured Wayland session.
 for attempt in $(seq 1 50); do
-    if timeout 1s quickshell ipc --path "$resources/lock/shell.qml" call locker status 2>/dev/null | grep -q '"secure":true'; then exit 0; fi
+    if timeout 1s quickshell ipc -c nullshell/lock call locker status 2>/dev/null | grep -q '"secure":true'; then exit 0; fi
     sleep 0.1
 done
 echo 'Compositor did not confirm a secured lock' >&2

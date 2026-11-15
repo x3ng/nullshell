@@ -64,7 +64,7 @@ ShellRoot {
 }''')
     env = dict(os.environ, HOME=str(base), XDG_STATE_HOME=str(base / 'state'), XDG_CONFIG_HOME=str(base / 'config'),
         XDG_RUNTIME_DIR=str(runtime), XDG_CACHE_HOME=str(base / 'cache'), QT_QPA_PLATFORM='offscreen',
-        QT_QUICK_BACKEND='software', GSETTINGS_BACKEND='keyfile', DBUS_SESSION_BUS_ADDRESS='unix:path=' + str(base / 'no-session'),
+        QT_QUICK_BACKEND='software', DBUS_SESSION_BUS_ADDRESS='unix:path=' + str(base / 'no-session'),
         DBUS_SYSTEM_BUS_ADDRESS='unix:path=' + str(base / 'no-system'))
     for key in ('WAYLAND_DISPLAY', 'DISPLAY', 'HYPRLAND_INSTANCE_SIGNATURE'): env.pop(key, None)
     log = base / 'qml.log'

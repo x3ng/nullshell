@@ -14,6 +14,27 @@
   in package defaults. User policy belongs in external configuration.
 - Never restart a live locker or an active authentication agent for testing.
 
+## Installation ownership
+
+- nullshell supplements upstream Quickshell; do not fork, shadow, or replace its
+  commands, native services, configuration discovery, or lifecycle management.
+  QML uses native APIs directly; helpers address demonstrated capability gaps.
+- Default installation installs software and dependencies only. Do not deploy
+  user QML/configuration, create configuration symlinks, migrate existing settings,
+  or update a checkout implicitly during installation or application startup.
+- Consumers may explicitly choose Home Manager to manage their configuration.
+  This is optional consumer policy, never an installation prerequisite. The
+  current personal nix-config uses installation/environment only and external
+  configuration; do not change that policy through this project.
+- Preserve native Quickshell binaries and named configuration discovery. The
+  same ownership rules apply to companion programs such as hypridle.
+- Session startup belongs to the consumer. Convenience launchers must remain
+  optional; using native Quickshell must not skip required hidden setup.
+- Greeter system resources and isolated preview resources are explicit exceptions
+  to user configuration discovery, not alternate desktop deployment modes.
+- Appearance preferences are published by our Settings portal backend. Do not
+  add a parallel GSettings writer or CLI wrapper without an actual new requirement.
+
 ## What belongs in Git
 
 Commit source, packaging, schemas, portable defaults, documentation, reproducible

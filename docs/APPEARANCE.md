@@ -9,7 +9,7 @@ Core functionality is independent of Nix:
   deletion after success/error/timeout. Dropping its connection releases ownership.
 - `backend/src/settings_portal.rs`: read-only Settings protocol and mode-file reader.
 - `AppearanceState.qml`: sole writer of effective mode; existing compositor,
-  GSettings and greeter exporters consume the result.
+  portal and greeter exporters consume the result.
 
 No QML page owns a service lifetime. No helper parses Nix, infers a personal
 account, or configures the compositor. The independent portal process can start
@@ -19,7 +19,7 @@ It is enabled only by explicit distribution/session integration.
 ## Portable installation
 
 `make install PREFIX=/usr DESTDIR=...` builds with Cargo and installs the helper,
-QML, a portal descriptor, D-Bus activation file and GeoClue desktop identity.
+a portal descriptor, D-Bus activation file and GeoClue desktop identity.
 It neither enables services nor modifies user settings. Build/install dependencies
 remain in [BUILDING.md](BUILDING.md); no Nix evaluation is needed.
 
@@ -63,8 +63,8 @@ can use the same portable descriptor with their own session routing.
 
 `nix/packages.nix` owns dependency paths and activation-file substitution;
 `nix/nixos.nix` owns service/GeoClue integration. QML and helper derivations remain
-independent. Home Manager's runtime installation alone does not enable a system
-location service or select a portal backend.
+independent. The default package installs the complete runtime without user QML.
+The NixOS module explicitly enables optional location and portal integration.
 
 ## Validation
 

@@ -1,15 +1,37 @@
 #!/bin/sh
 set -eu
 
-# Resource selection is shared by direct startup, CLI IPC and child processes.
-# A packaged greeter never discovers a user's editable checkout implicitly.
+# User sessions use Quickshell's native named-config discovery. Explicit paths
+# are reserved for isolated previews and system-owned greeter resources.
 prefix=$(CDPATH='' cd -- "$(dirname -- "$0")/.." && pwd)
 mode=${1:-desktop}
 if [ "$#" -gt 0 ]; then shift; fi
 helpers=${NULLSHELL_LIBEXEC_DIR:-$prefix/bin}
-if [ -n "${NULLSHELL_DATA_DIR:-}" ]; then
-    resources=$NULLSHELL_DATA_DIR
-elif [ "$mode" = greeter ]; then
+case "$mode" in
+    desktop|locker|polkit)
+        config=nullshell
+        case "$mode" in locker) config=nullshell/lock ;; polkit) config=nullshell/polkit ;; esac
+        exec quickshell -c "$config" "$@" ;;
+    lock) exec sh "$helpers/nullshell-lock" "$@" ;;
+    migrate-state) exec sh "$helpers/nullshell-migrate-state" "$@" ;;
+    ipc)
+        config=nullshell
+        case "${1:-}" in
+            desktop) shift ;;
+            locker) config=nullshell/lock; shift ;;
+            polkit) config=nullshell/polkit; shift ;;
+        esac
+        exec quickshell ipc -c "$config" "$@" ;;
+    sleep-bridge)
+        exec flock --nonblock "${XDG_RUNTIME_DIR:?}/nullshell-sleep-${WAYLAND_DISPLAY:?}.lock" \
+            hypridle ;;
+    -h|--help)
+        printf '%s\n' 'Usage: nullshell [desktop|locker|polkit|greeter|lock|sleep-bridge|migrate-state|ipc|preview-greeter|preview-lock|preview-polkit|preview-connectivity|preview-panel] [arguments]'
+        exit 0 ;;
+    greeter|preview-greeter|preview-lock|preview-polkit|preview-connectivity|preview-panel) ;;
+    *) printf 'Unknown mode: %s\n' "$mode" >&2; exit 2 ;;
+esac
+if [ "$mode" = greeter ]; then
     resources=${NULLSHELL_PACKAGED_DATA_DIR:-$prefix/share/nullshell}
     # The installer owns this pointer; user HOME is never an implicit code source.
     override=${NULLSHELL_GREETER_OVERRIDE_DIR:-}
@@ -36,49 +58,22 @@ elif [ "$mode" = greeter ]; then
         flock -u 7
         exec 7<&-
     fi
-elif [ -n "${NULLSHELL_CONFIG_DIR:-}" ]; then
-    resources=$NULLSHELL_CONFIG_DIR
+elif [ -n "${NULLSHELL_DATA_DIR:-}" ]; then
+    resources=$NULLSHELL_DATA_DIR
 elif [ -f "$prefix/shell.qml" ]; then
     resources=$prefix
 else
-    resources=${XDG_CONFIG_HOME:-$HOME/.config}/quickshell/nullshell
-    if [ ! -f "$resources/shell.qml" ] && [ -d "$prefix/share/nullshell" ]; then
-        resources=$prefix/share/nullshell
-    fi
+    echo 'Preview requires NULLSHELL_DATA_DIR or a source checkout launcher' >&2
+    exit 1
 fi
-# Canonical paths keep IPC consistent when a checkout is reached through a symlink.
 if [ -d "$resources" ]; then resources=$(CDPATH='' cd -- "$resources" && pwd -P); fi
-export NULLSHELL_DATA_DIR="$resources"
 case "$mode" in
-    desktop) sh "$helpers/nullshell-migrate-state"; entry=$resources/shell.qml ;;
-    locker) sh "$helpers/nullshell-migrate-state"; entry=$resources/lock/shell.qml ;;
-    polkit) entry=$resources/polkit/shell.qml ;;
-    lock) sh "$helpers/nullshell-migrate-state"; exec sh "$helpers/nullshell-lock" "$@" ;;
-    migrate-state) exec sh "$helpers/nullshell-migrate-state" "$@" ;;
-    ipc)
-        entry=$resources/shell.qml
-        case "${1:-}" in
-            desktop) shift ;;
-            locker) entry=$resources/lock/shell.qml; shift ;;
-            polkit) entry=$resources/polkit/shell.qml; shift ;;
-        esac
-        exec quickshell ipc --path "$entry" "$@" ;;
-    sleep-bridge)
-        sleep_config=${NULLSHELL_SLEEP_CONFIG:-$resources/integration/hypridle.conf}
-        [ -f "$sleep_config" ] || sleep_config=$resources/hypridle.conf
-        # One bridge per Wayland session; the lock is released when it exits.
-        exec flock --nonblock "${XDG_RUNTIME_DIR:?}/nullshell-sleep-${WAYLAND_DISPLAY:?}.lock" \
-            hypridle --config "$sleep_config" ;;
     greeter) entry=$resources/greeter.qml ;;
     preview-greeter) entry=$resources/preview.qml; export QS_PREVIEW_LOCK=0 ;;
     preview-lock) entry=$resources/preview.qml; export QS_PREVIEW_LOCK=1 ;;
     preview-polkit) entry=$resources/polkit/preview.qml ;;
     preview-connectivity) entry=$resources/preview-connectivity.qml ;;
     preview-panel) entry=$resources/preview-panel.qml ;;
-    -h|--help)
-        printf '%s\n' 'Usage: nullshell [desktop|locker|polkit|greeter|lock|sleep-bridge|migrate-state|ipc|preview-greeter|preview-lock|preview-polkit|preview-connectivity|preview-panel] [arguments]'
-        exit 0 ;;
-    *) printf 'Unknown mode: %s\n' "$mode" >&2; exit 2 ;;
 esac
 if [ ! -f "$entry" ]; then
     printf 'Missing nullshell resource: %s\n' "$entry" >&2

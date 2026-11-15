@@ -34,7 +34,7 @@ let
 in
 {
   options.programs.nullshell = {
-    enable = lib.mkEnableOption "nullshell PAM and desktop system integration";
+    enable = lib.mkEnableOption "nullshell runtime and desktop system integration";
     appearance = {
       portal.enable = lib.mkEnableOption "nullshell Settings portal backend for the Hyprland session";
       geoclue.enable = lib.mkEnableOption "optional GeoClue city-level location for nullshell";
@@ -66,6 +66,7 @@ in
   };
   config = lib.mkMerge [
     (lib.mkIf cfg.enable {
+      environment.systemPackages = [ packages.runtime ];
       security.pam.services.nullshell-lock = { };
       security.polkit.enable = true;
       services.upower.enable = true;

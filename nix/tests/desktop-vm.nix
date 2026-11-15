@@ -4,10 +4,10 @@ let
     hl.config({ misc = { disable_hyprland_logo = true, disable_splash_rendering = true } })
     hl.monitor({ output = "", mode = "preferred", position = "auto", scale = 1 })
     hl.on("hyprland.start", function()
-      hl.exec_cmd("${packages.desktop}/bin/nullshell locker --no-duplicate")
-      hl.exec_cmd("${packages.desktop}/bin/nullshell polkit --no-duplicate")
-      hl.exec_cmd("${packages.desktop}/bin/nullshell desktop --no-duplicate")
-      hl.exec_cmd("${packages.desktop}/bin/nullshell sleep-bridge")
+      hl.exec_cmd("${packages.runtime}/bin/nullshell locker --no-duplicate")
+      hl.exec_cmd("${packages.runtime}/bin/nullshell polkit --no-duplicate")
+      hl.exec_cmd("${packages.runtime}/bin/nullshell desktop --no-duplicate")
+      hl.exec_cmd("${packages.runtime}/bin/nullshell sleep-bridge")
     end)
   '';
 in
@@ -15,7 +15,18 @@ pkgs.testers.runNixOSTest {
   name = "nullshell-hyprland-session";
   nodes.machine = { ... }: {
     imports = [ ../nixos.nix ];
+    # Explicit VM fixture, not a runtime package default.
+    environment.etc."xdg/hypr/hypridle.conf".text = ''
+      general {
+        lock_cmd = nullshell lock
+        inhibit_sleep = 3
+        before_sleep_cmd = loginctl lock-session
+        after_sleep_cmd = hyprctl dispatch 'hl.dsp.dpms({action = "on"})'
+      }
+    '';
     programs.nullshell.enable = true;
+    # Synthetic system-wide XDG configuration, owned only by this test VM.
+    environment.etc."xdg/quickshell/nullshell".source = "${packages.assets}/share/nullshell";
     programs.nullshell.appearance.portal.enable = true;
     security.polkit.enablePkexecWrapper = true;
     programs.hyprland.enable = true;
@@ -38,7 +49,7 @@ pkgs.testers.runNixOSTest {
     };
     services.getty.autologinUser = "preview";
     environment.systemPackages = [
-      packages.desktop
+      packages.runtime
       pkgs.wtype
       pkgs.quickshell
       pkgs.python3
@@ -160,6 +171,6 @@ pkgs.testers.runNixOSTest {
     machine.succeed(user("kill " + str(compositor["pid"])))
     for pid in [desktop_pid, locker_pid, polkit_pid]:
         machine.wait_until_fails("test -d /proc/" + pid, timeout=timedelta(seconds=20))
-    machine.succeed("test ! -d ${packages.desktop}/lib/systemd/user")
+    machine.succeed("test ! -d ${packages.runtime}/lib/systemd/user")
   '';
 }

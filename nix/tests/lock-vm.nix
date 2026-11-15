@@ -11,6 +11,8 @@ pkgs.testers.runNixOSTest {
   nodes.machine = { ... }: {
     imports = [ ../nixos.nix ];
     programs.nullshell.enable = true;
+    # Synthetic system-wide XDG configuration, owned only by this test VM.
+    environment.etc."xdg/quickshell/nullshell".source = "${packages.assets}/share/nullshell";
     virtualisation.memorySize = 2048;
     virtualisation.cores = 2;
     users.users.preview = {
@@ -19,7 +21,7 @@ pkgs.testers.runNixOSTest {
       password = "test-only-password";
     };
     environment.systemPackages = [
-      packages.desktop
+      packages.runtime
       pkgs.sway
       pkgs.wtype
       pkgs.dbus
@@ -30,7 +32,7 @@ pkgs.testers.runNixOSTest {
       path = [
         pkgs.bash
         pkgs.coreutils
-        packages.desktop
+        packages.runtime
       ];
       serviceConfig = {
         User = "preview";

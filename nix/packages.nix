@@ -34,7 +34,6 @@ let
   };
   assets = pkgs.runCommand "nullshell-assets" { } ''
     mkdir -p $out/share/nullshell
-    cp ${../integration/hypridle.conf} $out/share/nullshell/hypridle.conf
     cp -R ${qmlSource}/. $out/share/nullshell/
     if find -L $out/share/nullshell -type l | read -r broken; then
       echo "Broken resource symlink: $broken" >&2
@@ -53,27 +52,10 @@ let
     hyprland
     hypridle
     wvkbd
-    glib
     util-linux
   ];
-  schemaPath = "${pkgs.gsettings-desktop-schemas}/share/gsettings-schemas/${pkgs.gsettings-desktop-schemas.name}";
-  desktop =
-    pkgs.runCommand "nullshell-desktop"
-      {
-        nativeBuildInputs = [ pkgs.makeWrapper ];
-        meta.mainProgram = "nullshell";
-      }
-      ''
-        mkdir -p $out/bin
-        makeWrapper ${pkgs.runtimeShell} $out/bin/nullshell \
-          --add-flags ${../bin/nullshell} \
-          --set-default NULLSHELL_DATA_DIR ${assets}/share/nullshell \
-          --set NULLSHELL_LIBEXEC_DIR ${../bin} \
-          --prefix XDG_DATA_DIRS : "${schemaPath}" \
-          --prefix PATH : "$out/bin:${lib.makeBinPath runtimeDependencies}"
-      '';
   # No QML snapshot dependency: editing the checkout does not rebuild runtime.
-  runtime =
+  launcher =
     pkgs.runCommand "nullshell-runtime"
       {
         nativeBuildInputs = [ pkgs.makeWrapper ];
@@ -84,15 +66,15 @@ let
         makeWrapper ${pkgs.runtimeShell} $out/bin/nullshell \
           --add-flags ${../bin/nullshell} \
           --set NULLSHELL_LIBEXEC_DIR ${../bin} \
-          --set NULLSHELL_SLEEP_CONFIG ${../integration/hypridle.conf} \
-          --prefix XDG_DATA_DIRS : "${schemaPath}" \
           --prefix PATH : "$out/bin:${lib.makeBinPath runtimeDependencies}"
-        # Direct `quickshell -c nullshell` gets the same optional backend tools.
-        makeWrapper ${pkgs.quickshell}/bin/quickshell $out/bin/quickshell \
-          --prefix XDG_DATA_DIRS : "${schemaPath}" \
-          --prefix PATH : "$out/bin:${lib.makeBinPath runtimeDependencies}"
-        ln -s ${helper}/bin/nullshell-helper $out/bin/nullshell-helper
       '';
+  # Aggregate native upstream binaries; never shadow quickshell with a wrapper.
+  runtime = pkgs.buildEnv {
+    name = "nullshell-runtime";
+    paths = [ launcher ] ++ runtimeDependencies;
+    pathsToLink = [ "/bin" ];
+    meta.mainProgram = "nullshell";
+  };
   greeter =
     pkgs.runCommand "nullshell-greeter"
       {
@@ -136,12 +118,11 @@ in
 {
   inherit
     assets
-    desktop
     runtime
     greeter
     preview
     helper
     settingsPortal
     ;
-  default = desktop;
+  default = runtime;
 }

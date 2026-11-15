@@ -120,8 +120,8 @@ Do not claim the authentication VMs establish real hardware power behavior.
 
 
 Appearance synchronization: `make check-appearance` runs real QML file
-subscriptions with temporary XDG/shared paths and an isolated keyfile GSettings
-backend. It checks manual changes, restart persistence, application preference, invalid snapshot recovery, independent
+subscriptions with temporary XDG/shared paths. It checks manual changes, restart
+persistence, invalid snapshot recovery, independent
 wallpaper events, source-file replacement, fit-only no-copy, byte limits, fixed
 slots and cleanup. The Nix `appearance` check runs the same tests. No host service
 is contacted. Greeter VM coverage checks source/reader/unrelated-account

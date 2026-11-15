@@ -5,14 +5,14 @@ CARGO_TARGET_DIR ?= backend/target
 
 .DEFAULT_GOAL := help
 
-.PHONY: check-settings help build helper install check check-backend check-pairing check-preview check-material check-appearance install-greeter
+.PHONY: check-settings help build helper install check check-backend check-pairing check-preview check-material check-appearance install-greeter install-assets
 
 help:
 	@printf '%s\n' \
 	  'Usage: make <target> (default: help; no build or installation)' \
 	  '' \
 	  '  build / helper    Build the Rust helper in release mode' \
-	  '  install           Build and install resources and commands (PREFIX, DESTDIR)' \
+	  '  install           Build and install runtime commands (PREFIX, DESTDIR)' \
 	  '  install-greeter   Install checkout QML using sudo; no service restart' \
 	  '  check             Run lightweight syntax and launcher checks' \
 	  '  check-backend     Run Rust tests' \
@@ -38,8 +38,10 @@ install: helper
 	install -Dm644 integration/org.nullshell.desktop.desktop "$(DESTDIR)$(PREFIX)/share/applications/org.nullshell.desktop.desktop"
 	install -d "$(DESTDIR)$(PREFIX)/share/dbus-1/services"
 	sed 's|@HELPER@|$(PREFIX)/bin/nullshell-helper|g' integration/org.freedesktop.impl.portal.desktop.nullshell.service.in > "$(DESTDIR)$(PREFIX)/share/dbus-1/services/org.freedesktop.impl.portal.desktop.nullshell.service"
+
+# Optional system-owned greeter/test resources; never deploy a user config.
+install-assets:
 	install -d "$(DESTDIR)$(PREFIX)/share/nullshell"
-	install -m644 integration/hypridle.conf "$(DESTDIR)$(PREFIX)/share/nullshell/hypridle.conf"
 	install -m644 greeter-interface.version "$(DESTDIR)$(PREFIX)/share/nullshell/greeter-interface.version"
 	cp -R *.qml *.js components adapters greeter lock polkit preview wallpaper.json "$(DESTDIR)$(PREFIX)/share/nullshell/"
 	if [ -d assets ]; then cp -R assets "$(DESTDIR)$(PREFIX)/share/nullshell/"; fi

@@ -35,14 +35,23 @@ with tempfile.TemporaryDirectory(prefix='nullshell-routing-') as tmp:
         assert (result.returncode == 0) == success, result.stderr
         return json.loads(result.stdout) if success else result.stderr
 
-    for mode, entry in [('desktop', 'shell.qml'), ('locker', 'lock/shell.qml'),
-                        ('polkit', 'polkit/shell.qml'), ('preview-panel', 'preview-panel.qml')]:
-        value = run(mode)
-        assert value['args'] == ['--path', str(local / entry)]
-        assert value['data'] == str(local)
-    for mode, entry in [('desktop', 'shell.qml'), ('locker', 'lock/shell.qml'), ('polkit', 'polkit/shell.qml')]:
+    for mode, name in [('desktop', 'nullshell'), ('locker', 'nullshell/lock'),
+                       ('polkit', 'nullshell/polkit')]:
+        # Legacy path overrides must not redirect a user session.
+        for extra in ({}, {'NULLSHELL_DATA_DIR': '/nonexistent', 'NULLSHELL_CONFIG_DIR': '/nonexistent'}):
+            value = run(mode, extra=extra)
+            assert value['args'] == ['-c', name]
         value = run('ipc', mode, 'call', 'probe', 'status')
-        assert value['args'] == ['ipc', '--path', str(local / entry), 'call', 'probe', 'status']
+        assert value['args'] == ['ipc', '-c', name, 'call', 'probe', 'status']
+    # Native startup/IPC must not import legacy settings or write user state.
+    assert not (root / 'state').exists()
+    assert not (root / 'config/nullshell').exists()
+    legacy = root / 'config/quickshell/wallpaper.json'
+    legacy.write_text('{"wallpaper":"legacy"}\n')
+    run('desktop')
+    assert not (root / 'config/nullshell').exists()
+    subprocess.run([str(install / 'bin/nullshell'), 'migrate-state'], env=env, check=True)
+    assert (root / 'config/nullshell/wallpaper.json').read_bytes() == legacy.read_bytes()
     # A greeter must never accidentally load an editable user's checkout.
     assert 'Missing nullshell resource' in run('greeter', success=False)
     packaged = root / 'snapshot'
@@ -60,23 +69,24 @@ with tempfile.TemporaryDirectory(prefix='nullshell-routing-') as tmp:
     (generation / 'greeter-interface.version').write_text('1\n')
     (override / 'current').symlink_to(generation.name)
     integration = {'NULLSHELL_PACKAGED_DATA_DIR': str(packaged), 'NULLSHELL_GREETER_OVERRIDE_DIR': str(override)}
-    assert run('greeter', extra=integration)['data'] == str(generation)
-    assert run('greeter', extra=integration | {'NULLSHELL_DATA_DIR': str(packaged)})['data'] == str(packaged)
+    assert run('greeter', extra=integration)['args'] == ['--path', str(generation / 'greeter.qml')]
+    assert run('greeter', extra=integration | {'NULLSHELL_DATA_DIR': str(local)})['args'] == ['--path', str(generation / 'greeter.qml')]
     (generation / 'greeter-interface.version').write_text('99\n')
     assert 'interface version' in run('greeter', extra=integration, success=False)
     (override / 'current').unlink()
-    assert run('greeter', extra=integration)['data'] == str(packaged)
+    assert run('greeter', extra=integration)['args'] == ['--path', str(packaged / 'greeter.qml')]
     (override / 'current').symlink_to('../../escape')
     assert 'Invalid greeter QML pointer' in run('greeter', extra=integration, success=False)
     link = root / 'checkout with spaces'
     link.symlink_to(local, target_is_directory=True)
-    assert run('preview-panel', extra={'NULLSHELL_CONFIG_DIR': str(link)})['data'] == str(local)
+    assert run('preview-panel', extra={'NULLSHELL_DATA_DIR': str(link)})['args'] == ['--path', str(local / 'preview-panel.qml')]
     # Explicit source previews remain usable with a packaged runtime.
-    assert run('preview-panel', extra={'NULLSHELL_DATA_DIR': str(source)})['data'] == str(source)
-    assert run('preview-panel', launcher=source / 'bin/nullshell')['data'] == str(source)
-    sleep = source / 'integration/hypridle.conf'
-    assert run('sleep-bridge', extra={'NULLSHELL_SLEEP_CONFIG': str(sleep)})['args'] == ['--config', str(sleep)]
+    assert run('preview-panel', extra={'NULLSHELL_DATA_DIR': str(source)})['args'] == ['--path', str(source / 'preview-panel.qml')]
+    assert run('preview-panel', launcher=source / 'bin/nullshell')['args'] == ['--path', str(source / 'preview-panel.qml')]
+    assert run('sleep-bridge')['args'] == []
+    assert run('sleep-bridge', extra={'NULLSHELL_SLEEP_CONFIG': '/obsolete'})['args'] == []
     assert 'Unknown mode' in run('session-start', success=False)
     (local / 'shell.qml').unlink()
-    assert 'Missing nullshell resource' in run('desktop', success=False)
-print('Launcher: source, XDG, packaged greeter, IPC, canonical paths and missing checkout passed')
+    assert run('desktop')['args'] == ['-c', 'nullshell']
+    assert 'Preview requires' in run('preview-panel', success=False)
+print('Launcher: native config/IPC routing, isolated greeter and explicit previews passed')

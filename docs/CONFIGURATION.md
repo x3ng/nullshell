@@ -57,11 +57,10 @@ The desktop owns the effective light/dark choice, persisted in
 `$XDG_STATE_HOME/nullshell/appearance-mode` (existing choices are retained; a fresh
 installation defaults to dark). The appearance button and light/dark actions
 change this choice; optional automatic scheduling is described below.
-The shell publishes `prefer-light` / `prefer-dark` through GSettings; the GTK
-Settings portal forwards this preference to applications unless the optional
-nullshell Settings backend is selected. Errors are exposed by
-`nullshell ipc appearance status`; application failure does not disable the shell
-button. Restarting the desktop reapplies the saved choice.
+The native nullshell Settings portal backend publishes the saved choice to
+applications through the standard portal. There is no GSettings writer;
+applications bypassing this portal are outside this publication contract.
+Compositor application errors are exposed by `nullshell ipc call appearance status`.
 
 The desktop exports its actual
 `Theme.qml` colours and observed mode whenever they change, when greeter sync is
@@ -237,7 +236,7 @@ It is a separately D-Bus-activated helper process, not a general-purpose daemon.
 It reads the effective mode file once per second, emits only changes, returns
 no preference (0) before a valid initial value, and retains its last valid value
 across malformed/missing files. It has no write method and never changes user
-configuration. GSettings publication remains for applications that read it directly.
+configuration. No parallel GSettings publication is performed.
 Other Settings keys can come from a fallback backend such as GTK.
 
 See [APPEARANCE.md](APPEARANCE.md) for portable installation and Nix integration.

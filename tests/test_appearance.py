@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Manual QML mode -> persistent state, application preference and greeter export."""
+"""Manual QML mode -> persistent state and greeter export."""
 import json
 import os
 from pathlib import Path
@@ -65,7 +65,6 @@ ShellRoot {
     env = dict(os.environ, HOME=str(base), XDG_STATE_HOME=str(state),
                XDG_CONFIG_HOME=str(base / "config"), XDG_CACHE_HOME=str(base / "cache"),
                XDG_RUNTIME_DIR=str(runtime), QT_QPA_PLATFORM="offscreen", QT_QUICK_BACKEND="software",
-               GSETTINGS_BACKEND="keyfile",
                DBUS_SESSION_BUS_ADDRESS="unix:path=" + str(base / "no-session-bus"),
                DBUS_SYSTEM_BUS_ADDRESS="unix:path=" + str(base / "no-system-bus"),
                NULLSHELL_APPEARANCE_SOURCE_USER="fixture-user", USER="fixture-user",
@@ -99,9 +98,6 @@ ShellRoot {
     def broadcast(mode):
         # All mode changes are explicit user commands, with no scheduling peer.
         assert ipc("setMode", "true" if mode == "dark" else "false").returncode == 0
-
-    def preference():
-        return subprocess.check_output(["gsettings", "get", "org.gnome.desktop.interface", "color-scheme"], env=env, text=True).strip()
 
     with log.open("w") as output:
         process = subprocess.Popen(["quickshell", "--path", str(entry)], env=env,
@@ -161,17 +157,12 @@ ShellRoot {
 
     assert shared.exists(), "Snapshot must survive publisher exit"
     assert (state / "nullshell/appearance-mode").read_text().strip() == "dark"
-    assert preference() == "'prefer-dark'"
     # Restore a persisted light choice without any external mode service.
     (state / "nullshell/appearance-mode").write_text("light\n")
     with log.open("a") as output:
         restarted = subprocess.Popen(["quickshell", "--path", str(entry)], env=env, stdout=output, stderr=output)
         try:
             wait(lambda s: s["snapshot"] and s["snapshot"]["mode"] == "light")
-            until = time.monotonic() + 5
-            while preference() != "'prefer-light'" and time.monotonic() < until:
-                time.sleep(.05)
-            assert preference() == "'prefer-light'"
         finally:
             restarted.terminate()
             restarted.wait(timeout=5)
@@ -212,4 +203,4 @@ ShellRoot {
     assert not (base / "missing").exists()
     text = "\n".join(line for line in log.read_text().splitlines() if "Appearance snapshot:" not in line)
     assert not any(x in text for x in ("ReferenceError", "TypeError", "SyntaxError", "Cannot assign")), text
-print("Appearance manual persistence, application preference, relocated paths, atomic permissions, validation and recovery passed")
+print("Appearance manual persistence, relocated paths, atomic permissions, validation and recovery passed")

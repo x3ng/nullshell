@@ -26,55 +26,56 @@ for the compositor to confirm a secured session. Failure is reported; relaunchin
 a crashed locker is not a guarantee of recovering an abandoned session lock.
 
 `nullshell sleep-bridge` runs hypridle for logind lock/suspend coordination, with
-no idle timers. Quickshell owns dim/lock/display-off timers. The Bluetooth helper
+the user's native hypridle configuration (`$XDG_CONFIG_HOME/hypr/hypridle.conf`).
+The runtime does not install that file or pass a configuration path. Configure
+lock/sleep hooks in independently managed dotfiles; omit idle timers when
+Quickshell owns dim/lock/display-off timers. The Bluetooth helper
 is an on-demand process and requires no service. A future persistent helper must
 justify its own lifecycle independently; it does not supervise Quickshell.
 
-Appearance is owned and persisted by the shell, with optional solar scheduling. Install GLib `gsettings`,
-`gsettings-desktop-schemas` and a writable GSettings backend (normally dconf).
-Route `org.freedesktop.impl.portal.Settings` to GTK or the optional nullshell
-backend. Do not run a competing automatic colour provider. Fixed-coordinate
-scheduling needs no location service; GeoClue is optional. Installation and
-per-session routing are described in [APPEARANCE.md](APPEARANCE.md).
+Appearance is owned and persisted by the shell, with optional solar scheduling.
+The nullshell Settings portal backend publishes the effective colour preference.
+There is no parallel GSettings writer. Applications that bypass the Settings
+portal are outside this publication contract. Fixed coordinates need no location
+service; GeoClue is optional. See [APPEARANCE.md](APPEARANCE.md).
 
 ## State
 
-The desktop and locker perform a locked, one-time import of known files from
+Only an explicit `nullshell migrate-state` command performs a locked, one-time import of known files from
 `$XDG_STATE_HOME/quickshell` to `$XDG_STATE_HOME/nullshell`. Existing target files
 win. Sources are retained, permissions on copied files are 0600, and a completion
 marker prevents cleared state from reappearing. Legacy wallpaper defaults are
-likewise copied from the old XDG config location. `nullshell migrate-state` can
-perform this independently. Preview and greeter never perform migration.
+likewise copied from the old XDG config location. Normal startup, lock requests, previews and greeter never perform migration.
 
 ## Nix
 
-Import `homeManagerModules.default`, set `programs.nullshell.enable = true` for
-user runtime packages; separately import `nixosModules.default` and enable
-`programs.nullshell.enable` for PAM/Polkit/UPower integration. Enable
-`programs.nullshell.greeter.enable` only if replacing the display manager is
-intended. Set `programs.nullshell.editable = true` in Home Manager to install
-`packages.runtime` instead of the bundled desktop. Clone the QML repository to
-`$XDG_CONFIG_HOME/quickshell/nullshell` (default `~/.config/quickshell/nullshell`).
-The module never creates or overwrites that checkout. All desktop/locker/Polkit
-launchers and IPC calls resolve the same directory. `NULLSHELL_CONFIG_DIR` can
-explicitly select another checkout when supplied consistently to all processes.
+Import `nixosModules.default` and enable `programs.nullshell.enable` to install
+one complete runtime plus PAM/Polkit/UPower environment. Enable portal, GeoClue
+and greeter integration explicitly when needed. There is currently no dedicated
+Home Manager module. Consumers may manage their QML/configuration through Home
+Manager explicitly; installation does not select or require a configuration manager.
+The default package is the runtime; it contains no desktop QML snapshot and does
+not replace upstream Quickshell with a wrapper.
 
-The greeter remains a packaged system-owned snapshot. Missing local QML fails
-with a resource error; the editable runtime does not silently start an old UI.
-Helper and runtime updates require deployment; QML edits do not. For the initial
-migration from bundled QML, run Home Manager switch to remove the old unit links, then log out/in or reboot.
-Existing old processes are not stopped during activation; do not manually start
-the new processes in that same session.
-Do not live-restart authentication components or mix old locker paths with new IPC.
+Maintain QML separately under Quickshell's standard configuration directories.
+`nullshell desktop`, `locker`, `polkit` and IPC use native names `nullshell`,
+`nullshell/lock` and `nullshell/polkit`. No custom directory inference or fallback
+is used. The greeter consumes only its separate system-owned resource snapshot.
+Preview commands alone accept `NULLSHELL_DATA_DIR` for an explicit source tree.
+
+Build/evaluation never authorizes activation. Install accepted runtime changes,
+then use a fresh login for the updated session startup. Never restart active
+authentication components or start new instances alongside old ones.
 
 ## Other distributions
 
-`make install` installs portable resources and launchers, without user units. Distribution packages
+`make install` installs portable runtime commands, without user units. Distribution packages
 must provide their native PAM configuration as `/etc/pam.d/nullshell-lock`.
 An Arch-specific include file is in `integration/pam/nullshell-lock.arch`; it is
 not installed on other distributions automatically. Install Quickshell, hypridle,
 systemd/util-linux tools and the documented feature dependencies. Enable greetd
 with a dedicated greeter account, Cage and `nullshell greeter` as appropriate.
+Use `make install-assets` explicitly for the system-owned greeter resources.
 Do not run a second notification daemon or Polkit agent in the same session.
 
 The Lua adapter ships with the resources and is loaded by absolute resource path;

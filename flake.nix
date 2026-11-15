@@ -10,7 +10,6 @@
       ];
     in
     {
-      homeManagerModules.default = import ./nix/home-manager.nix;
       nixosModules.default = import ./nix/nixos.nix;
       packages = eachSystem (
         system:
@@ -25,7 +24,7 @@
           packages = self.packages.${system};
         in
         {
-          inherit (packages) desktop greeter runtime;
+          inherit (packages) greeter runtime;
           panel = import ./nix/tests/panel.nix { inherit pkgs packages; };
           preview = import ./nix/tests/preview.nix { inherit pkgs packages; };
           config = import ./nix/tests/config.nix { inherit pkgs; };
@@ -89,7 +88,6 @@
             ]))
             dbus
             glib
-            gsettings-desktop-schemas
             grim
             wtype
             labwc
@@ -99,11 +97,9 @@
             clippy
             rustfmt
           ];
-          XDG_DATA_DIRS =
-            let
-              p = nixpkgs.legacyPackages.${system}.gsettings-desktop-schemas;
-            in
-            "${p}/share/gsettings-schemas/${p.name}";
+          shellHook = ''
+            export PATH="$PWD/bin:$PATH"
+          '';
           CARGO_BUILD_JOBS = "2";
         };
       });
