@@ -61,7 +61,7 @@ configuration discovery selects user QML; there is no packaged desktop fallback.
 Only isolated previews accept `NULLSHELL_DATA_DIR` as a source override.
 Use a clean package staging directory; this is not an in-place upgrade manager.
 
-Current desktop adapters use systemd/util-linux tools, hypridle, coreutils, bash, the Rust helper, BlueZ tools,
+Current desktop adapters use systemd/util-linux tools, coreutils, bash, the Rust helper, BlueZ tools,
 NetworkManager tools, brightnessctl, Hyprland.
 Application colour preference is published by the nullshell Settings portal backend. The on-screen keyboard
 uses optional wvkbd. Audio/media/battery use the corresponding Quickshell APIs and

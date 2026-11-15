@@ -23,8 +23,8 @@ case "$mode" in
         esac
         exec quickshell ipc -c "$config" "$@" ;;
     sleep-bridge)
-        exec flock --nonblock "${XDG_RUNTIME_DIR:?}/nullshell-sleep-${WAYLAND_DISPLAY:?}.lock" \
-            hypridle ;;
+        exec nullshell-helper sleep-bridge \
+            --resume-command '["hyprctl","dispatch","hl.dsp.dpms({action = \"on\"})"]' "$@" ;;
     -h|--help)
         printf '%s\n' 'Usage: nullshell [desktop|locker|polkit|greeter|lock|sleep-bridge|migrate-state|ipc|preview-greeter|preview-lock|preview-polkit|preview-connectivity|preview-panel] [arguments]'
         exit 0 ;;

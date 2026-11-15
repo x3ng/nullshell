@@ -1,5 +1,38 @@
 # Rust helper protocol v1
 
+## Sleep coordination
+
+`nullshell-helper sleep-bridge` is a session-scoped logind client. It supplements
+Quickshell's Wayland idle/session-lock APIs with logind's delay-inhibitor FD and
+system-bus signals. It does not implement idle timers, authentication or an
+unlock command. It resolves `XDG_SESSION_ID` through logind, falling back to
+`GetSessionByPID` when absent; signals are bound to that session and the captured
+unique logind owner. An advisory lock in `XDG_RUNTIME_DIR` prevents duplicate
+bridges for one session without requiring system-bus name ownership privileges.
+
+The default lock argv is `["nullshell", "lock"]`. Optional `--lock-command` and
+`--resume-command` accept JSON string arrays, executed directly without a shell.
+Only a zero exit from the lock command confirms security; an override must obey
+the same contract as `nullshell lock`, including waiting for compositor lock
+confirmation. The portable helper has no default resume action; the Hyprland
+launcher supplies display-power-on explicitly. It reads no user config files.
+
+Commands have a 12-second bound. Failure keeps the inhibitor, but logind may
+proceed after its own maximum delay; the helper cannot guarantee suspend is
+blocked on failure. Resume rearms the inhibitor, and stale lock completions never
+release it for a newer cycle. SIGINT/SIGTERM, session removal, bus loss or logind
+owner loss end this process and release its FD. No automatic service replacement
+or locker restart is performed by this helper. The existing lock command may
+start an absent locker using Quickshell's duplicate protection.
+
+stdout emits versioned JSON objects with `event`: `ready`, `preparing`, `locking`,
+`locked`, `lock-failed`, `sleep-released`, `resumed`, or `resume-failed`.
+`ready` means subscriptions and the inhibitor are acquired, not that the screen
+is locked. Errors go to stderr. Integration tests use `DBUS_SYSTEM_BUS_ADDRESS`
+only to point the standard D-Bus client at a private synthetic bus.
+
+## Bluetooth pairing
+
 `nullshell-helper bluetooth-agent AA:BB:CC:DD:EE:FF hci0` is a short-lived client
 of the real BlueZ system D-Bus service. `--session-bus` is an explicit test option
 for private-bus fixtures, not an environment-driven production override.

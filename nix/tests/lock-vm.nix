@@ -4,6 +4,7 @@ let
     xwayland disable
     output HEADLESS-1 resolution 1280x720
     seat seat0 fallback true
+    exec ${packages.helper}/bin/nullshell-helper sleep-bridge > /run/nullshell-lock-test/sleep-bridge.log 2>&1
   '';
 in
 pkgs.testers.runNixOSTest {
@@ -36,6 +37,7 @@ pkgs.testers.runNixOSTest {
       ];
       serviceConfig = {
         User = "preview";
+        PAMName = "login";
         RuntimeDirectory = "nullshell-lock-test";
         RuntimeDirectoryMode = "0700";
         ExecStart = "${pkgs.dbus}/bin/dbus-run-session --dbus-daemon=${pkgs.dbus}/bin/dbus-daemon -- ${pkgs.sway}/bin/sway --config ${swayConfig}";
@@ -43,7 +45,9 @@ pkgs.testers.runNixOSTest {
       environment = {
         HOME = "/home/preview";
         USER = "preview";
-        XDG_RUNTIME_DIR = "/run/nullshell-lock-test";
+        XDG_SESSION_TYPE = "wayland";
+        XDG_SESSION_CLASS = "user";
+        XDG_RUNTIME_DIR = "/run/user/1000";
         WLR_BACKENDS = "headless";
         WLR_RENDERER = "pixman";
         WLR_LIBINPUT_NO_DEVICES = "1";
@@ -61,16 +65,29 @@ pkgs.testers.runNixOSTest {
     machine.succeed("test -f /etc/pam.d/nullshell-lock")
     machine.succeed("printf '%s\\n' test-only-password | su -s /bin/sh preview -c 'pamtester nullshell-lock preview authenticate'")
     machine.succeed("systemctl start lock-test-compositor")
-    machine.wait_until_succeeds("test -S /run/nullshell-lock-test/wayland-1", timeout=timedelta(seconds=30))
+    machine.wait_until_succeeds("test -S /run/user/1000/wayland-1", timeout=timedelta(seconds=30))
 
     def user(command):
         return "su -s /bin/sh preview -c " + shlex.quote(
-            "export XDG_RUNTIME_DIR=/run/nullshell-lock-test WAYLAND_DISPLAY=wayland-1 QT_QUICK_BACKEND=software; " + command
+            "export XDG_RUNTIME_DIR=/run/user/1000 WAYLAND_DISPLAY=wayland-1 QT_QUICK_BACKEND=software; " + command
         )
 
     status = user("nullshell ipc locker call locker status")
-    # Cold request starts the locker directly, with no installed user service.
+    try:
+        machine.wait_until_succeeds("grep -F '\"event\":\"ready\"' /run/nullshell-lock-test/sleep-bridge.log", timeout=timedelta(seconds=30))
+    except Exception:
+        print(machine.succeed("cat /run/nullshell-lock-test/sleep-bridge.log; journalctl -u lock-test-compositor --no-pager"))
+        raise
+    pid = machine.succeed("systemctl show lock-test-compositor -p MainPID --value").strip()
+    session_path = machine.succeed("busctl call org.freedesktop.login1 /org/freedesktop/login1 org.freedesktop.login1.Manager GetSessionByPID u " + pid).split('"')[1]
+    session = machine.succeed("busctl get-property org.freedesktop.login1 " + session_path + " org.freedesktop.login1.Session Id").split('"')[1]
+    assert session
+    # A real logind request reaches the helper and starts an absent locker.
     machine.fail(status)
+    machine.succeed("loginctl lock-session " + shlex.quote(session))
+    machine.wait_until_succeeds(status + " | grep '\"secure\":true'", timeout=timedelta(seconds=15))
+    machine.wait_until_succeeds("grep -F '\"event\":\"locked\"' /run/nullshell-lock-test/sleep-bridge.log", timeout=timedelta(seconds=15))
+    # Direct lock remains idempotent and does not require the bridge.
     machine.succeed(user("nullshell lock"))
     assert json.loads(machine.succeed(status))["secure"]
     machine.succeed(user("wtype -s 200 wrong-password -k Return"))

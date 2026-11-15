@@ -105,8 +105,9 @@ Go 也是可行方案，但第一版不并行维护两种扩展语言；当前�
 2. 解耦个人 Hyprland Lua、用户名、终端、壁纸；提供稳定 CLI 和配置 schema。
 3. 切换 dotfiles/Nix 引用；验证成功后删除旧实现，避免两个长期维护源。
 4. 优先替换 Bluetooth 配对的文本交互桥，使用实际 BlueZ Agent1 协议。
-5. v0.1 保留 hypridle 负责睡眠握手；未来替换必须单独实现和验收。必须取得锁屏协议确认后
-   才释放 logind delay inhibitor，并测试 suspend/resume、超时、崩溃与外部锁定请求。
+5. Rust sleep-bridge 接替 hypridle 的 logind 睡眠握手，不接管 Quickshell 空闲计时。
+   必须取得锁屏协议确认后才提前释放 delay inhibitor；失败时仍受 logind 最大延迟限制。
+   隔离测试覆盖超时、文件描述符释放、会话与服务消失；真实 suspend/resume 需单独验收。
 6. 根据原生 API 的实际缺口增加后端，不重写已经可用的音频、媒体、电池等模块。
 
 ## 打包和开发目标

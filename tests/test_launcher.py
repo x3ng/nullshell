@@ -16,7 +16,7 @@ with tempfile.TemporaryDirectory(prefix='nullshell-routing-') as tmp:
     # Side-effect-free probe replacing only external commands.
     probe = root / 'tools'
     probe.mkdir()
-    for name in ('quickshell', 'hypridle'):
+    for name in ('quickshell', 'nullshell-helper'):
         path = probe / name
         path.write_text('#!/usr/bin/env python3\nimport json,os,sys\nprint(json.dumps({"args":sys.argv[1:],"data":os.environ.get("NULLSHELL_DATA_DIR")}))\n')
         path.chmod(0o755)
@@ -83,8 +83,10 @@ with tempfile.TemporaryDirectory(prefix='nullshell-routing-') as tmp:
     # Explicit source previews remain usable with a packaged runtime.
     assert run('preview-panel', extra={'NULLSHELL_DATA_DIR': str(source)})['args'] == ['--path', str(source / 'preview-panel.qml')]
     assert run('preview-panel', launcher=source / 'bin/nullshell')['args'] == ['--path', str(source / 'preview-panel.qml')]
-    assert run('sleep-bridge')['args'] == []
-    assert run('sleep-bridge', extra={'NULLSHELL_SLEEP_CONFIG': '/obsolete'})['args'] == []
+    bridge = run('sleep-bridge')['args']
+    assert bridge[0:2] == ['sleep-bridge', '--resume-command']
+    assert json.loads(bridge[2]) == ['hyprctl', 'dispatch', 'hl.dsp.dpms({action = "on"})']
+    assert run('sleep-bridge', extra={'NULLSHELL_SLEEP_CONFIG': '/obsolete'})['args'] == bridge
     assert 'Unknown mode' in run('session-start', success=False)
     (local / 'shell.qml').unlink()
     assert run('desktop')['args'] == ['-c', 'nullshell']

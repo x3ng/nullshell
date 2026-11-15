@@ -3,6 +3,7 @@
 mod appearance;
 mod location;
 mod settings_portal;
+mod sleep;
 mod solar;
 mod wallpaper;
 
@@ -375,6 +376,13 @@ async fn run(
 #[tokio::main(flavor = "current_thread")]
 async fn main() {
     let args: Vec<_> = std::env::args().skip(1).collect();
+    if args.first().map(String::as_str) == Some("sleep-bridge") {
+        if let Err(error) = sleep::run(&args[1..]).await {
+            eprintln!("Sleep bridge: {error}");
+            std::process::exit(1);
+        }
+        return;
+    }
     if args == ["solar"] || args == ["location"] || args == ["settings-portal"] {
         let result = match args[0].as_str() {
             "solar" => solar::run(),
@@ -403,6 +411,7 @@ async fn main() {
         return;
     }
     if args == ["--help"] {
+        println!("Sleep coordination: nullshell-helper sleep-bridge [--lock-command JSON_ARGV] [--resume-command JSON_ARGV]\n");
         println!("Usage: nullshell-helper <command>\n\nCommands:\n  solar                 Read a versioned solar request from stdin\n  location              Request coarse GeoClue coordinates\n  settings-portal       Run the read-only D-Bus Settings backend\n  appearance-export     Export a validated greeter colour snapshot\n  wallpaper-export      Export a validated greeter wallpaper\n  bluetooth-agent       Run an on-demand BlueZ pairing agent");
         return;
     }

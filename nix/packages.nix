@@ -50,7 +50,6 @@ let
     networkmanager
     brightnessctl
     hyprland
-    hypridle
     wvkbd
     util-linux
   ];

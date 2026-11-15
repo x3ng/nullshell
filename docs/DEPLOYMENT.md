@@ -14,8 +14,8 @@ end)
 
 Do not also run the old nullshell units, another notification owner, Polkit agent
 or hypridle. Quickshell prevents duplicate configurations with `--no-duplicate`;
-the sleep bridge holds a per-Wayland-display flock. There is no automatic crash
-restart. Direct clients exit on Wayland disconnection; the host's UWSM session
+the sleep bridge holds a per-logind-session runtime lock. There is no automatic crash
+restart. Quickshell clients exit on Wayland disconnection; the host's UWSM session
 also provides cgroup cleanup. Manual terminal launches may use `--daemonize`;
 no `disown` is needed for compositor-launched processes.
 
@@ -25,13 +25,16 @@ active Polkit agent. `nullshell lock` starts an absent locker directly, then wai
 for the compositor to confirm a secured session. Failure is reported; relaunching
 a crashed locker is not a guarantee of recovering an abandoned session lock.
 
-`nullshell sleep-bridge` runs hypridle for logind lock/suspend coordination, with
-the user's native hypridle configuration (`$XDG_CONFIG_HOME/hypr/hypridle.conf`).
-The runtime does not install that file or pass a configuration path. Configure
-lock/sleep hooks in independently managed dotfiles; omit idle timers when
-Quickshell owns dim/lock/display-off timers. The Bluetooth helper
-is an on-demand process and requires no service. A future persistent helper must
-justify its own lifecycle independently; it does not supervise Quickshell.
+`nullshell sleep-bridge` runs the Rust helper for logind lock/suspend coordination.
+It holds a delay inhibitor and calls `nullshell lock`; successful exit of that
+command confirms the compositor has secured the session. Lock failure retains
+the inhibitor rather than reporting success, but logind's maximum delay still
+limits how long sleep can be postponed. Resume reacquires the inhibitor and the
+Hyprland launcher requests display power on. No hypridle configuration is read.
+Quickshell continues to own dim/lock/display-off timers. Do not run hypridle or a
+second sleep bridge alongside it. The helper exits on session removal or logind
+owner loss; it does not supervise Quickshell. A logind restart requires restarting
+the bridge or starting a new session. See BACKEND.md for the portable CLI.
 
 Appearance is owned and persisted by the shell, with optional solar scheduling.
 The nullshell Settings portal backend publishes the effective colour preference.
@@ -72,7 +75,7 @@ authentication components or start new instances alongside old ones.
 `make install` installs portable runtime commands, without user units. Distribution packages
 must provide their native PAM configuration as `/etc/pam.d/nullshell-lock`.
 An Arch-specific include file is in `integration/pam/nullshell-lock.arch`; it is
-not installed on other distributions automatically. Install Quickshell, hypridle,
+not installed on other distributions automatically. Install Quickshell,
 systemd/util-linux tools and the documented feature dependencies. Enable greetd
 with a dedicated greeter account, Cage and `nullshell greeter` as appropriate.
 Use `make install-assets` explicitly for the system-owned greeter resources.

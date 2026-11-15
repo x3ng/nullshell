@@ -15,15 +15,6 @@ pkgs.testers.runNixOSTest {
   name = "nullshell-hyprland-session";
   nodes.machine = { ... }: {
     imports = [ ../nixos.nix ];
-    # Explicit VM fixture, not a runtime package default.
-    environment.etc."xdg/hypr/hypridle.conf".text = ''
-      general {
-        lock_cmd = nullshell lock
-        inhibit_sleep = 3
-        before_sleep_cmd = loginctl lock-session
-        after_sleep_cmd = hyprctl dispatch 'hl.dsp.dpms({action = "on"})'
-      }
-    '';
     programs.nullshell.enable = true;
     # Synthetic system-wide XDG configuration, owned only by this test VM.
     environment.etc."xdg/quickshell/nullshell".source = "${packages.assets}/share/nullshell";
@@ -64,6 +55,7 @@ pkgs.testers.runNixOSTest {
       if [ "$(tty)" = /dev/tty1 ]; then
         mkdir -p "$HOME/.local/state/quickshell"
         printf 'true\n' > "$HOME/.local/state/quickshell/keep-awake"
+        ${packages.runtime}/bin/nullshell migrate-state
         export LIBGL_ALWAYS_SOFTWARE=1 QT_QUICK_BACKEND=software XDG_CURRENT_DESKTOP=Hyprland
         exec Hyprland --config ${hyprConfig} > "$HOME/compositor.log" 2>&1
       fi
@@ -115,7 +107,7 @@ pkgs.testers.runNixOSTest {
     desktop_pid = shell_pid("shell.qml")
     machine.succeed(user("nullshell desktop --daemonize --no-duplicate"))
     assert shell_pid("shell.qml") == desktop_pid
-    machine.succeed(user("nullshell preview-panel > /home/preview/panel-preview.log 2>&1 &"))
+    machine.succeed(user("NULLSHELL_DATA_DIR=${packages.assets}/share/nullshell nullshell preview-panel > /home/preview/panel-preview.log 2>&1 &"))
     preview = "${pkgs.quickshell}/bin/quickshell ipc -p ${packages.assets}/share/nullshell/preview-panel.qml call preview"
     def preview_call(method):
         return machine.succeed(user(preview + " " + method))
@@ -129,7 +121,7 @@ pkgs.testers.runNixOSTest {
     assert shell_pid("shell.qml") == desktop_pid
     # Ordinary preview windows must really map; an offscreen load is not enough.
     for mode, title in [("greeter", "Greeter preview"), ("lock", "Lock screen preview"), ("polkit", "Authentication preview")]:
-        machine.succeed(user("nullshell preview-" + mode + " > /home/preview/" + mode + "-preview.log 2>&1 & echo $! > /home/preview/preview.pid"))
+        machine.succeed(user("NULLSHELL_DATA_DIR=${packages.assets}/share/nullshell nullshell preview-" + mode + " > /home/preview/" + mode + "-preview.log 2>&1 & echo $! > /home/preview/preview.pid"))
         machine.wait_until_succeeds(user(hyprctl + "clients -j") + " | grep '" + title + "'", timeout=timedelta(seconds=15))
         machine.succeed(user("kill $(cat /home/preview/preview.pid)"))
     machine.succeed(user(hyprctl + "output create headless NULLSHELL-TEST"))

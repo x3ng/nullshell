@@ -115,8 +115,23 @@ inside this VM for the test; the production module does not enable it implicitly
 ## Remaining acceptance boundaries
 
 Physical GPU behavior, real Bluetooth hardware and actual laptop suspend/resume
-need final hardware acceptance. The sleep bridge remains hypridle.
+need final hardware acceptance. The Rust sleep bridge's private-bus tests do not
+establish real hardware suspend safety.
 Do not claim the authentication VMs establish real hardware power behavior.
+
+## Sleep bridge protocol
+
+`make check-sleep` (inside `nix develop` when needed) or
+`nix build path:.#checks.x86_64-linux.sleep --no-link --max-jobs 1 --cores 2`
+uses a fresh D-Bus daemon as a synthetic system bus. A mock logind transfers real
+pipe descriptors and verifies their lifetime before/after lock confirmation,
+failure, timeout, resume, stale replies, duplicate startup and owner/session loss.
+Lock and resume commands are synthetic Python fixtures; no host locker, PAM,
+compositor, location service or sleep action is invoked.
+
+The `legacyPackages.x86_64-linux.tests.lock-vm` test additionally creates a real
+logind session in a disposable Sway VM, sends `loginctl lock-session`, waits for
+the helper's confirmed lock, rejects a wrong password and verifies PAM unlock.
 
 
 Appearance synchronization: `make check-appearance` runs real QML file

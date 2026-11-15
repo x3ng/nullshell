@@ -29,6 +29,7 @@
           preview = import ./nix/tests/preview.nix { inherit pkgs packages; };
           config = import ./nix/tests/config.nix { inherit pkgs; };
           settings = import ./nix/tests/settings.nix { inherit pkgs packages; };
+          sleep = import ./nix/tests/sleep.nix { inherit pkgs packages; };
           appearance = import ./nix/tests/appearance.nix { inherit pkgs packages; };
           migration = import ./nix/tests/migration.nix { inherit pkgs; };
           bluetooth = import ./nix/tests/bluetooth.nix {
