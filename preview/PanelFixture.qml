@@ -13,6 +13,44 @@ Scope {
     property var controls: fixture
     property bool darkMode: true
     property bool appearanceAvailable: true
+    property bool appearanceKnown: true
+    property bool automatic: false
+    property bool preferencesOverridden: false
+    property string appearanceError: ""
+    property string locationStatus: "inactive"
+    property double overrideUntil: 0
+    property var nextTransition: 1794736800
+    property var effectiveSettings: ({mode: "manual", location: "geoclue", latitude: null, longitude: null})
+    readonly property string selectedMode: automatic ? "auto" : darkMode ? "dark" : "light"
+    function selectMode(mode) {
+        automatic = mode === "auto";
+        if (!automatic) darkMode = mode === "dark";
+        preferencesOverridden = true;
+        locationStatus = automatic ? "ready" : "inactive";
+        overrideUntil = 0;
+        lastAction = "appearance:" + mode;
+        return true;
+    }
+    function useDeviceLocation() {
+        effectiveSettings = {mode: "solar", location: "geoclue", latitude: null, longitude: null};
+        preferencesOverridden = true;
+        locationStatus = "ready";
+        return true;
+    }
+    function useFixedLocation(latitude, longitude) {
+        if (!Number.isFinite(latitude) || Math.abs(latitude) > 90 || !Number.isFinite(longitude) || Math.abs(longitude) > 180) return false;
+        effectiveSettings = {mode: "solar", location: "fixed", latitude: latitude, longitude: longitude};
+        preferencesOverridden = true;
+        locationStatus = "fixed";
+        return true;
+    }
+    function resumeAutomatic() { overrideUntil = 0; lastAction = "appearance:resume"; }
+    function refreshLocation() { appearanceError = ""; locationStatus = "ready"; }
+    function resetPreferences() {
+        automatic = false; preferencesOverridden = false; appearanceError = "";
+        locationStatus = "inactive"; overrideUntil = 0;
+        effectiveSettings = {mode: "manual", location: "geoclue", latitude: null, longitude: null};
+    }
     property bool keepAwake: true
     property var trayItems: scenario === "empty" ? [] : Array.from({length: scenario === "crowded" ? 6 : 1}, () => tray)
     QtObject {
@@ -152,7 +190,8 @@ Scope {
     function activateResult(result, forceTerminal) { lastAction = "activate " + result.key; return {accepted: true, closePanel: false}; }
     function execute(action) {
         lastAction = action;
-        if (["overview", "desktop", "wifi", "bluetooth", "audio", "notifications"].includes(action)) navigateRequested(action);
+        if (["overview", "desktop", "wifi", "bluetooth", "audio", "notifications", "appearance"].includes(action)) navigateRequested(action);
+        else if (action === "auto") selectMode("auto");
         else if (action === "keep-awake") keepAwake = !keepAwake;
         else if (action === "light" || action === "dark") darkMode = action === "dark";
         else if (action === "wifi-toggle") wifiEnabled = !wifiEnabled;

@@ -213,7 +213,10 @@ clock jumps on a 30-second tick, and recalculates after resume. Switching may la
 the calculated boundary by up to about one minute. Polar day/night has no next
 transition within the two-day search window and is re-evaluated normally.
 
-Manual light/dark actions in solar mode override until the next known transition,
+The Appearance page offers persistent Light/Dark/Automatic selection and
+location controls; UI preferences live in `appearance-policy.json` and override
+this configuration until **Use configuration defaults** is selected.
+The existing quick light/dark actions in solar mode override until the next known transition,
 or for 24 hours if none is known. The expiry survives desktop restart in
 `$XDG_STATE_HOME/nullshell/appearance-override.json`; `appearance-mode` remains
 the effective mode consumed by lock/Polkit/portal. To end the override early:

@@ -13,6 +13,8 @@ Scope {
     property double overrideUntil: 0
     property string persistenceError: ""
     readonly property string error: persistenceError || provider.error
+    readonly property string locationStatus: provider.locationStatus
+    function refreshLocation() { provider.nextLocation = 0; provider.refresh(); }
     readonly property var nextTransition: provider.schedule ? provider.schedule.next_transition : null
     readonly property bool automatic: settings.mode === "solar"
     signal requested(bool dark)

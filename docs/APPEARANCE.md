@@ -81,3 +81,32 @@ The heavier `legacyPackages.<system>.tests.desktop-vm` checks the actual portal
 frontend/backend routing in a disposable Hyprland session. Private-bus and
 mock-location tests do not prove physical-machine location coverage. No visual
 layout changed; these checks are protocol/application tests, not visual acceptance.
+
+## Appearance controls
+
+Open the overview's sun/moon button, or search for **Appearance settings**.
+The detail page offers **Light**, **Dark**, and **Automatic**. Light/Dark here
+select a persistent manual mode. Automatic follows sunrise/sunset and clears any
+temporary override. With no configured fixed coordinates, choosing Automatic
+selects device location; this is the explicit request to use optional GeoClue.
+The location controls show progress/failure, allow retry, or accept fixed
+latitude/longitude with validation. Fixed coordinates work without GeoClue.
+
+The existing light/dark search commands and `appearance setMode` IPC remain
+short-lived overrides when automatic mode is active. The page displays their
+expiry and offers **Resume automatic**. `appearance selectMode auto|light|dark`
+uses the same persistent selection as the buttons.
+
+UI choices are stored in `$XDG_STATE_HOME/nullshell/appearance-policy.json`.
+Only this declared appearance preference domain overrides user configuration;
+`config.json` is never rewritten. **Use configuration defaults** clears the UI
+override and resumes the configured policy. Effective mode and temporary override
+expiry remain in their existing independent state files.
+
+`tests/run_panel_headless.py --screenshots /tmp/panel-review --keyboard` exercises
+the actual production controls with synthetic state on a private labwc compositor.
+No host keyboard, desktop state or service is used. Optional screenshots require
+Python Pillow (test dependency only) and reject an unrendered content region. Captures contain only the
+preview card. `checks.<system>.panel` runs this reproducibly with Nix and saves
+rendered screenshots in the derivation output. Inspect those images in addition
+to the interaction assertions; compilation alone is not visual acceptance.

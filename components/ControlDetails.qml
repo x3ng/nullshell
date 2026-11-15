@@ -8,6 +8,7 @@ import ".."
 Rectangle {
     id: detail
     required property Theme style
+    required property var appearance
     required property var services
     required property var actions
     required property var notifs
@@ -25,11 +26,13 @@ Rectangle {
     signal dismissRequested()
     signal closePanelRequested()
     readonly property bool isNotifs: section === "notifications"
-    readonly property string title: section === "wifi" ? "Wi-Fi"
+    readonly property string title: section === "appearance" ? "Appearance"
+        : section === "wifi" ? "Wi-Fi"
         : section === "bluetooth" ? "Bluetooth"
         : detail.isNotifs ? "Notifications"
         : "Audio devices"
-    readonly property string subtitle: section === "wifi" ? "Nearby networks · connect & manage"
+    readonly property string subtitle: section === "appearance" ? "Light, dark and sunrise-to-sunset scheduling"
+        : section === "wifi" ? "Nearby networks · connect & manage"
         : section === "bluetooth" ? "Devices · discover, pair & connect"
         : detail.isNotifs ? (detail.showHistory ? "Saved notifications · clearing history also dismisses pending entries"
             : "Pending notifications · cleared entries remain in history")
@@ -177,6 +180,14 @@ Rectangle {
                             color: detail.style.textMuted
                             font.family: detail.style.fontFamily
                             font.pixelSize: detail.style.fontSizeBody
+                        }
+                    }
+                    Loader {
+                        Layout.fillWidth: true
+                        active: detail.renderContent && detail.section === "appearance"
+                        visible: active
+                        sourceComponent: Component {
+                            AppearancePane { style: detail.style; appearance: detail.appearance }
                         }
                     }
                     ConnectivityPane {

@@ -1,7 +1,7 @@
 """Portable Wayland preview checks. No Nix imports or host service changes.
 
 Requires Python 3 and Quickshell on PATH and a running Wayland compositor.
-Optional --keyboard uses wtype; --screenshots uses grim. Prefer a nested/test
+Optional --keyboard uses wtype; --screenshots captures only the preview card. Prefer a nested/test
 compositor for keyboard injection. The process started here is always cleaned up.
 """
 import argparse
@@ -50,7 +50,18 @@ def main():
 
     def screenshot(name):
         if args.screenshots:
-            subprocess.run(["grim", str(args.screenshots / (name + ".png"))], check=True, timeout=10)
+            path = args.screenshots / (name + ".png")
+            assert call("capture", str(path)) == "true"
+            for _ in range(50):
+                if path.exists() and path.stat().st_size > 0: break
+                time.sleep(.1)
+            assert path.exists(), "Preview capture did not finish"
+            if name.startswith("appearance-"):
+                from PIL import Image
+                with Image.open(path) as image:
+                    body = image.convert("RGB").crop((20, 70, image.width - 20, image.height - 20))
+                    colors = body.getcolors(body.width * body.height)
+                    assert max(count for count, _ in colors) < body.width * body.height * .99, "Appearance content was not rendered"
 
     with tempfile.TemporaryDirectory(prefix="nullshell-preview-test-") as temporary:
         log = Path(temporary) / "preview.log"
@@ -80,7 +91,7 @@ def main():
             call("light", "false")
             for scenario in ["empty", "crowded", "media", "normal"]:
                 assert call("scenario", scenario) == "true"
-                for page in ["overview", "wifi", "bluetooth", "audio", "notifications", "desktop"]:
+                for page in ["overview", "wifi", "bluetooth", "audio", "notifications", "desktop", "appearance"]:
                     call("page", page)
                     current = settle()
                     expected = page if page in ["overview", "desktop"] else "detail:" + page
@@ -106,6 +117,36 @@ def main():
             narrow = settle()
             assert narrow["card"]["width"] == 440 and not narrow["dark"], narrow
             screenshot("narrow-light")
+            # Exercise the actual production buttons with fixture-only side effects.
+            call("page", "appearance")
+            settle()
+            for mode in ["light", "dark", "auto"]:
+                assert call("activateControl", "appearance-mode-" + mode) == "true"
+                assert settle()["appearanceMode"] == mode
+            assert call("activateControl", "appearance-fixed-location") == "true"
+            settle()
+            call("coordinate", "latitude", "91")
+            call("coordinate", "longitude", "0")
+            call("activateControl", "appearance-apply-location")
+            assert state()["appearanceSettings"]["location"] != "fixed"
+            call("coordinate", "latitude", "51.5")
+            call("coordinate", "longitude", "-0.1")
+            call("activateControl", "appearance-apply-location")
+            assert state()["appearanceSettings"]["latitude"] == 51.5
+            for width in ["740", "440"]:
+                call("width", width)
+                for light in ["false", "true"]:
+                    call("light", light)
+                    for scenario in ["fixed", "locating", "unavailable", "override"]:
+                        call("appearanceState", scenario)
+                        settle()
+                        screenshot("appearance-" + width + "-" + light + "-" + scenario)
+            call("appearanceState", "override")
+            settle()
+            assert call("activateControl", "appearance-resume") == "true", state()
+            assert state()["overrideUntil"] == 0
+            call("activateControl", "appearance-reset")
+            assert not state()["preferencesOverridden"]
             call("close")
             assert not state()["open"]
             call("openPanel")

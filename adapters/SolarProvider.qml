@@ -16,6 +16,9 @@ Scope {
     property double lastClock: 0
     property bool solarPending: false
     property bool locationPending: false
+    readonly property string locationStatus: !enabled ? "inactive"
+        : settings.location === "fixed" ? "fixed"
+        : locationPending ? "locating" : coordinates ? "ready" : error ? "unavailable" : "locating"
     property string solarRequest: ""
     property int generation: 0
     property int solarGeneration: 0

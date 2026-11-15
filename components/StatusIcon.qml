@@ -29,7 +29,10 @@ Canvas {
         c.lineWidth = icon.strokeWidth;
         c.lineCap = "round";
         c.lineJoin = "round";
-        if (kind === "battery") {
+        if (kind === "clock") {
+            c.beginPath(); c.arc(10, 10, 7, 0, Math.PI * 2); c.stroke();
+            c.beginPath(); c.moveTo(10, 5); c.lineTo(10, 10); c.lineTo(14, 12); c.stroke();
+        } else if (kind === "battery") {
             c.strokeRect(2, 5, 14, 10);
             c.fillRect(17, 8, 2, 4);
             c.fillRect(4, 7, Math.max(0, Math.min(1, level)) * 10, 6);

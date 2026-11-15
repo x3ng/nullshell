@@ -19,8 +19,8 @@ RowLayout {
         iconKind: tools.appearance.darkMode ? "moon" : "brightness"
         iconSize: 18
         available: tools.appearance.appearanceAvailable
-        tooltip: tools.appearance.darkMode ? "Switch to light appearance" : "Switch to dark appearance"
-        onTriggered: tools.actions.execute(tools.appearance.darkMode ? "light" : "dark")
+        tooltip: "Appearance · Light, dark or automatic"
+        onTriggered: tools.actions.execute("appearance")
     }
     UtilityButton {
         id: awakeButton

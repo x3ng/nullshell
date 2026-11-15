@@ -52,7 +52,7 @@ preview scenario crowded     # normal, empty, crowded, media
 preview width 440            # default 740; narrow layout and workspace wrapping
 preview light true
 preview blur false          # simulate opaque fallback; true simulates blur support
-preview page bluetooth       # overview, desktop, wifi, bluetooth, audio, notifications
+preview page bluetooth       # overview, desktop, wifi, bluetooth, audio, notifications, appearance
 preview search terminal
 preview tick                 # change window titles without changing identities
 preview status
@@ -183,3 +183,12 @@ This removes the override selection and collects unused copies, without touching
 appearance data or login state. The greeter entry remains `greeter.qml` at the
 resource root and loads `greeter/shell.qml`; the complete snapshot is needed for
 shared components. Lock and Polkit entries are not changed by this installation.
+
+### Isolated appearance/panel interaction tests
+
+`nix develop --command python3 tests/run_panel_headless.py --screenshots /tmp/panel-review --keyboard`
+starts a private labwc headless compositor using pixman, with software OpenGL
+for Qt Quick so rounded clipping uses the actual rendering path. It does not use host
+input or capture host windows. This complements the Hyprland VM and permits
+interaction/visual checks without KVM. The screenshot helper captures the actual
+panel card; inspect both palettes and narrow/wide appearance states before release.

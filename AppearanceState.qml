@@ -9,12 +9,16 @@ Scope {
     id: theme
     property bool darkMode: true
     property var settings: ({mode: "manual", location: "fixed", latitude: null, longitude: null})
+    readonly property var effectiveSettings: preferences.values
+    readonly property bool preferencesOverridden: preferences.overridden
+    readonly property string locationStatus: schedule.locationStatus
+    readonly property string selectedMode: automatic ? "auto" : darkMode ? "dark" : "light"
     readonly property var nextTransition: schedule.nextTransition
     readonly property double overrideUntil: schedule.overrideUntil
     readonly property bool automatic: schedule.automatic
     property bool appearanceKnown: false
-    readonly property bool appearanceAvailable: appearanceKnown
-    readonly property string appearanceError: persistenceError || schedule.error || desktopAppearance.error
+    readonly property bool appearanceAvailable: appearanceKnown && preferences.ready
+    readonly property string appearanceError: persistenceError || preferences.error || schedule.error || desktopAppearance.error
     property string persistenceError: ""
     readonly property string statePath: (Quickshell.env("XDG_STATE_HOME")
         || Quickshell.env("HOME") + "/.local/state") + "/nullshell/appearance-mode"
@@ -24,10 +28,35 @@ Scope {
         mode: theme.appearanceKnown ? (theme.darkMode ? "dark" : "light") : ""
     }
 
+    AppearancePreferences { id: preferences; configured: theme.settings }
+    function selectMode(mode) {
+        if (!appearanceAvailable || !["light", "dark", "auto"].includes(mode)) return false;
+        const next = Object.assign({}, effectiveSettings, {mode: mode === "auto" ? "solar" : "manual"});
+        if (mode === "auto" && next.location === "fixed" && (next.latitude === null || next.longitude === null))
+            next.location = "geoclue";
+        if (!preferences.store(next)) return false;
+        schedule.resume();
+        if (mode !== "auto") persistMode(mode === "dark");
+        return true;
+    }
+    function useDeviceLocation() {
+        return preferences.store(Object.assign({}, effectiveSettings, {location: "geoclue"}));
+    }
+    function useFixedLocation(latitude, longitude) {
+        if (typeof latitude !== "number" || !Number.isFinite(latitude) || Math.abs(latitude) > 90
+            || typeof longitude !== "number" || !Number.isFinite(longitude) || Math.abs(longitude) > 180) return false;
+        return preferences.store(Object.assign({}, effectiveSettings, {location: "fixed", latitude: latitude, longitude: longitude}));
+    }
+    function resetPreferences() {
+        if (!preferences.store(null)) return false;
+        schedule.resume();
+        return true;
+    }
+    function refreshLocation() { schedule.refreshLocation(); }
     AppearanceSchedule {
         id: schedule
-        ready: theme.appearanceKnown
-        settings: theme.settings
+        ready: theme.appearanceAvailable
+        settings: theme.effectiveSettings
         onRequested: dark => { if (theme.darkMode !== dark) theme.persistMode(dark); }
     }
     function resumeAutomatic() { schedule.resume(); }

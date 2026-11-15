@@ -29,7 +29,7 @@ PanelWindow {
         {key: "overview", label: "Overview"},
         {key: "desktop", label: "Desktop"}
     ]
-    readonly property var detailSections: ["wifi", "bluetooth", "audio", "notifications"]
+    readonly property var detailSections: ["wifi", "bluetooth", "audio", "notifications", "appearance"]
     // Read actual StackLayout indices so adding/reordering a page cannot change
     // the meaning of navigation or page-specific lifecycle bindings.
     readonly property var pageIndexes: ({
@@ -245,6 +245,7 @@ PanelWindow {
 
     MaterialSurface {
         id: card
+        objectName: "launcher-card"
         materialTheme: panel.style
         materialOpacity: panel.style.glassOpacity
         enabled: panel.open
@@ -435,6 +436,7 @@ PanelWindow {
                 }
                 ControlDetails {
                     id: controlDetails
+                    appearance: panel.appearance
                     Layout.fillWidth: true
                     Layout.fillHeight: true
                     Layout.minimumHeight: 0

@@ -13,7 +13,7 @@ with tempfile.TemporaryDirectory(prefix='ns-solar-', dir='/tmp') as directory:
     base = Path(directory)
     source = base / 'source'
     source.mkdir()
-    for name in ('Appearance.qml', 'AppearanceState.qml', 'AppearanceSchedule.qml', 'ShellConfig.qml', 'ConfigRules.js'):
+    for name in ('Appearance.qml', 'AppearanceState.qml', 'AppearanceSchedule.qml', 'AppearancePreferences.qml', 'ShellConfig.qml', 'ConfigRules.js'):
         shutil.copy2(ROOT / name, source / name)
     shutil.copytree(ROOT / 'adapters', source / 'adapters')
     shutil.copytree(ROOT / 'components', source / 'components')
@@ -52,9 +52,13 @@ ShellRoot {
     IpcHandler {
         target: "test"
         function manual(dark: bool): void { appearance.setTheme(dark); }
+        function select(mode: string): bool { return appearance.selectMode(mode); }
+        function fixed(lat: real, lon: real): bool { return appearance.useFixedLocation(lat, lon); }
+        function reset(): bool { return appearance.resetPreferences(); }
         function resume(): void { appearance.resumeAutomatic(); }
         function status(): string { return JSON.stringify({dark: appearance.darkMode,
-            automatic: appearance.automatic, next: appearance.nextTransition,
+            selected: appearance.selectedMode, preferencesOverridden: appearance.preferencesOverridden,
+            settings: appearance.effectiveSettings, automatic: appearance.automatic, next: appearance.nextTransition,
             until: appearance.overrideUntil, error: appearance.appearanceError, configError: config.error}); }
     }
 }''')
@@ -105,6 +109,22 @@ ShellRoot {
             wait(lambda s: s['automatic'] and 'Location unavailable' in s['error'] and s['dark'] == first)
             configure()
             wait(lambda s: not s['error'] and s['next'] is not None)
+            # UI mode choices survive restart and never mutate config.json.
+            before = config.read_bytes()
+            ipc('select', 'light')
+            wait(lambda s: s['selected'] == 'light' and s['preferencesOverridden'])
+            child.terminate(); child.wait(timeout=5)
+            child = start()
+            wait(lambda s: s['selected'] == 'light' and s['preferencesOverridden'])
+            ipc('select', 'auto')
+            wait(lambda s: s['selected'] == 'auto' and s['next'] is not None)
+            assert ipc('fixed', '91', '0').stdout.strip() == 'false'
+            ipc('fixed', '0', str(other_lon))
+            wait(lambda s: s['settings']['longitude'] == other_lon and s['dark'] != first)
+            assert config.read_bytes() == before
+            ipc('reset')
+            wait(lambda s: not s['preferencesOverridden'] and s['dark'] == first)
+
         finally:
             child.terminate(); child.wait(timeout=5)
     text = log.read_text()

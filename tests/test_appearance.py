@@ -17,7 +17,7 @@ with tempfile.TemporaryDirectory(prefix="ns-theme-", dir="/tmp") as directory:
     source = base / "source"
     source.mkdir()
     # Keep this exported sample only when explicitly requested for visual checks.
-    for name in ("AppearanceState.qml", "AppearanceSchedule.qml", "Appearance.qml", "AppearanceExport.qml",
+    for name in ("AppearanceState.qml", "AppearanceSchedule.qml", "AppearancePreferences.qml", "ConfigRules.js", "Appearance.qml", "AppearanceExport.qml",
                  "AppearanceSnapshot.qml", "AppearanceRules.js", "Theme.qml", "SurfaceCapabilities.qml",
                  "WallpaperState.qml", "WallpaperExport.qml", "GreeterWallpaper.qml", "WallpaperImage.qml"):
         shutil.copy2(ROOT / name, source / name)

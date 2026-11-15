@@ -26,6 +26,7 @@
         in
         {
           inherit (packages) desktop greeter runtime;
+          panel = import ./nix/tests/panel.nix { inherit pkgs packages; };
           preview = import ./nix/tests/preview.nix { inherit pkgs packages; };
           config = import ./nix/tests/config.nix { inherit pkgs; };
           settings = import ./nix/tests/settings.nix { inherit pkgs packages; };
@@ -82,12 +83,16 @@
           packages = with nixpkgs.legacyPackages.${system}; [
             quickshell
             qt6.qtdeclarative
-            (python3.withPackages (p: [ p.dbus-next ]))
+            (python3.withPackages (p: [
+              p.dbus-next
+              p.pillow
+            ]))
             dbus
             glib
             gsettings-desktop-schemas
             grim
             wtype
+            labwc
             nixfmt
             cargo
             rustc

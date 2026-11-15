@@ -6,6 +6,7 @@ let
       ../../ShellConfig.qml
       ../../ConfigRules.js
       ../../tests/test_solar_appearance.py
+      ../../AppearancePreferences.qml
       ../../AppearanceSchedule.qml
       ../../adapters
       ../../AppearanceState.qml

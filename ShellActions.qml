@@ -14,6 +14,8 @@ Scope {
     signal navigateRequested(string section)
     signal wallpaperRequested()
     readonly property var entries: [
+        {id: "appearance", description: "Light, dark, automatic and location settings", title: "Appearance settings", keywords: "theme auto solar 深色 浅色 自动 定位 主题 外观", icon: "brightness", enabled: true},
+        {id: "auto", description: "Follow local sunrise and sunset", title: "Use automatic appearance", keywords: "theme solar 自动 主题 日出 日落", icon: "clock", enabled: appearance.appearanceAvailable},
         {id: "desktop", description: "Browse windows, workspaces and layouts", title: "Manage windows and workspaces", keywords: "desktop layout float fullscreen move close 桌面 窗口 工作区 布局 平铺 浮动 全屏 移动 关闭", icon: "window", enabled: true},
         {id: "overview", description: "Return to current desktop status", title: "Show desktop status", keywords: "status settings 总览 状态 系统 设置 控制", icon: "app", enabled: true},
         {id: "wifi", description: "Choose a network and manage connections", title: "Wi-Fi settings", keywords: "network wireless 网络 无线", icon: "wifi", enabled: true},
@@ -48,7 +50,7 @@ Scope {
     // Service feedback signals report asynchronous failures independently.
     function execute(id) {
         if (!available(id)) return false;
-        if (["overview", "desktop", "wifi", "bluetooth", "audio", "notifications"].includes(id)) {
+        if (["overview", "desktop", "wifi", "bluetooth", "audio", "notifications", "appearance"].includes(id)) {
             navigateRequested(id);
             return true;
         }
@@ -60,6 +62,7 @@ Scope {
         case "output-mute": return services.toggleOutputMute();
         case "mic-mute": return services.toggleMicMute();
         case "keep-awake": return services.toggleKeepAwake();
+        case "auto": return appearance.selectMode("auto");
         case "light": return appearance.setTheme(false);
         case "dark": return appearance.setTheme(true);
         case "keyboard": return keyboard.toggle();

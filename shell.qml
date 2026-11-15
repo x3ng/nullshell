@@ -122,9 +122,11 @@ ShellRoot {
         function setMode(mode: string): void {
             if (mode === "dark" || mode === "light") appearance.setTheme(mode === "dark");
         }
+        function selectMode(mode: string): bool { return appearance.selectMode(mode); }
         function resumeAutomatic(): void { appearance.resumeAutomatic(); }
         function status(): string {
-            return JSON.stringify({automatic: appearance.automatic, nextTransition: appearance.nextTransition,
+            return JSON.stringify({selectedMode: appearance.selectedMode, location: appearance.locationStatus,
+                preferencesOverridden: appearance.preferencesOverridden, automatic: appearance.automatic, nextTransition: appearance.nextTransition,
                 overrideUntil: appearance.overrideUntil, mode: appearance.darkMode ? "dark" : "light",
                 ready: appearance.appearanceKnown, available: appearance.appearanceAvailable,
                 error: appearance.appearanceError || appearanceExport.error});
