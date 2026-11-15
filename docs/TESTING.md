@@ -121,6 +121,13 @@ Do not claim the authentication VMs establish real hardware power behavior.
 
 ## Sleep bridge protocol
 
+`make check-session` tests `SessionActions.qml` with fake `busctl`, `systemctl`,
+`uwsm` and `loginctl` executables, isolated HOME/runtime and unreachable buses.
+It checks logind permission gating, concurrent request rejection, exact command
+arguments, UWSM/logind logout selection and failure feedback without a real action.
+Panel preview tests separately exercise the power button, confirmation/cancel,
+unavailable and busy states, and light/dark screenshots at 440 and 740 pixels.
+
 `make check-sleep` (inside `nix develop` when needed) or
 `nix build path:.#checks.x86_64-linux.sleep --no-link --max-jobs 1 --cores 2`
 uses a fresh D-Bus daemon as a synthetic system bus. A mock logind transfers real

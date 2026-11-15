@@ -29,7 +29,7 @@ PanelWindow {
         {key: "overview", label: "Overview"},
         {key: "desktop", label: "Desktop"}
     ]
-    readonly property var detailSections: ["wifi", "bluetooth", "audio", "notifications", "appearance"]
+    readonly property var detailSections: ["wifi", "bluetooth", "audio", "notifications", "appearance", "session"]
     // Read actual StackLayout indices so adding/reordering a page cannot change
     // the meaning of navigation or page-specific lifecycle bindings.
     readonly property var pageIndexes: ({

@@ -5,7 +5,7 @@ CARGO_TARGET_DIR ?= backend/target
 
 .DEFAULT_GOAL := help
 
-.PHONY: check-sleep check-settings help build helper install check check-backend check-pairing check-preview check-material check-appearance install-greeter install-assets
+.PHONY: check-session check-sleep check-settings help build helper install check check-backend check-pairing check-preview check-material check-appearance install-greeter install-assets
 
 help:
 	@printf '%s\n' \
@@ -17,6 +17,7 @@ help:
 	  '  check             Run lightweight syntax and launcher checks' \
 	  '  check-backend     Run Rust tests' \
 	  '  check-sleep       Check logind coordination on a private bus' \
+	  '  check-session     Check session commands using fake executables' \
 	  '  check-pairing     Check the pairing adapter' \
 	  '  check-material    Check surface capabilities (Wayland session required)' \
 	  '  check-preview     Check panel previews (Wayland session required)' \
@@ -84,3 +85,6 @@ check-settings: helper
 
 check-sleep: helper
 	python3 tests/test_sleep_bridge.py "$(CARGO_TARGET_DIR)/release/nullshell-helper"
+
+check-session:
+	python3 tests/test_session_actions.py

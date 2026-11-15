@@ -11,6 +11,17 @@ RowLayout {
     required property var actions
     spacing: 4
     UtilityButton {
+        objectName: "power-menu-button"
+        Layout.preferredWidth: 32
+        Layout.preferredHeight: 32
+        style: tools.style
+        label: ""
+        iconKind: "power"
+        iconSize: 18
+        tooltip: "Power and session"
+        onTriggered: tools.actions.execute("session")
+    }
+    UtilityButton {
         id: appearanceButton
         Layout.preferredWidth: 32
         Layout.preferredHeight: 32

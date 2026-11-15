@@ -7,6 +7,19 @@ Scope {
     id: fixture
     property string scenario: "normal"
     property string lastAction: ""
+    property QtObject session: QtObject {
+        property bool busy: false
+        property string error: ""
+        property bool supported: true
+        signal accepted(string action)
+        function refresh() {}
+        function available(action) { return supported && !busy; }
+        function execute(action) {
+            if (!available(action)) return false;
+            fixture.lastAction = "session:" + action;
+            return true;
+        }
+    }
     property string query: ""
     signal navigateRequested(string section)
     signal operationFinished(bool success, string operation, string target, int requestId, string message)
@@ -190,7 +203,7 @@ Scope {
     function activateResult(result, forceTerminal) { lastAction = "activate " + result.key; return {accepted: true, closePanel: false}; }
     function execute(action) {
         lastAction = action;
-        if (["overview", "desktop", "wifi", "bluetooth", "audio", "notifications", "appearance"].includes(action)) navigateRequested(action);
+        if (["overview", "desktop", "wifi", "bluetooth", "audio", "notifications", "appearance", "session"].includes(action)) navigateRequested(action);
         else if (action === "auto") selectMode("auto");
         else if (action === "keep-awake") keepAwake = !keepAwake;
         else if (action === "light" || action === "dark") darkMode = action === "dark";

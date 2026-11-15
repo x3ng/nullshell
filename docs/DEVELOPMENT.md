@@ -29,6 +29,13 @@ Confirm a real window is mapped and inspect its screenshot before claiming succe
 
 ## Full command-panel preview
 
+The power button opens the session page. In the preview, lock, sleep, logout,
+restart and shutdown change only the synthetic `lastAction`; no session command
+or capability probe is instantiated. Use `preview page session`, or activate
+`power-menu-button`. `preview sessionState error|busy|unavailable|normal` selects
+feedback states. Destructive choices require `power-confirm`; `power-cancel` and
+leaving the page clear the pending choice. The physical power key is unchanged.
+
 ```sh
 ./bin/nullshell preview-panel
 # Or: nix develop --command ./bin/nullshell preview-panel

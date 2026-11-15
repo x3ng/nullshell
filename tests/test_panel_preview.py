@@ -154,6 +154,45 @@ def main():
             assert state()["overrideUntil"] == 0
             call("activateControl", "appearance-reset")
             assert not state()["preferencesOverridden"]
+            # Opening the power menu and selecting destructive actions never
+            # executes them until the explicit confirmation button is pressed.
+            call("page", "overview")
+            settle()
+            assert call("activateControl", "power-menu-button") == "true"
+            assert settle()["page"] == "detail:session"
+            for width in ["740", "440"]:
+                call("width", width)
+                for light in ["false", "true"]:
+                    call("light", light)
+                    settle()
+                    screenshot("power-" + width + "-" + light)
+            for action in ["logout", "reboot", "poweroff"]:
+                previous = state()["lastAction"]
+                assert call("activateControl", "power-action-" + action) == "true"
+                assert state()["lastAction"] == previous
+                settle()
+                screenshot("power-confirm-" + action)
+                assert call("activateControl", "power-cancel") == "true"
+                assert state()["lastAction"] == previous
+                call("activateControl", "power-action-" + action)
+                assert call("activateControl", "power-confirm") == "true"
+                assert state()["lastAction"] == "session:" + action
+            call("sessionState", "error")
+            settle()
+            screenshot("power-error")
+            for scenario in ["busy", "unavailable"]:
+                call("sessionState", scenario)
+                settle()
+                assert call("activateControl", "power-action-poweroff") == "false"
+                screenshot("power-" + scenario)
+            call("sessionState", "normal")
+            call("activateControl", "power-action-suspend")
+            assert state()["lastAction"] == "session:suspend"
+            call("activateControl", "power-action-poweroff")
+            call("page", "overview")
+            call("page", "session")
+            settle()
+            assert call("activateControl", "power-confirm") == "false"
             call("close")
             assert not state()["open"]
             call("openPanel")

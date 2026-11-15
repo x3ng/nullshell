@@ -26,12 +26,12 @@ Rectangle {
     signal dismissRequested()
     signal closePanelRequested()
     readonly property bool isNotifs: section === "notifications"
-    readonly property string title: section === "appearance" ? "Appearance"
+    readonly property string title: section === "session" ? "Power and session" : section === "appearance" ? "Appearance"
         : section === "wifi" ? "Wi-Fi"
         : section === "bluetooth" ? "Bluetooth"
         : detail.isNotifs ? "Notifications"
         : "Audio devices"
-    readonly property string subtitle: section === "appearance" ? "Light, dark and sunrise-to-sunset scheduling"
+    readonly property string subtitle: section === "session" ? "Lock your screen or leave this session" : section === "appearance" ? "Light, dark and sunrise-to-sunset scheduling"
         : section === "wifi" ? "Nearby networks · connect & manage"
         : section === "bluetooth" ? "Devices · discover, pair & connect"
         : detail.isNotifs ? (detail.showHistory ? "Saved notifications · clearing history also dismisses pending entries"
@@ -188,6 +188,14 @@ Rectangle {
                         visible: active
                         sourceComponent: Component {
                             AppearancePane { style: detail.style; appearance: detail.appearance }
+                        }
+                    }
+                    Loader {
+                        Layout.fillWidth: true
+                        active: detail.renderContent && detail.section === "session"
+                        visible: active
+                        sourceComponent: Component {
+                            PowerPane { style: detail.style; actions: detail.actions; onCloseRequested: detail.closePanelRequested() }
                         }
                     }
                     ConnectivityPane {

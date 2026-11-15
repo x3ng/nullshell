@@ -11,9 +11,12 @@ Scope {
     required property var appearance
     required property var keyboard
     required property var hyprControls
+    readonly property var session: sessionActions
+    SessionActions { id: sessionActions }
     signal navigateRequested(string section)
     signal wallpaperRequested()
     readonly property var entries: [
+        {id: "session", description: "Lock, sleep, log out, restart or shut down", title: "Power and session", keywords: "power shutdown reboot logout suspend 电源 关机 重启 注销 休眠 锁屏", icon: "power", enabled: true},
         {id: "appearance", description: "Light, dark, automatic and location settings", title: "Appearance settings", keywords: "theme auto solar 深色 浅色 自动 定位 主题 外观", icon: "brightness", enabled: true},
         {id: "auto", description: "Follow local sunrise and sunset", title: "Use automatic appearance", keywords: "theme solar 自动 主题 日出 日落", icon: "clock", enabled: appearance.appearanceAvailable},
         {id: "desktop", description: "Browse windows, workspaces and layouts", title: "Manage windows and workspaces", keywords: "desktop layout float fullscreen move close 桌面 窗口 工作区 布局 平铺 浮动 全屏 移动 关闭", icon: "window", enabled: true},
@@ -50,7 +53,7 @@ Scope {
     // Service feedback signals report asynchronous failures independently.
     function execute(id) {
         if (!available(id)) return false;
-        if (["overview", "desktop", "wifi", "bluetooth", "audio", "notifications", "appearance"].includes(id)) {
+        if (["overview", "desktop", "wifi", "bluetooth", "audio", "notifications", "appearance", "session"].includes(id)) {
             navigateRequested(id);
             return true;
         }

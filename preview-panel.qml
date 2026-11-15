@@ -12,6 +12,7 @@ ShellRoot {
     Theme { id: theme; darkMode: fixture.darkMode }
     QtObject {
         id: actionAdapter
+        readonly property var session: fixture.session
         function available(action) { return true; }
         function execute(action) { fixture.execute(action); }
     }
@@ -60,6 +61,11 @@ ShellRoot {
         }
         function tick(): void { fixture.titleRevision++; }
         function action(name: string): void { fixture.execute(name); }
+        function sessionState(name: string): void {
+            fixture.session.busy = name === "busy";
+            fixture.session.supported = name !== "unavailable";
+            fixture.session.error = name === "error" ? "The session action was denied. Please try again." : "";
+        }
         function activateControl(name: string): bool {
             const item = root.findItem(panel.contentItem, name);
             if (!item || !item.visible || item.available === false || typeof item.triggered !== "function") return false;
