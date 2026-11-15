@@ -4,13 +4,17 @@ import QtQuick
 import Quickshell
 import Quickshell.Io
 
-// The user owns the mode. Persist it for desktop, lock and Polkit startup.
+// The desktop owns the effective mode. Persist it for desktop, lock and Polkit startup.
 Scope {
     id: theme
     property bool darkMode: true
+    property var settings: ({mode: "manual", location: "fixed", latitude: null, longitude: null})
+    readonly property var nextTransition: schedule.nextTransition
+    readonly property double overrideUntil: schedule.overrideUntil
+    readonly property bool automatic: schedule.automatic
     property bool appearanceKnown: false
     readonly property bool appearanceAvailable: appearanceKnown
-    readonly property string appearanceError: persistenceError || desktopAppearance.error
+    readonly property string appearanceError: persistenceError || schedule.error || desktopAppearance.error
     property string persistenceError: ""
     readonly property string statePath: (Quickshell.env("XDG_STATE_HOME")
         || Quickshell.env("HOME") + "/.local/state") + "/nullshell/appearance-mode"
@@ -20,11 +24,22 @@ Scope {
         mode: theme.appearanceKnown ? (theme.darkMode ? "dark" : "light") : ""
     }
 
-    function setTheme(dark) {
-        if (!appearanceAvailable) return false;
+    AppearanceSchedule {
+        id: schedule
+        ready: theme.appearanceKnown
+        settings: theme.settings
+        onRequested: dark => { if (theme.darkMode !== dark) theme.persistMode(dark); }
+    }
+    function resumeAutomatic() { schedule.resume(); }
+    function persistMode(dark) {
         darkMode = dark;
         savedMode.setText((dark ? "dark" : "light") + "\n");
         Qt.callLater(desktopAppearance.apply);
+    }
+    function setTheme(dark) {
+        if (!appearanceAvailable) return false;
+        schedule.manualOverride();
+        persistMode(dark);
         return true;
     }
 

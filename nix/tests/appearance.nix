@@ -3,6 +3,11 @@ let
   source = pkgs.lib.fileset.toSource {
     root = ../..;
     fileset = pkgs.lib.fileset.unions [
+      ../../ShellConfig.qml
+      ../../ConfigRules.js
+      ../../tests/test_solar_appearance.py
+      ../../AppearanceSchedule.qml
+      ../../adapters
       ../../AppearanceState.qml
       ../../Appearance.qml
       ../../AppearanceExport.qml
@@ -33,5 +38,6 @@ pkgs.runCommand "nullshell-appearance-check"
   ''
     mkdir -p "$out"
     python3 ${source}/tests/test_wallpaper.py ${packages.helper}/bin/nullshell-helper > "$out/wallpaper.log" 2>&1 || { cat "$out/wallpaper.log"; exit 1; }
+    python3 ${source}/tests/test_solar_appearance.py ${packages.helper}/bin/nullshell-helper > "$out/solar.log" 2>&1 || { cat "$out/solar.log"; exit 1; }
     python3 ${source}/tests/test_appearance.py ${packages.helper}/bin/nullshell-helper > "$out/result.log" 2>&1 || { cat "$out/result.log"; exit 1; }
   ''

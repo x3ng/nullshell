@@ -1,6 +1,7 @@
 // Pure configuration contract; no filesystem, process or UI dependencies.
 function defaults() {
     return {version: 1, terminal: ["kitty", "--"],
+        appearance: {mode: "manual", location: "fixed", latitude: null, longitude: null},
         idle: {dimSeconds: 150, lockSeconds: 300, displayOffSeconds: 600}};
 }
 
@@ -13,7 +14,7 @@ function object(value, name, keys) {
 
 function parse(text) {
     const input = JSON.parse(text);
-    object(input, "config", ["version", "terminal", "idle"]);
+    object(input, "config", ["version", "terminal", "idle", "appearance"]);
     if (input.version !== 1) throw new Error("Unsupported config version");
     const result = defaults();
     if (input.terminal !== undefined) {
@@ -35,5 +36,19 @@ function parse(text) {
     if (!(result.idle.dimSeconds < result.idle.lockSeconds
         && result.idle.lockSeconds < result.idle.displayOffSeconds))
         throw new Error("Idle deadlines must satisfy dim < lock < display off");
+    if (input.appearance !== undefined) {
+        object(input.appearance, "appearance", Object.keys(result.appearance));
+        Object.assign(result.appearance, input.appearance);
+        const a = result.appearance;
+        if (!["manual", "solar"].includes(a.mode) || !["fixed", "geoclue"].includes(a.location))
+            throw new Error("Invalid appearance mode or location source");
+        for (const key of ["latitude", "longitude"]) {
+            const limit = key === "latitude" ? 90 : 180;
+            if (a[key] !== null && (typeof a[key] !== "number" || !Number.isFinite(a[key]) || Math.abs(a[key]) > limit))
+                throw new Error("Invalid appearance coordinate");
+        }
+        if (a.mode === "solar" && a.location === "fixed" && (a.latitude === null || a.longitude === null))
+            throw new Error("Fixed solar appearance requires latitude and longitude");
+    }
     return result;
 }

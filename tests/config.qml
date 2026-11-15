@@ -13,6 +13,11 @@ ShellRoot {
     }
     Component.onCompleted: {
         const invalid = ["null", "[]", "{}", '{"version":2}',
+            '{"version":1,"appearance":{"mode":"solar"}}',
+            '{"version":1,"appearance":{"mode":"unknown"}}',
+            '{"version":1,"appearance":{"latitude":91}}',
+            '{"version":1,"appearance":{"longitude":"0"}}',
+            '{"version":1,"appearance":{"extra":true}}',
             '{"version":1,"typo":true}', '{"version":1,"terminal":"kitty"}',
             '{"version":1,"terminal":[""]}', '{"version":1,"terminal":[1]}',
             '{"version":1,"idle":{"dimSeconds":0}}',

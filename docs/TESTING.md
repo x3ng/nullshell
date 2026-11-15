@@ -138,3 +138,8 @@ update without restarting the greeter, retention of its pinned resources, and
 explicit reset/cleanup back to packaged QML. Installer structure checks never
 execute a submitted interface as root. They do not replace working-tree previews
 or guarantee authentication for arbitrary custom QML.
+
+Automatic appearance and the native Settings backend have private-bus and
+offscreen checks: `make check-settings` and `make check-appearance` (see
+[APPEARANCE.md](APPEARANCE.md)). `checks.<system>.settings` tests a synthetic
+GeoClue service; the desktop VM verifies real portal routing with the native backend.

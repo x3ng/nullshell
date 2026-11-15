@@ -15,7 +15,7 @@ ShellRoot {
             summary: "Could not load configuration", body: reason, critical: false
         })
     }
-    AppearanceState { id: appearance }
+    AppearanceState { id: appearance; settings: config.values.appearance }
     Theme { id: theme; darkMode: appearance.darkMode }
     AppearanceExport {
         id: appearanceExport
@@ -77,7 +77,7 @@ ShellRoot {
         }
     }
 
-    // The shell owns the persistent manual appearance preference.
+    // The shell owns the persistent effective appearance preference.
     // Pages fit their content under one height limit; details own their header.
     SystemClock { id: panelClock; precision: SystemClock.Minutes }
     LauncherPanel {
@@ -122,8 +122,10 @@ ShellRoot {
         function setMode(mode: string): void {
             if (mode === "dark" || mode === "light") appearance.setTheme(mode === "dark");
         }
+        function resumeAutomatic(): void { appearance.resumeAutomatic(); }
         function status(): string {
-            return JSON.stringify({mode: appearance.darkMode ? "dark" : "light",
+            return JSON.stringify({automatic: appearance.automatic, nextTransition: appearance.nextTransition,
+                overrideUntil: appearance.overrideUntil, mode: appearance.darkMode ? "dark" : "light",
                 ready: appearance.appearanceKnown, available: appearance.appearanceAvailable,
                 error: appearance.appearanceError || appearanceExport.error});
         }

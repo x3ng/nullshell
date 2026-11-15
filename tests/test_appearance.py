@@ -17,7 +17,7 @@ with tempfile.TemporaryDirectory(prefix="ns-theme-", dir="/tmp") as directory:
     source = base / "source"
     source.mkdir()
     # Keep this exported sample only when explicitly requested for visual checks.
-    for name in ("AppearanceState.qml", "Appearance.qml", "AppearanceExport.qml",
+    for name in ("AppearanceState.qml", "AppearanceSchedule.qml", "Appearance.qml", "AppearanceExport.qml",
                  "AppearanceSnapshot.qml", "AppearanceRules.js", "Theme.qml", "SurfaceCapabilities.qml",
                  "WallpaperState.qml", "WallpaperExport.qml", "GreeterWallpaper.qml", "WallpaperImage.qml"):
         shutil.copy2(ROOT / name, source / name)
@@ -26,6 +26,7 @@ with tempfile.TemporaryDirectory(prefix="ns-theme-", dir="/tmp") as directory:
         exporter.chmod(0o600)
         exporter.write_text(exporter.read_text().replace('"nullshell-helper"', json.dumps(str(HELPER))))
     shutil.copytree(ROOT / "components", source / "components")
+    shutil.copytree(ROOT / "adapters", source / "adapters")
     tools = base / "bin"
     tools.mkdir()
     (tools / "nullshell-helper").symlink_to(HELPER)

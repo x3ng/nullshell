@@ -62,7 +62,8 @@ Use a clean package staging directory; this is not an in-place upgrade manager.
 
 Current desktop adapters use systemd/util-linux tools, hypridle, coreutils, bash, the Rust helper, BlueZ tools,
 NetworkManager tools, brightnessctl, Hyprland, GLib gsettings and desktop schemas.
-Application colour preference uses a writable GSettings backend and GTK Settings portal. The on-screen keyboard
+Application colour preference uses a writable GSettings backend and either the
+GTK or optional nullshell Settings portal backend. The on-screen keyboard
 uses optional wvkbd. Audio/media/battery use the corresponding Quickshell APIs and
 system services. Dependency names and optional feature handling will be refined
 when the adapters are separated; do not interpret this resource package as a
@@ -76,3 +77,8 @@ Arch packaging should declare runtime dependencies and call the staging target;
 it must not invoke `nix build`. A release PKGBUILD will be added once the runtime
 contract is settled, rather than publishing an incomplete
 package now.
+
+The optional Settings backend descriptor and D-Bus activation file are installed
+by `make install`; session routing remains an explicit deployment choice. See
+[APPEARANCE.md](APPEARANCE.md). Protocol tests additionally use Python dbus-next
+and dbus-run-session; these are development dependencies, not runtime dependencies.

@@ -39,9 +39,8 @@ Missing files at first startup are normal. Removing a previously loaded file
 retains that process's snapshot; use `{"version":1}` to reset explicitly.
 
 The authoritative parser/defaults are `ConfigRules.js`; `ShellConfig.qml`
-owns file loading and publication. Pages do not read files. This slice covers
-terminal and idle configuration only. Wallpaper, theme, greeter configuration
-remain separate settings domains. Legacy state migration is documented in
+owns file loading and publication. Pages do not read files. Configuration covers terminal, idle and appearance scheduling. Wallpaper and
+greeter configuration remain separate settings domains. Legacy state migration is documented in
 [DEPLOYMENT.md](DEPLOYMENT.md).
 
 The greeter stores only the last successfully authenticated user and session ID
@@ -54,12 +53,13 @@ read a desktop user's home directory.
 
 ## Appearance snapshots (version 1)
 
-The desktop owns a manual light/dark choice, persisted in
+The desktop owns the effective light/dark choice, persisted in
 `$XDG_STATE_HOME/nullshell/appearance-mode` (existing choices are retained; a fresh
 installation defaults to dark). The appearance button and light/dark actions
-change this choice; there is no automatic schedule or location dependency.
+change this choice; optional automatic scheduling is described below.
 The shell publishes `prefer-light` / `prefer-dark` through GSettings; the GTK
-Settings portal forwards this preference to applications. Errors are exposed by
+Settings portal forwards this preference to applications unless the optional
+nullshell Settings backend is selected. Errors are exposed by
 `nullshell ipc appearance status`; application failure does not disable the shell
 button. Restarting the desktop reapplies the saved choice.
 
@@ -187,3 +187,54 @@ Greeter **code** selection is independent of both data domains. The NixOS option
 QML override location. With no installation the packaged QML is used. See
 [DEVELOPMENT.md](DEVELOPMENT.md#local-greeter-qml-installation) for explicit
 install/reset commands. Theme data cannot select executable QML.
+
+## Automatic appearance and optional Settings backend
+
+The desktop owns the effective light/dark mode. To calculate sunrise/sunset
+locally without a location service, add this to `config.json` (coordinates below
+are an example, not package defaults):
+
+```json
+{"version":1,"appearance":{"mode":"solar","location":"fixed","latitude":0,"longitude":0}}
+```
+
+`appearance.mode` defaults to `manual`; `solar` enables automatic decisions.
+`location` defaults to `fixed`, requiring numeric latitude (-90..90) and longitude
+(-180..180) for solar mode. Alternatively use `"location":"geoclue"`; the
+optional system GeoClue service supplies city-level coordinates, rounded to 0.1°,
+kept only in memory. Requests run on entry and every 30 minutes; failures retry
+after five minutes and retain the current mode. No IP lookup endpoint is built in.
+GeoClue availability/authorization/provider coverage depends on the host.
+
+The helper calculates solar altitude locally using NOAA equations and a -0.833°
+horizon. This is an approximate sunrise/sunset schedule (not a weather or terrain
+model), supported for 2000–2099. The desktop refreshes it every minute, detects
+clock jumps on a 30-second tick, and recalculates after resume. Switching may lag
+the calculated boundary by up to about one minute. Polar day/night has no next
+transition within the two-day search window and is re-evaluated normally.
+
+Manual light/dark actions in solar mode override until the next known transition,
+or for 24 hours if none is known. The expiry survives desktop restart in
+`$XDG_STATE_HOME/nullshell/appearance-override.json`; `appearance-mode` remains
+the effective mode consumed by lock/Polkit/portal. To end the override early:
+
+```sh
+nullshell ipc call appearance resumeAutomatic
+nullshell ipc call appearance status
+```
+
+Status includes `automatic`, `nextTransition` (UTC Unix seconds or null),
+`overrideUntil`, and errors. Changing configuration does not erase a manual
+override; resume explicitly when desired. Setting mode back to `manual` disables
+location and solar subprocesses. Greeter still reads only the exported snapshot.
+
+The optional native Settings portal backend publishes `color-scheme` through
+`org.freedesktop.impl.portal.Settings`: Read, ReadAll, SettingChanged and version 1.
+It is a separately D-Bus-activated helper process, not a general-purpose daemon.
+It reads the effective mode file once per second, emits only changes, returns
+no preference (0) before a valid initial value, and retains its last valid value
+across malformed/missing files. It has no write method and never changes user
+configuration. GSettings publication remains for applications that read it directly.
+Other Settings keys can come from a fallback backend such as GTK.
+
+See [APPEARANCE.md](APPEARANCE.md) for portable installation and Nix integration.

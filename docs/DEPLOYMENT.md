@@ -30,10 +30,12 @@ no idle timers. Quickshell owns dim/lock/display-off timers. The Bluetooth helpe
 is an on-demand process and requires no service. A future persistent helper must
 justify its own lifecycle independently; it does not supervise Quickshell.
 
-Appearance is manual and persisted by the shell. Install GLib `gsettings`,
+Appearance is owned and persisted by the shell, with optional solar scheduling. Install GLib `gsettings`,
 `gsettings-desktop-schemas` and a writable GSettings backend (normally dconf).
-Route `org.freedesktop.impl.portal.Settings` to the GTK portal. Do not run a
-competing automatic colour provider. No location service is required.
+Route `org.freedesktop.impl.portal.Settings` to GTK or the optional nullshell
+backend. Do not run a competing automatic colour provider. Fixed-coordinate
+scheduling needs no location service; GeoClue is optional. Installation and
+per-session routing are described in [APPEARANCE.md](APPEARANCE.md).
 
 ## State
 

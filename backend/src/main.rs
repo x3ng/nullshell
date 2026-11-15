@@ -1,5 +1,9 @@
-//! A bounded, on-demand BlueZ Agent1 client. No default-agent registration.
+//! Focused portable helpers: Bluetooth pairing, appearance export, solar/location
+//! queries and the optional read-only Settings portal backend.
 mod appearance;
+mod location;
+mod settings_portal;
+mod solar;
 mod wallpaper;
 
 use futures_util::StreamExt;
@@ -371,6 +375,19 @@ async fn run(
 #[tokio::main(flavor = "current_thread")]
 async fn main() {
     let args: Vec<_> = std::env::args().skip(1).collect();
+    if args == ["solar"] || args == ["location"] || args == ["settings-portal"] {
+        let result = match args[0].as_str() {
+            "solar" => solar::run(),
+            "location" => location::run().await,
+            _ => settings_portal::run().await,
+        };
+        if result.is_err() {
+            // Do not leak coordinates or provider details into session logs.
+            eprintln!("{}: operation unavailable or invalid input", args[0]);
+            std::process::exit(1);
+        }
+        return;
+    }
     if args.first().map(String::as_str) == Some("appearance-export") {
         if let Err(error) = appearance::run(&args[1..]) {
             eprintln!("Appearance export: {error}");
@@ -383,6 +400,10 @@ async fn main() {
             eprintln!("Wallpaper export: {error}");
             std::process::exit(1);
         }
+        return;
+    }
+    if args == ["--help"] {
+        println!("Usage: nullshell-helper <command>\n\nCommands:\n  solar                 Read a versioned solar request from stdin\n  location              Request coarse GeoClue coordinates\n  settings-portal       Run the read-only D-Bus Settings backend\n  appearance-export     Export a validated greeter colour snapshot\n  wallpaper-export      Export a validated greeter wallpaper\n  bluetooth-agent       Run an on-demand BlueZ pairing agent");
         return;
     }
     if args == ["--version"] {

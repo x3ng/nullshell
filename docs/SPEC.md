@@ -32,7 +32,7 @@
 Polkit 或 portal。nullshell 的目标是统一交互与协调，不重写这些基础服务。
 桌面、locker 和 Polkit 由 Hyprland 显式直接启动，不安装 Quickshell 保活 unit。
 Quickshell 使用 --no-duplicate 防重复启动；退出会话时客户端随 Wayland 断开退出。
-蓝牙 helper 按需运行；仅未来确有常驻需要的 helper 才单独设计 service。
+蓝牙 helper 按需运行；仅外观 Settings portal 是已定义的专用 D-Bus 激活进程；不增加通用后台宿主。
 
 ## 配置与动态数据
 
@@ -58,8 +58,11 @@ greeter 只读取验证过的导出数据，不加载用户提供的 QML；锁�
 跨账户导出由安装配置指定来源账户与目录；不增加常驻 daemon。
 外观和壁纸是独立事件域。greeter 壁纸只同步全局默认，复制受限图片而非 HOME 链接；
 独立描述文件原子发布，资源只保留两个固定槽位，取消时清理，不积累历史。
-深浅色仅手动切换，由桌面持久保存；通过 GSettings 和 GTK Settings portal 发布应用偏好。
-不依赖自动调度或定位服务；greeter 未登录时使用最后一次快照。
+深浅色由桌面持久保存，默认手动；可配置本地日出日落调度，固定坐标无需联网，
+GeoClue 是可选定位来源。手动覆盖有到期时间并独立持久化。
+通过 GSettings 向直接读取它的应用发布偏好；可选自有 Settings portal 后端只读发布
+有效模式，独立 D-Bus 激活，不承担主题决策。greeter 未登录时使用最后一次快照。
+具体契约与发行版分层见 docs/APPEARANCE.md。
 运行态和已有行为设置继续使用现有 XDG 文件；helper 与 QML 仅要求协议兼容。
 桌面入口为仓库根目录 shell.qml，runtime 包不绑定 QML 快照。
 greeter 默认使用包内 QML；可通过显式安装命令复制工作树资源到系统管理目录覆盖。
@@ -128,7 +131,7 @@ Quickshell 是上游运行时，nullshell 维护 QML、桌面适配和必要的 
 
 | 内容 | 所有者/写入方 | 消费者 |
 | --- | --- | --- |
-| 用户会话当前深浅模式 | 桌面手动选择 | 保存现有用户侧模式状态，发布 GSettings 应用偏好 |
+| 用户会话当前深浅模式 | 桌面手动/自动策略 | 保存现有用户侧模式状态，发布 GSettings 应用偏好 |
 | 配色与界面程序 | nullshell 用户侧 QML/公共视觉组件 | 各界面使用组件；只导出颜色数据给 greeter |
 | 用户壁纸选择及原图 | 用户侧 WallpaperState/用户文件 | 桌面与锁屏沿用现有用户侧机制 |
 | greeter 颜色快照、壁纸描述及图片副本 | 用户侧按需导出器 | greeter 只读，预览可注入相同数据 |

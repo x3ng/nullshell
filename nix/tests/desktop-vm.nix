@@ -16,6 +16,7 @@ pkgs.testers.runNixOSTest {
   nodes.machine = { ... }: {
     imports = [ ../nixos.nix ];
     programs.nullshell.enable = true;
+    programs.nullshell.appearance.portal.enable = true;
     security.polkit.enablePkexecWrapper = true;
     programs.hyprland.enable = true;
     programs.hyprland.withUWSM = true;
@@ -47,7 +48,6 @@ pkgs.testers.runNixOSTest {
     programs.dconf.enable = true;
     xdg.portal.enable = true;
     xdg.portal.extraPortals = [ pkgs.xdg-desktop-portal-gtk ];
-    xdg.portal.config.hyprland."org.freedesktop.impl.portal.Settings" = [ "gtk" ];
     fonts.packages = [ pkgs.dejavu_fonts ];
     programs.bash.loginShellInit = ''
       if [ "$(tty)" = /dev/tty1 ]; then
@@ -79,6 +79,7 @@ pkgs.testers.runNixOSTest {
     assert json.loads(machine.succeed(idle))["keepAwake"]
     appearance = user("nullshell ipc call appearance status")
     machine.wait_until_succeeds(appearance + " | grep '\"available\":true'", timeout=timedelta(seconds=30))
+    machine.succeed(user("busctl --user call org.freedesktop.impl.portal.desktop.nullshell /org/freedesktop/portal/desktop org.freedesktop.impl.portal.Settings Read ss org.freedesktop.appearance color-scheme"))
     # The published application preference must follow manual changes, without darkman.
     portal = user("busctl --user call org.freedesktop.portal.Desktop /org/freedesktop/portal/desktop org.freedesktop.portal.Settings Read ss org.freedesktop.appearance color-scheme")
     for mode, value in [("light", 2), ("dark", 1)]:

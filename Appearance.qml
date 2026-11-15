@@ -6,7 +6,8 @@ import Quickshell.Io
 import Quickshell.Hyprland
 import "components/HyprlandControlCommands.js" as Commands
 
-// Publish the manual preference through GTK Settings portal and Hyprland.
+// Publish the effective preference to GSettings consumers and Hyprland.
+// The optional native Settings portal independently reads the persisted mode.
 Scope {
     id: root
     property string mode: ""

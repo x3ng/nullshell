@@ -2,6 +2,14 @@
 let
   inherit (pkgs) lib;
   helper = import ./backend.nix { inherit pkgs; };
+  settingsPortal = pkgs.runCommand "nullshell-settings-portal" { } ''
+    mkdir -p $out/share/xdg-desktop-portal/portals $out/share/dbus-1/services $out/share/applications
+    cp ${../integration/nullshell.portal} $out/share/xdg-desktop-portal/portals/nullshell.portal
+    cp ${../integration/org.nullshell.desktop.desktop} $out/share/applications/org.nullshell.desktop.desktop
+    substitute ${../integration/org.freedesktop.impl.portal.desktop.nullshell.service.in} \
+      $out/share/dbus-1/services/org.freedesktop.impl.portal.desktop.nullshell.service \
+      --replace-fail '@HELPER@' '${helper}/bin/nullshell-helper'
+  '';
   # Keep source packaging independent of backend/docs and their build outputs.
   qmlSource = lib.fileset.toSource {
     root = ../.;
@@ -133,6 +141,7 @@ in
     greeter
     preview
     helper
+    settingsPortal
     ;
   default = desktop;
 }

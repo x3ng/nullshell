@@ -28,6 +28,7 @@
           inherit (packages) desktop greeter runtime;
           preview = import ./nix/tests/preview.nix { inherit pkgs packages; };
           config = import ./nix/tests/config.nix { inherit pkgs; };
+          settings = import ./nix/tests/settings.nix { inherit pkgs packages; };
           appearance = import ./nix/tests/appearance.nix { inherit pkgs packages; };
           migration = import ./nix/tests/migration.nix { inherit pkgs; };
           bluetooth = import ./nix/tests/bluetooth.nix {
@@ -81,7 +82,10 @@
           packages = with nixpkgs.legacyPackages.${system}; [
             quickshell
             qt6.qtdeclarative
-            python3
+            (python3.withPackages (p: [ p.dbus-next ]))
+            dbus
+            glib
+            gsettings-desktop-schemas
             grim
             wtype
             nixfmt
@@ -90,6 +94,11 @@
             clippy
             rustfmt
           ];
+          XDG_DATA_DIRS =
+            let
+              p = nixpkgs.legacyPackages.${system}.gsettings-desktop-schemas;
+            in
+            "${p}/share/gsettings-schemas/${p.name}";
           CARGO_BUILD_JOBS = "2";
         };
       });
