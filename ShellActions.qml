@@ -14,7 +14,6 @@ Scope {
     readonly property var session: sessionActions
     SessionActions { id: sessionActions }
     signal navigateRequested(string section)
-    signal wallpaperRequested()
     readonly property var panelActions: ["overview", "desktop", "wifi", "bluetooth", "audio", "notifications", "appearance", "session", "wallpaper", "brightness"]
     readonly property var entries: [
         {id: "session", description: "Lock, sleep, log out, restart or shut down", title: "Power and session", keywords: "power shutdown reboot logout suspend 电源 关机 重启 注销 休眠 锁屏", icon: "power", enabled: true},
@@ -55,12 +54,11 @@ Scope {
     // Service feedback signals report asynchronous failures independently.
     function execute(id) {
         if (!available(id)) return false;
-        if (["overview", "desktop", "wifi", "bluetooth", "audio", "notifications", "appearance", "session"].includes(id)) {
+        if (["overview", "desktop", "wifi", "bluetooth", "audio", "notifications", "appearance", "wallpaper", "session"].includes(id)) {
             navigateRequested(id);
             return true;
         }
         switch (id) {
-        case "wallpaper": wallpaperRequested(); break;
         case "brightness": navigateRequested("overview"); break;
         case "wifi-toggle": return services.controls.toggleWifi();
         case "bluetooth-toggle": return services.controls.toggleBluetooth();

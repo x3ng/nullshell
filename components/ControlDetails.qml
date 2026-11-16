@@ -2,6 +2,8 @@ pragma ComponentBehavior: Bound
 
 import QtQuick
 import QtQuick.Layouts
+import QtQuick.Controls
+import QtQuick.Window
 import Quickshell.Widgets
 import ".."
 
@@ -12,6 +14,10 @@ Rectangle {
     required property var services
     required property var actions
     required property var notifs
+    required property var wallpaper
+    property bool detached: false
+    signal detachRequested()
+    readonly property bool dialogOpen: wallpaperLoader.item?.dialogOpen ?? false
     readonly property var system: services.controls
     required property string section
     property bool audioInput: false
@@ -27,12 +33,12 @@ Rectangle {
     signal closePanelRequested()
     readonly property bool isNotifs: section === "notifications"
     readonly property string title: section === "session" ? "Power and session" : section === "appearance" ? "Appearance"
-        : section === "wifi" ? "Wi-Fi"
+        : section === "wallpaper" ? "Wallpaper" : section === "wifi" ? "Wi-Fi"
         : section === "bluetooth" ? "Bluetooth"
         : detail.isNotifs ? "Notifications"
         : "Audio devices"
     readonly property string subtitle: section === "session" ? "Lock your screen or leave this session" : section === "appearance" ? "Light, dark and sunrise-to-sunset scheduling"
-        : section === "wifi" ? "Nearby networks · connect & manage"
+        : section === "wallpaper" ? "Desktop and lock-screen background" : section === "wifi" ? "Nearby networks · connect & manage"
         : section === "bluetooth" ? "Devices · discover, pair & connect"
         : detail.isNotifs ? (detail.showHistory ? "Saved notifications · clearing history also dismisses pending entries"
             : "Pending notifications · cleared entries remain in history")
@@ -44,9 +50,31 @@ Rectangle {
     readonly property real naturalHeight: detailHeader.implicitHeight + 10 + content.implicitHeight
         + (isNotifs ? notificationToolbar.implicitHeight + 10 : 0)
     implicitWidth: 380
-    color: "transparent"
+    color: detached ? style.panelSurface : "transparent"
     focus: visible
     Keys.onEscapePressed: dismissRequested()
+    function revealFocus() {
+        const item = detail.Window.window?.activeFocusItem;
+        if (!item) return;
+        let ancestor = item;
+        while (ancestor && ancestor !== content) ancestor = ancestor.parent;
+        if (!ancestor) return;
+        const point = item.mapToItem(viewport, 0, 0);
+        if (point.y < 0) viewport.contentY += point.y;
+        else if (point.y + item.height > viewport.height)
+            viewport.contentY += point.y + item.height - viewport.height;
+        viewport.contentY = Math.max(0, Math.min(viewport.contentY, viewport.contentHeight - viewport.height));
+    }
+    Connections {
+        target: detail.Window.window
+        function onActiveFocusItemChanged() { Qt.callLater(detail.revealFocus); }
+    }
+    Shortcut {
+        sequence: "Ctrl+Shift+D"
+        context: Qt.WindowShortcut
+        enabled: detail.panelOpen && !detail.detached && detail.section !== "session" && !detail.dialogOpen
+        onActivated: detail.detachRequested()
+    }
     MouseArea { anchors.fill: parent }
 
     ColumnLayout {
@@ -57,8 +85,21 @@ Rectangle {
             style: detail.style
             title: detail.title
             subtitle: detail.subtitle
+            backTooltip: detail.detached ? "Close window" : "Back to overview"
+            backIcon: detail.detached ? "close" : "back"
             onBackRequested: detail.dismissRequested()
             actions: [
+                ChoiceButton {
+                    objectName: "detach-page"
+                    visible: !detail.detached && detail.section !== "session"
+                    Layout.preferredWidth: 30
+                    Layout.preferredHeight: 30
+                    style: detail.style
+                    label: ""
+                    iconKind: "window"
+                    tooltip: "Detach into a window (Ctrl+Shift+D)"
+                    onTriggered: detail.detachRequested()
+                },
                 ChoiceButton {
                     visible: detail.section === "wifi" || detail.section === "bluetooth"
                     Layout.preferredWidth: 72
@@ -121,11 +162,22 @@ Rectangle {
             color: "transparent"
             Flickable {
                 id: viewport
+                objectName: "detail-scroll"
                 anchors.fill: parent
                 contentWidth: width
                 contentHeight: content.implicitHeight
                 clip: true
                 boundsBehavior: Flickable.StopAtBounds
+                ScrollBar.vertical: ScrollBar {
+                    id: scrollBar
+                    policy: ScrollBar.AsNeeded
+                    contentItem: Rectangle {
+                        implicitWidth: 4
+                        radius: 2
+                        color: detail.style.textMuted
+                        opacity: scrollBar.pressed ? 0.8 : 0.45
+                    }
+                }
                 ColumnLayout {
                     id: content
                     width: viewport.width
@@ -181,6 +233,13 @@ Rectangle {
                             font.family: detail.style.fontFamily
                             font.pixelSize: detail.style.fontSizeBody
                         }
+                    }
+                    Loader {
+                        id: wallpaperLoader
+                        Layout.fillWidth: true
+                        active: detail.renderContent && detail.section === "wallpaper"
+                        visible: active
+                        sourceComponent: WallpaperPicker { style: detail.style; wallpaper: detail.wallpaper }
                     }
                     Loader {
                         Layout.fillWidth: true

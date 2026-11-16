@@ -21,12 +21,14 @@ with tempfile.TemporaryDirectory(prefix="ns-panel-", dir="/tmp") as directory:
         XDG_CACHE_HOME=str(base / "cache"), XDG_STATE_HOME=str(base / "state"),
         XDG_RUNTIME_DIR=str(runtime), WLR_BACKENDS="headless", WLR_HEADLESS_OUTPUTS="1", WLR_RENDERER="pixman",
         LIBGL_ALWAYS_SOFTWARE="1", QSG_RHI_BACKEND="opengl", NULLSHELL_PREVIEW_EXCLUSIVE_KEYBOARD="1",
+        NULLSHELL_PREVIEW_CAPTURE_DESKTOP="1",
         DBUS_SESSION_BUS_ADDRESS="unix:path=" + str(base / "no-session-bus"),
         DBUS_SYSTEM_BUS_ADDRESS="unix:path=" + str(base / "no-system-bus"))
     for key in ("WAYLAND_DISPLAY", "DISPLAY", "HYPRLAND_INSTANCE_SIGNATURE", "QT_QPA_PLATFORM", "QT_QUICK_BACKEND"):
         env.pop(key, None)
     log = base / "compositor.log"
     with log.open("w") as output:
+        keyboard = None
         compositor = subprocess.Popen(["labwc", "--config-dir", str(config)], env=env,
             stdin=subprocess.DEVNULL, stdout=output, stderr=output)
         try:
@@ -37,9 +39,18 @@ with tempfile.TemporaryDirectory(prefix="ns-panel-", dir="/tmp") as directory:
                 time.sleep(.1)
             else: raise RuntimeError("Headless compositor did not start\n" + log.read_text())
             env["WAYLAND_DISPLAY"] = sockets[0].name
+            if "--keyboard" in sys.argv:
+                # Keep a keyboard on the otherwise input-less headless seat.
+                # One-shot wtype invocations remove their device on exit.
+                keyboard = subprocess.Popen(["wtype", "-s", "300000"], env=env,
+                    stdin=subprocess.DEVNULL, stdout=output, stderr=output)
+                time.sleep(.2)
             subprocess.run([sys.executable, str(Path(__file__).with_name("test_panel_preview.py")), *sys.argv[1:]],
                 env=env, check=True, timeout=240)
         finally:
+            if keyboard is not None:
+                keyboard.terminate()
+                keyboard.wait(timeout=5)
             compositor.terminate()
             try: compositor.wait(timeout=5)
             except subprocess.TimeoutExpired:

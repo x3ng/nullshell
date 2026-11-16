@@ -224,6 +224,41 @@ Known keyboard limitation: when the overview overflows, Tab can focus a control
 outside the visible scroll area without scrolling it into view. Pointer scrolling
 still reaches it; keyboard focus-following needs a separate follow-up.
 
+### Detachable settings
+
+Wi-Fi, Bluetooth, audio, notifications, appearance and wallpaper open inside
+the command panel by default. Their header's window button moves the existing
+page into an ordinary resizable window and dismisses the launcher. Ctrl+Shift+D
+also detaches the current detail page;
+the shortcut is disabled in detached windows, power confirmation and file dialogs.
+Input drafts and selections survive this move. Clicking outside the ordinary window does not
+close it. Opening the same feature again focuses its existing window; closing it
+discards unsubmitted drafts and the next invocation opens inside the panel again.
+Escape or the header's close button closes a detached window. Power/session
+confirmation, home and search remain inside the panel. Windows are not restored
+across process restarts.
+
+Wallpaper uses the same detail header and stays open after applying an image.
+Its preview keeps a 16:9 frame as the page width changes. The panel fits the
+content up to the shared screen/height cap, then scrolls the detail body instead
+of compressing controls or the image. Detail pages expose a scrollbar and scroll
+keyboard-focused controls into view. Detached windows initially fit their content
+under the same height cap; subsequent user resizing keeps the body scrollable.
+Its standard file chooser temporarily releases the launcher's layer/focus so
+the dialog can be used, then restores the panel on acceptance or cancellation.
+Service activity follows both the launcher and detached pages; closing the
+launcher alone must not stop discovery in a detached Wi-Fi page. Bluetooth page
+cleanup must not be triggered by another page closing.
+
+The panel preview exposes `closeDetached SECTION`, `resizeDetached SECTION WIDTH
+HEIGHT`, and `captureDetached SECTION PATH`; `status` includes detached sections.
+The headless regression checks preserved drafts, multiple independent windows,
+repeat navigation, close/reopen behavior, and palette/width screenshots. Its
+device operations remain synthetic, not hardware integration certification.
+The private compositor keeps a virtual keyboard attached for focus/shortcut
+checks. Full-desktop captures are enabled only by that isolated runner; ordinary
+preview captures remain limited to their own view.
+
 ### Command browsing
 
 A bare `>` lists the command catalog. `>?` browses panels and `>!` selects actions;

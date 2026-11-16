@@ -24,15 +24,14 @@ ShellRoot {
     }
     DesktopServices {
         id: desktop
-        controlsVisible: launcher.open
-        wifiDiscoveryActive: launcher.open && launcher.showingDetails && launcher.controlSection === "wifi"
+        controlsVisible: launcher.open || launcher.detachedControls
+        wifiDiscoveryActive: launcher.detachedWifi || (launcher.open && launcher.showingDetails && launcher.controlSection === "wifi")
         onFeedback: (key, summary, body, critical) =>
             notifications.notifyLocal(key, {summary: summary, body: body, critical: critical})
     }
     WallpaperState { id: wallpaperState }
     WallpaperExport { id: wallpaperExport; wallpaper: wallpaperState }
     WallpaperWindows { wallpaper: wallpaperState }
-    WallpaperPicker { id: wallpaperPicker; wallpaper: wallpaperState; style: theme }
     IdlePolicy {
         keepAwake: desktop.keepAwake
         ready: desktop.keepAwakeReady && config.ready
@@ -66,7 +65,6 @@ ShellRoot {
         keyboard: keyboard
         hyprControls: hyprControls
         onNavigateRequested: section => launcher.navigate(section)
-        onWallpaperRequested: { launcher.dismiss(); wallpaperPicker.showPicker(); }
     }
 
     Connections {
@@ -93,6 +91,7 @@ ShellRoot {
         keyboard: keyboard
         hyprControls: hyprControls
         actions: shellActions
+        wallpaper: wallpaperState
     }
     PanelHotCorners { panel: launcher; style: theme }
     NotificationBanner { notifs: notifications; style: theme }
@@ -109,7 +108,7 @@ ShellRoot {
 
     IpcHandler {
         target: "wallpaper"
-        function showPicker(): void { launcher.dismiss(); wallpaperPicker.showPicker(); }
+        function showPicker(): void { launcher.openOnScreen(launcher.preferredScreen); launcher.navigate("wallpaper"); }
         function status(): string {
             return JSON.stringify({loaded: wallpaperState.loaded, error: wallpaperState.error || wallpaperExport.error,
                 screens: Quickshell.screens.map(screen => ({name: screen.name, wallpaper: wallpaperState.entryFor(screen.name)}))});

@@ -18,10 +18,15 @@ PanelWindow {
     required property var notifs
     required property var keyboard
     required property var actions
+    required property var wallpaper
+    property alias detailPages: controlDetails
+    readonly property bool detachedWifi: controlDetails.isDetached("wifi")
+    readonly property bool detachedControls: controlDetails.sections.some(section => controlDetails.isDetached(section))
     required property var preferredScreen
     required property var trayItems
     required property date displayDate
     property string layerNamespace: "quickshell-launcher"
+    property string windowTitleSuffix: "nullshell"
     property real maximumCardWidth: style.maximumPanelWidth
     readonly property rect cardGeometry: Qt.rect(card.x, card.y, card.width, card.height)
     property bool open: false
@@ -30,7 +35,7 @@ PanelWindow {
         {key: "overview", label: "Quick controls"},
         {key: "desktop", label: "Desktop"}
     ]
-    readonly property var detailSections: ["wifi", "bluetooth", "audio", "notifications", "appearance", "session"]
+    readonly property var detailSections: controlDetails.sections
     // Read actual StackLayout indices so adding/reordering a page cannot change
     // the meaning of navigation or page-specific lifecycle bindings.
     readonly property var pageIndexes: ({
@@ -142,6 +147,11 @@ PanelWindow {
     }
     function showDetails(section) {
         if (!detailSections.includes(section)) return false;
+        if (controlDetails.isDetached(section)) {
+            dismiss();
+            controlDetails.focusDetached(section);
+            return true;
+        }
         trayMenu.dismiss();
         query = "";
         controlSection = section;
@@ -225,8 +235,8 @@ PanelWindow {
     // Respect the screen keyboard's exclusive zone so the backdrop never
     // covers its keys, even when this overlay is mapped after the keyboard.
     exclusionMode: ExclusionMode.Normal
-    WlrLayershell.layer: WlrLayer.Overlay
-    WlrLayershell.keyboardFocus: open ? WlrKeyboardFocus.OnDemand : WlrKeyboardFocus.None
+    WlrLayershell.layer: controlDetails.dialogOpen ? WlrLayer.Bottom : WlrLayer.Overlay
+    WlrLayershell.keyboardFocus: open && !controlDetails.dialogOpen ? WlrKeyboardFocus.OnDemand : WlrKeyboardFocus.None
     WlrLayershell.namespace: layerNamespace
 
     Region {
@@ -248,7 +258,7 @@ PanelWindow {
     MouseArea {
         // Outside clicks dismiss the panel without dimming the desktop.
         anchors.fill: parent
-        enabled: panel.open
+        enabled: panel.open && !controlDetails.dialogOpen
         onClicked: panel.dismiss()
     }
 
@@ -453,22 +463,12 @@ PanelWindow {
                     commandScope: panel.commandScope
                     onActivateRequested: index => panel.activate(index)
                 }
-                ControlDetails {
+                DetailPages {
                     id: controlDetails
-                    appearance: panel.appearance
+                    panel: panel
                     Layout.fillWidth: true
                     Layout.fillHeight: true
                     Layout.minimumHeight: 0
-                    style: panel.style
-                    services: panel.services
-                    actions: panel.actions
-                    notifs: panel.notifs
-                    section: panel.controlSection
-                    panelOpen: panel.open && panel.showingDetails
-                    retainContent: panel.visible && panel.activePage === panel.pageIndexes.details
-                    onDismissRequested: panel.returnToHome()
-                    onClosePanelRequested: panel.dismiss()
-                    Keys.onPressed: event => panel.handleKey(event)
                 }
                 DesktopPage {
                     id: desktopPage

@@ -7,6 +7,8 @@ RowLayout {
     required property Theme style
     required property string title
     property string subtitle: ""
+    property string backTooltip: "Back to overview"
+    property string backIcon: "back"
     property alias actions: actionRow.data
     signal backRequested()
     implicitHeight: 32
@@ -19,8 +21,8 @@ RowLayout {
         Layout.preferredHeight: 30
         style: header.style
         label: ""
-        iconKind: "back"
-        tooltip: "Back to overview"
+        iconKind: header.backIcon
+        tooltip: header.backTooltip
         iconSize: 16
         onTriggered: header.backRequested()
     }

@@ -9,9 +9,11 @@ import json
 import os
 from pathlib import Path
 import re
+import struct
 import subprocess
 import tempfile
 import time
+import zlib
 
 
 def main():
@@ -71,6 +73,14 @@ def main():
                 assert max(count for count, _ in colors) < body.width * body.height * .99, "Appearance content was not rendered"
 
     with tempfile.TemporaryDirectory(prefix="nullshell-preview-test-") as temporary:
+        # Synthetic solid-color image; no personal wallpaper enters the fixture.
+        def png_chunk(kind, data):
+            return struct.pack("!I", len(data)) + kind + data + struct.pack("!I", zlib.crc32(kind + data))
+        wallpaper_image = Path(temporary) / "synthetic-wallpaper.png"
+        wallpaper_image.write_bytes(b"\x89PNG\r\n\x1a\n"
+            + png_chunk(b"IHDR", struct.pack("!2I5B", 64, 48, 8, 2, 0, 0, 0))
+            + png_chunk(b"IDAT", zlib.compress((b"\0" + bytes((50, 95, 135)) * 64) * 48))
+            + png_chunk(b"IEND", b""))
         log = Path(temporary) / "preview.log"
         with log.open("w") as output:
             process = subprocess.Popen(["quickshell", "--path", entry], stdout=output, stderr=output)
@@ -107,7 +117,7 @@ def main():
             call("light", "false")
             for scenario in ["empty", "crowded", "media", "normal"]:
                 assert call("scenario", scenario) == "true"
-                for page in ["overview", "wifi", "bluetooth", "audio", "notifications", "desktop", "appearance"]:
+                for page in ["overview", "wifi", "bluetooth", "audio", "notifications", "desktop", "appearance", "wallpaper"]:
                     call("page", page)
                     current = settle()
                     expected = page if page in ["overview", "desktop"] else "detail:" + page
@@ -301,6 +311,101 @@ def main():
             assert not state()["open"]
             call("openPanel")
             assert state()["open"]
+            # Moving the same view preserves drafts, releases the overlay, and
+            # keeps each feature unique while ordinary windows remain open.
+            for light in ["false", "true"]:
+                call("light", light)
+                for width in ["440", "740"]:
+                    call("width", width)
+                    call("page", "wallpaper")
+                    call("draft", "wallpaper", wallpaper_image.as_uri())
+                    settle()
+                    screenshot("wallpaper-" + width + "-" + light)
+                    geometry = json.loads(call("detailGeometry", "wallpaper"))
+                    assert abs(geometry["imageHeight"] - geometry["imageWidth"] * 9 / 16) < 1, geometry
+                    assert state()["card"]["height"] <= 700, state()
+            assert call("draft", "wallpaper", wallpaper_image.as_uri()) == "true"
+            assert call("activateControl", "wallpaper-choose") == "true"
+            time.sleep(.5)
+            assert state()["dialogOpen"] and state()["open"]
+            if args.screenshots and os.environ.get("NULLSHELL_PREVIEW_CAPTURE_DESKTOP") == "1":
+                subprocess.run(["grim", str(args.screenshots / "wallpaper-file-dialog.png")], check=True, timeout=5)
+            call("cancelFileDialog")
+            assert not state()["dialogOpen"] and state()["wallpaperDraft"] == wallpaper_image.as_uri()
+            assert call("activateControl", "detach-page") == "true"
+            assert state()["wallpaperDraft"] == wallpaper_image.as_uri()
+            call("draft", "wallpaper", wallpaper_image.as_uri())
+            time.sleep(.3)
+            assert call("activateControl", "wallpaper-apply") == "true"
+            assert state()["wallpaperApplied"] and "wallpaper" in state()["detached"]
+            assert state()["detached"] == ["wallpaper"] and not state()["open"]
+            call("page", "wallpaper")
+            assert not state()["open"] and state()["detached"] == ["wallpaper"]
+            call("page", "appearance")
+            call("appearanceState", "fixed")
+            settle()
+            assert call("coordinate", "latitude", "12.345") == "true"
+            if args.keyboard:
+                subprocess.run(["wtype", "-M", "ctrl", "-M", "shift", "-k", "d", "-m", "shift", "-m", "ctrl"], check=True, timeout=5)
+                time.sleep(.2)
+                assert "appearance" in state()["detached"] and not state()["open"], state()
+            else:
+                assert call("activateControl", "detach-page") == "true"
+            assert state()["latitudeDraft"] == "12.345"
+            for page in ["wifi", "bluetooth", "audio", "notifications"]:
+                call("page", page)
+                settle()
+                assert call("activateControl", "detach-page") == "true"
+                assert page in state()["detached"] and not state()["open"]
+            assert state()["detachedWifi"] and state()["detachedControls"]
+            # Opening/closing the launcher does not close detached views.
+            call("openPanel")
+            call("close")
+            assert len(state()["detached"]) == 6
+            if args.keyboard:
+                # IPC alone has never supplied Qt with an input seat/serial.
+                subprocess.run(["wtype", "-k", "Shift_L"], check=True, timeout=5)
+                time.sleep(.2)
+            if args.screenshots:
+                for page in state()["detached"]:
+                    call("page", page)
+                    time.sleep(.2)
+                    if args.keyboard:
+                        assert any(item["section"] == page and item["active"] for item in state()["detachedFocus"]), state()
+                    assert call("captureDetached", page, str(args.screenshots / ("detached-" + page + ".png"))) == "true"
+                if os.environ.get("NULLSHELL_PREVIEW_CAPTURE_DESKTOP") == "1":
+                    subprocess.run(["grim", str(args.screenshots / "detached-windows.png")], check=True, timeout=5)
+                time.sleep(.5)
+            for light in ["false", "true"]:
+                call("light", light)
+                for page in ["appearance", "wallpaper"]:
+                    call("resizeDetached", page, "420", "320")
+                    call("page", page)
+                    time.sleep(.4)
+                    if page == "wallpaper":
+                        geometry = json.loads(call("detailGeometry", page))
+                        assert abs(geometry["imageHeight"] - geometry["imageWidth"] * 9 / 16) < 1, geometry
+                        assert geometry["contentHeight"] > geometry["viewportHeight"], geometry
+                        assert call("focusControl", page, "wallpaper-apply") == "true"
+                        time.sleep(.2)
+                        assert json.loads(call("detailGeometry", page))["scroll"] > 0
+                    if args.screenshots:
+                        assert call("captureDetached", page, str(args.screenshots / ("detached-small-" + page + "-" + light + ".png"))) == "true"
+                    call("scrollDetail", page)
+                    time.sleep(.2)
+                    if args.screenshots:
+                        assert call("captureDetached", page, str(args.screenshots / ("detached-scrolled-" + page + "-" + light + ".png"))) == "true"
+            if args.keyboard:
+                subprocess.run(["wtype", "-k", "Escape"], check=True, timeout=5)
+                time.sleep(.2)
+                assert "wallpaper" not in state()["detached"] and len(state()["detached"]) == 5, state()
+            for page in list(state()["detached"]):
+                call("closeDetached", page)
+            assert not state()["detachedControls"] and not state()["detachedWifi"]
+            call("page", "wallpaper")
+            assert state()["open"] and state()["wallpaperDraft"] == ""
+            call("page", "session")
+            assert call("activateControl", "detach-page") == "false"
             call("quit")
             process.wait(timeout=5)
             assert process.returncode == 0

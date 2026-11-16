@@ -15,6 +15,7 @@ pkgs.runCommand "nullshell-panel-interaction-check"
       pkgs.labwc
       (pkgs.python3.withPackages (p: [ p.pillow ]))
       pkgs.wtype
+      pkgs.grim
       pkgs.mesa.llvmpipeHook
     ];
     FONTCONFIG_FILE = pkgs.makeFontsConf { fontDirectories = [ pkgs.dejavu_fonts ]; };

@@ -33,10 +33,13 @@ ColumnLayout {
         confirmForget = false;
         password.clear(); password.revealed = false;
         pairingInput.clear();
-        system.stopBluetoothScan();
-        system.cancelBluetoothPairing();
+        if (section === "bluetooth") {
+            system.stopBluetoothScan();
+            system.cancelBluetoothPairing();
+        }
     }
     onActiveChanged: { if (!active) reset(); }
+    Component.onDestruction: { if (section === "bluetooth") { system.stopBluetoothScan(); system.cancelBluetoothPairing(); } }
     onSectionChanged: reset()
     onRadioEnabledChanged: { if (!radioEnabled) reset(); }
     onSelectedDeviceChanged: { if (!selectedDevice) { password.clear(); confirmForget = false; } }
