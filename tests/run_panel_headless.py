@@ -10,6 +10,12 @@ import sys
 import tempfile
 import time
 
+test_arguments = sys.argv[1:]
+test_name = "test_panel_preview.py"
+if "--login-info" in test_arguments:
+    test_arguments.remove("--login-info")
+    test_name = "test_login_info.py"
+
 with tempfile.TemporaryDirectory(prefix="ns-panel-", dir="/tmp") as directory:
     base = Path(directory)
     runtime = base / "runtime"
@@ -45,7 +51,7 @@ with tempfile.TemporaryDirectory(prefix="ns-panel-", dir="/tmp") as directory:
                 keyboard = subprocess.Popen(["wtype", "-s", "300000"], env=env,
                     stdin=subprocess.DEVNULL, stdout=output, stderr=output)
                 time.sleep(.2)
-            subprocess.run([sys.executable, str(Path(__file__).with_name("test_panel_preview.py")), *sys.argv[1:]],
+            subprocess.run([sys.executable, str(Path(__file__).with_name(test_name)), *test_arguments],
                 env=env, check=True, timeout=240)
         finally:
             if keyboard is not None:

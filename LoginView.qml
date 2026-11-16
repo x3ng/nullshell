@@ -11,6 +11,11 @@ Item {
     property bool editableUser: false
     property string message: ""
     property bool busy: false
+    property string batteryText: ""
+    property bool batteryLow: false
+    property string keyboardLayout: ""
+    property bool capsLock: false
+    signal keyboardStatusRequested()
     property var sessions: []
     property string selectedSessionId: ""
     property bool sessionPickerOpen: false
@@ -39,8 +44,14 @@ Item {
 
     function clearSecret() { passwordInput.text = ""; }
     function focusInput() {
+        keyboardStatusRequested();
         if (editableUser && !userInput.text.trim()) userInput.forceActiveFocus();
         else passwordInput.forceActiveFocus();
+    }
+
+    Keys.onReleased: event => {
+        if (event.key === Qt.Key_CapsLock) keyboardStatusRequested();
+        event.accepted = false;
     }
 
     Rectangle {
@@ -135,6 +146,32 @@ Item {
                         }
                     }
 
+                }
+
+                Column {
+                    width: parent.width
+                    spacing: 6
+                    visible: root.batteryText !== "" || root.keyboardLayout !== ""
+                    Text {
+                        width: parent.width
+                        visible: text !== ""
+                        text: root.batteryText
+                        textFormat: Text.PlainText
+                        wrapMode: Text.Wrap
+                        color: root.batteryLow ? root.theme.accentWarm : root.theme.textSecondary
+                        font.family: root.theme.fontFamily
+                        font.pixelSize: 13
+                    }
+                    Text {
+                        width: parent.width
+                        visible: root.keyboardLayout !== ""
+                        text: root.keyboardLayout ? "Keyboard · " + root.keyboardLayout : ""
+                        textFormat: Text.PlainText
+                        wrapMode: Text.Wrap
+                        color: root.theme.textSecondary
+                        font.family: root.theme.fontFamily
+                        font.pixelSize: 13
+                    }
                 }
 
                 Rectangle {
@@ -236,6 +273,17 @@ Item {
                         }
                     }
 
+                }
+
+                Text {
+                    objectName: "login-caps-warning"
+                    width: parent.width
+                    visible: root.capsLock
+                    text: "Caps Lock is on"
+                    color: root.theme.accentWarm
+                    font.family: root.theme.fontFamily
+                    font.pixelSize: 13
+                    wrapMode: Text.Wrap
                 }
 
                 Column {

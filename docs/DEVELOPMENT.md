@@ -126,6 +126,31 @@ Personal Hyprland and application configuration remains in the separate dotfiles
 repository, deployed with its own tools. No Home Manager ownership or
 out-of-store symlink is required for the nullshell checkout.
 
+## Read-only login information preview
+
+Lock and greeter share the battery/charging, keyboard-layout and Caps Lock
+presentation in `LoginView`. `adapters/LoginInfo.qml` reads UPower natively.
+On Hyprland, it queries `hyprctl -j devices` when locking/focusing the form,
+changing layouts or releasing Caps Lock. Queries are bounded, read-only and
+disabled when the locker is idle; there is no periodic polling or helper change.
+Absent or ambiguous keyboard data is hidden. In particular, the cage greeter
+does not inherit Hyprland keyboard state. No authentication or power policy is
+changed by these status fields.
+
+`preview.qml` uses synthetic status values, never the production information
+adapter. Run the shared-view regression in a private compositor with:
+
+```sh
+nix develop --command python3 tests/run_panel_headless.py --login-info --keyboard --screenshots /tmp/nullshell-login-info
+```
+
+The preview IPC accepts `info normal|low|full|missing|long|cage`, `mode true|false`
+(lock/greeter), `light true|false` and `size WIDTH HEIGHT`. Size pins the preview
+window constraints for reproducible screenshots. This checks presentation and
+input event forwarding, not PAM or session-lock safety. Live locker processes
+do not reload; apply on their next normal launch. The system greeter consumes
+its installed snapshot, which must be explicitly updated separately.
+
 ## Local greeter QML installation
 
 The package remains the default code source. On NixOS, enabling the greeter also

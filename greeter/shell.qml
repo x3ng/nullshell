@@ -4,6 +4,7 @@ import QtQuick.Window
 import Quickshell
 import Quickshell.Io
 import Quickshell.Services.Greetd
+import "../adapters"
 
 ShellRoot {
     id: root
@@ -17,6 +18,7 @@ ShellRoot {
     property string authenticatedUser: ""
     property var pendingLaunch: null
     property string status: Greetd.available ? "" : "greetd is unavailable"
+    LoginInfo { id: loginInfo; active: true }
     readonly property string statePath: Quickshell.env("NULLSHELL_GREETER_STATE_FILE")
         || ((Quickshell.env("XDG_STATE_HOME") || Quickshell.env("HOME") + "/.local/state")
             + "/nullshell/greeter-login.json")
@@ -179,6 +181,11 @@ ShellRoot {
             selectedSessionId: catalog.selectedId
             message: root.status
             busy: root.busy
+            batteryText: loginInfo.batteryText
+            batteryLow: loginInfo.batteryLow
+            keyboardLayout: loginInfo.keyboardLayout
+            capsLock: loginInfo.capsLock
+            onKeyboardStatusRequested: loginInfo.refreshKeyboard()
             showPowerActions: true
             onSelectSession: id => catalog.choose(id)
             onPowerRequested: action => Quickshell.execDetached(["systemctl", action])

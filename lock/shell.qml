@@ -4,6 +4,7 @@ import Quickshell
 import Quickshell.Io
 import Quickshell.Services.Pam
 import Quickshell.Wayland
+import "../adapters"
 
 ShellRoot {
     id: root
@@ -39,6 +40,7 @@ ShellRoot {
     }
 
     WallpaperState { id: wallpaperState; synchronous: true }
+    LoginInfo { id: loginInfo; active: locker.locked }
 
     // Hold decoded images in Qt's process-local cache before a lock request.
     // Native size avoids a second decode when lock-surface geometry arrives.
@@ -160,6 +162,11 @@ ShellRoot {
                 userName: Quickshell.env("USER")
                 message: root.status
                 busy: root.busy
+                batteryText: loginInfo.batteryText
+                batteryLow: loginInfo.batteryLow
+                keyboardLayout: loginInfo.keyboardLayout
+                capsLock: loginInfo.capsLock
+                onKeyboardStatusRequested: loginInfo.refreshKeyboard()
                 onSubmit: (userName, secret) => root.submit(userName, secret)
                 Component.onCompleted: Qt.callLater(focusInput)
                 Connections {
