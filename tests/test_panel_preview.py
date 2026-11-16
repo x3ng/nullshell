@@ -113,6 +113,19 @@ def main():
                     expected = page if page in ["overview", "desktop"] else "detail:" + page
                     assert current["page"] == expected and current["open"], current
                     assert current["card"]["width"] > 0
+            for width in ["440", "740"]:
+                call("width", width)
+                for light in ["false", "true"]:
+                    call("light", light)
+                    call("page", "wifi")
+                    settle()
+                    assert call("activateControl", "wifi-device-Enterprise network") == "true"
+                    settle()
+                    assert call("activateControl", "wifi-connect") == "false"
+                    screenshot("wifi-unsupported-" + width + "-" + light)
+                    assert call("activateControl", "wifi-device-Guest network") == "true"
+                    settle()
+                    assert call("activateControl", "wifi-connect") == "true"
             call("scenario", "crowded")
             call("search", "terminal")
             before = settle()

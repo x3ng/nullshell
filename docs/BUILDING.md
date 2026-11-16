@@ -1,7 +1,7 @@
 # Portable build and installation
 
 The runtime does not require Nix. QML resources are interpreted by Quickshell;
-the Bluetooth helper uses standard Cargo with a committed Cargo.lock and an
+the Rust helper uses standard Cargo with a committed Cargo.lock and an
 independent build output. `make build` builds only this helper; QML needs no compilation.
 
 ## From a checkout
@@ -61,13 +61,11 @@ configuration discovery selects user QML; there is no packaged desktop fallback.
 Only isolated previews accept `NULLSHELL_DATA_DIR` as a source override.
 Use a clean package staging directory; this is not an in-place upgrade manager.
 
-Current desktop adapters use systemd/util-linux tools, coreutils, bash, the Rust helper, BlueZ tools,
-NetworkManager tools, brightnessctl, Hyprland.
-Application colour preference is published by the nullshell Settings portal backend. The on-screen keyboard
-uses optional wvkbd. Audio/media/battery use the corresponding Quickshell APIs and
-system services. Dependency names and optional feature handling will be refined
-when the adapters are separated; do not interpret this resource package as a
-complete replacement for host configuration yet.
+See [Runtime dependencies and host services](DEPENDENCIES.md) for the executable
+dependencies, optional features and required host services. NetworkManager and
+BlueZ are service requirements for their respective features, not command-line
+tool dependencies. The runtime does not invoke nmtui, nmcli or bluetoothctl.
+Installing runtime tools does not replace host service configuration.
 
 Nix builds use the same `bin/nullshell` launcher and QML tree. Only `flake.nix`
 and `nix/` contain Nix-specific packaging, dependency paths and VM definitions.

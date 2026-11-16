@@ -38,6 +38,7 @@ helper 与 QML 只需接口兼容，无需同一 Git 提交。
 - [源码预览与开发流程](docs/DEVELOPMENT.md)
 - [测试方法与覆盖边界](docs/TESTING.md)
 - [跨发行版构建与安装](docs/BUILDING.md)
+- [运行依赖与宿主服务边界](docs/DEPENDENCIES.md)
 - [仓库与提交规范](AGENTS.md)
 - [源码来源](docs/PROVENANCE.md)
 - [部署与会话生命周期](docs/DEPLOYMENT.md)

@@ -19,7 +19,6 @@ Scope {
     property bool keepAwakeRequested: false
     property bool keepAwakeReady: false
     readonly property var source: Pipewire.defaultAudioSource
-    required property list<string> terminalCommand
     signal feedback(string key, string summary, string body, bool critical)
     property bool controlsVisible: false
     property bool wifiDiscoveryActive: false
@@ -106,14 +105,6 @@ Scope {
     }
 
     function toggleKeepAwake() { return setKeepAwake(!keepAwakeRequested); }
-
-    function openNetworkEditor() {
-        if (!terminalCommand.length) return false;
-        // Like application launches, the editor survives a shell reload.
-        Quickshell.execDetached(["systemd-run", "--user", "--scope", "--collect", "--quiet",
-            "--slice=app.slice", "--expand-environment=no", "--", ...terminalCommand, "nmtui", "connect"]);
-        return true;
-    }
 
     PwObjectTracker {
         objects: root.audioOutputs.concat(root.audioInputs)

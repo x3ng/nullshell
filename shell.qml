@@ -26,7 +26,6 @@ ShellRoot {
         id: desktop
         controlsVisible: launcher.open
         wifiDiscoveryActive: launcher.open && launcher.showingDetails && launcher.controlSection === "wifi"
-        terminalCommand: desktopSearch.terminalCommand
         onFeedback: (key, summary, body, critical) =>
             notifications.notifyLocal(key, {summary: summary, body: body, critical: critical})
     }

@@ -208,7 +208,7 @@ ColumnLayout {
         Text {
             Layout.fillWidth: true
             visible: pane.wifi && !!pane.selectedDevice && !pane.system.wifiCanJoin(pane.selectedDevice)
-            text: "Enterprise or legacy authentication needs advanced network settings below."
+            text: "This authentication type cannot be configured here. Set up a NetworkManager connection with a separate network settings tool first."
             wrapMode: Text.Wrap
             color: pane.style.accentWarm
             font.family: pane.style.fontFamily
@@ -224,6 +224,7 @@ ColumnLayout {
                 selected: true
                 label: pane.selectedBusy ? "Working…" : pane.selectedDevice?.connected ? "Disconnect"
                     : !pane.wifi && !pane.selectedDevice?.paired ? "Pair & connect" : "Connect"
+                objectName: pane.wifi ? "wifi-connect" : "bluetooth-connect"
                 available: !!pane.selectedDevice && !pane.selectedBusy
                     && (!pane.wifi || pane.selectedDevice.connected || (pane.system.wifiCanJoin(pane.selectedDevice)
                         && (!pane.passwordNeeded || (pane.selectedDevice.known && password.text === "")
@@ -263,6 +264,7 @@ ColumnLayout {
         model: pane.rows
         delegate: DeviceRow {
             required property var modelData
+            objectName: (pane.wifi ? "wifi-device-" : "bluetooth-device-") + pane.key(modelData)
             Layout.fillWidth: true
             style: pane.style
             title: modelData.name || modelData.address
@@ -285,13 +287,5 @@ ColumnLayout {
         color: pane.style.textMuted
         font.family: pane.style.fontFamily
         font.pixelSize: pane.style.fontSizeSmall
-    }
-    ChoiceButton {
-        Layout.fillWidth: true
-        visible: pane.wifi
-        style: pane.style
-        label: "Advanced network settings…"
-        available: pane.services.terminalCommand.length > 0
-        onTriggered: pane.services.openNetworkEditor()
     }
 }

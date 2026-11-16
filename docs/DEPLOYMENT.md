@@ -60,6 +60,11 @@ Manager explicitly; installation does not select or require a configuration mana
 The default package is the runtime; it contains no desktop QML snapshot and does
 not replace upstream Quickshell with a wrapper.
 
+NetworkManager and BlueZ services remain explicit host choices; this module does
+not enable them. Their command-line tools are not included as direct runtime
+dependencies. See [the dependency contract](DEPENDENCIES.md) for each feature's
+requirements and the current network panel's supported operations.
+
 Maintain QML separately under Quickshell's standard configuration directories.
 `nullshell desktop`, `locker`, `polkit` and IPC use native names `nullshell`,
 `nullshell/lock` and `nullshell/polkit`. No custom directory inference or fallback

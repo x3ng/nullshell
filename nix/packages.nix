@@ -46,8 +46,8 @@ let
     bash
     coreutils
     systemd
-    bluez
-    networkmanager
+    # Networking/Bluetooth use system D-Bus services through native APIs.
+    # Their daemons are host choices, not CLI dependencies of this runtime.
     brightnessctl
     hyprland
     wvkbd

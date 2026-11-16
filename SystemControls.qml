@@ -299,7 +299,7 @@ Scope {
     }
     function connectWifi(network, password = "") {
         if (!wifiEnabled || wifiBusy || !wifiNearbyNetworks.includes(network) || network.connected) return false;
-        if (!wifiCanJoin(network)) { wifiError = "This network needs advanced authentication. Open network settings below."; return false; }
+        if (!wifiCanJoin(network)) { wifiError = "This authentication type cannot be configured in this panel. Set up a NetworkManager connection with a separate network settings tool first."; return false; }
         if ((!network.known || password !== "") && wifiUsesPassword(network) && !wifiPasswordValid(network, password)) {
             wifiError = "Enter a valid Wi-Fi password.";
             return false;

@@ -93,7 +93,6 @@ Scope {
     function setVolume(value) { outputAudio.volume = value; }
     function setBrightness(value) { brightness = value; }
     function selectAudioDevice(device, isInput) { lastAction = "select audio"; }
-    function openNetworkEditor() { lastAction = "network editor"; }
 
     property var player: scenario === "media" || scenario === "crowded" ? media : null
     QtObject {
@@ -118,7 +117,8 @@ Scope {
     property string wifiConnection: wifiNetworks.find(n => n.connected)?.name || "Not connected"
     property var wifiNetworks: scenario === "empty" ? [] : [
         {name: scenario === "crowded" ? "A deliberately long wireless network name" : "Studio Wi-Fi", connected: true, signalStrength: 0.82, known: true, device: {name: "wlan-test"}},
-        {name: "Guest network", connected: false, signalStrength: 0.53, known: false, device: {name: "wlan-test"}}
+        {name: "Guest network", connected: false, signalStrength: 0.53, known: false, device: {name: "wlan-test"}},
+        {name: "Enterprise network", connected: false, signalStrength: 0.65, known: false, unsupported: true, device: {name: "wlan-test"}}
     ]
     property var wifiNearbyNetworks: wifiNetworks
     property bool wifiBusy: false
@@ -140,7 +140,7 @@ Scope {
     function bluetoothDeviceLabel(device) { return device.connected ? "Connected" : "Paired"; }
     function bluetoothDeviceBusy(device) { return false; }
     function wifiUsesPassword(device) { return false; }
-    function wifiCanJoin(device) { return true; }
+    function wifiCanJoin(device) { return !device.unsupported; }
     function wifiPasswordValid(device, password) { return true; }
     function cancelBluetoothPairing() { pairingDevice = null; }
     function answerBluetoothPairing(answer) { lastAction = "pairing response"; }
