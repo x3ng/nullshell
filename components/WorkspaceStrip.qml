@@ -135,6 +135,30 @@ Item {
                     readonly property string group: "tray"
                     required property var modelData
                     required property int index
+                    objectName: "tray-item-" + index
+                    activeFocusOnTab: visible
+                    Accessible.role: Accessible.Button
+                    Accessible.name: modelData.tooltipTitle || modelData.title || modelData.id || "Tray item"
+                    Accessible.onPressAction: trayItem.triggered()
+                    border.width: activeFocus ? 1 : 0
+                    border.color: strip.style.accent
+                    function openMenu() {
+                        const pos = trayItem.mapToItem(strip, width, 0);
+                        strip.menuRequested(modelData, pos.x, pos.y);
+                    }
+                    function triggered() {
+                        if (modelData.onlyMenu) openMenu();
+                        else modelData.activate();
+                    }
+                    Keys.onReturnPressed: triggered()
+                    Keys.onEnterPressed: triggered()
+                    Keys.onSpacePressed: triggered()
+                    Keys.onMenuPressed: openMenu()
+                    Keys.onPressed: event => {
+                        if (event.key === Qt.Key_F10 && (event.modifiers & Qt.ShiftModifier)) {
+                            openMenu(); event.accepted = true;
+                        }
+                    }
                     width: 32; height: 32
                     radius: strip.style.radiusControl
                     color: "transparent"
@@ -165,15 +189,13 @@ Item {
                         hoverEnabled: true
                         acceptedButtons: Qt.LeftButton | Qt.RightButton
                         onClicked: event => {
-                            if (event.button === Qt.RightButton || trayItem.modelData.onlyMenu) {
-                                const pos = trayItem.mapToItem(strip, trayItem.width, 0);
-                                strip.menuRequested(trayItem.modelData, pos.x, pos.y);
-                            } else trayItem.modelData.activate();
+                            if (event.button === Qt.RightButton) trayItem.openMenu();
+                            else trayItem.triggered();
                         }
                     }
                     ShellToolTip {
                         style: strip.style
-                        visible: trayMouse.containsMouse && text !== ""
+                        visible: (trayMouse.containsMouse || trayItem.activeFocus) && text !== ""
                         text: [trayItem.modelData.tooltipTitle || trayItem.modelData.title || trayItem.modelData.id || "",
                             trayItem.modelData.tooltipDescription || ""].filter(part => part !== "").join("\n")
                     }

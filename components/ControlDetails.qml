@@ -151,6 +151,22 @@ Rectangle {
                 selected: detail.showHistory
                 onTriggered: { detail.showHistory = true; viewport.contentY = 0; }
             }
+            ChoiceButton {
+                objectName: "notification-quiet"
+                Layout.fillWidth: true
+                Layout.preferredWidth: 1
+                Layout.preferredHeight: 36
+                filled: true
+                style: detail.style
+                label: detail.notifs.doNotDisturb ? "Resume" : "Quiet · 1h"
+                selected: detail.notifs.doNotDisturb
+                available: detail.notifs.quietReady
+                tooltip: detail.notifs.quietError || (detail.notifs.doNotDisturb
+                    ? "Banners paused until " + Qt.formatTime(new Date(detail.notifs.quietUntil), "hh:mm")
+                        + " · Critical alerts still appear"
+                    : "Pause banners for one hour · Critical alerts still appear")
+                onTriggered: detail.actions.execute(detail.notifs.doNotDisturb ? "notifications-resume" : "notifications-pause")
+            }
 
         }
         ClippingRectangle {

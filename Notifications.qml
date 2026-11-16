@@ -5,6 +5,7 @@ import Quickshell
 import Quickshell.Io
 import Quickshell.Services.Notifications
 import "components/NotificationUtils.js" as NotificationUtils
+import "ConfigRules.js" as ConfigRules
 
 // Freedesktop notification daemon (replaces mako). Three lists, matching how
 // Noctalia and DankMaterialShell split the same problem:
@@ -16,6 +17,35 @@ import "components/NotificationUtils.js" as NotificationUtils
 // so the center can still invoke the application's actions after the toast ends.
 Scope {
     id: root
+    property var settings: ConfigRules.defaults().notifications
+    // Startup must not overwrite saved history using defaults before config loads.
+    property bool settingsReady: true
+    NotificationQuiet { id: quiet }
+    readonly property bool quietReady: quiet.ready
+    readonly property bool doNotDisturb: quiet.active
+    readonly property double quietUntil: quiet.until
+    readonly property string quietError: quiet.error
+    function pause(minutes = 60) { return quiet.pause(minutes); }
+    function resume() { return quiet.resume(); }
+    onDoNotDisturbChanged: if (doNotDisturb) {
+        for (const wrapper of popups.slice()) if (!wrapper.critical) expire(wrapper);
+    }
+    onSettingsChanged: if (historyLoaded && settingsReady) { pruneHistory(); persistHistory(); }
+    property var pendingLoad: null
+    onSettingsReadyChanged: if (settingsReady) {
+        // Notifications can arrive while config is loading. Apply the actual
+        // recording policy before releasing those bounded startup wrappers.
+        for (const wrapper of liveNotifications.slice()) {
+            saveRecord(wrapper);
+            present(wrapper);
+        }
+        if (pendingLoad) {
+            const pending = pendingLoad;
+            pendingLoad = null;
+            applyLoaded(pending.contents, pending.legacy);
+        }
+        if (historyLoaded) { pruneHistory(); persistHistory(); }
+    }
 
     // Live popup wrappers, newest last. Capped; overflow evicts the oldest.
     property var popups: []
@@ -34,9 +64,8 @@ Scope {
     // History is re-read on every start, so it has to stay bounded (entry
     // bodies are arbitrary application text).
     readonly property int maxHistory: 50
-    // Keep diagnostic tips (e.g. fcitx5's Wayland warnings) available after
-    // their banners close. Set false to honor toast-only transient hints.
-    property bool recordTransient: true
+    // Transient hints are toast-only by default; consumers can opt into history.
+    readonly property bool recordTransient: settings.recordTransient
 
     // Popup lifetime: app-provided timeout when set, else mako's default
     // of 5s. Critical notifications stay until dismissed.
@@ -123,7 +152,7 @@ Scope {
                 if (!wrapper.closing) {
                     wrapper.time = Date.now();
                     root.saveRecord(wrapper);
-                    wrapper.restartTimeout();
+                    root.present(wrapper);
                 }
             }
         }
@@ -149,9 +178,7 @@ Scope {
         notif.tracked = true;
         const existing = liveNotifications.find(w => w.notification === notif);
         if (existing) {
-            if (!popups.includes(existing)) popups = [...popups, existing];
             existing.updateTimer.restart();
-            limitPopups();
             return;
         }
         const wrapper = notifWrapperComponent.createObject(root, {
@@ -161,11 +188,36 @@ Scope {
         if (!wrapper) return;
         liveNotifications = [...liveNotifications, wrapper];
         saveRecord(wrapper);
-        popups = [...popups, wrapper];
-        wrapper.restartTimeout();
-        limitPopups();
+        present(wrapper);
         limitLive();
     }
+
+    function present(wrapper) {
+        if (!settingsReady && !wrapper.critical) return;
+        if ((!quietReady || doNotDisturb) && !wrapper.critical) { expire(wrapper); return; }
+        if (!popups.includes(wrapper)) popups = [...popups, wrapper];
+        wrapper.restartTimeout();
+        limitPopups();
+    }
+
+    function excluded(entry) {
+        return settings.excludedApplications.some(value => [entry.desktopEntry || "", entry.appName || ""]
+            .some(identity => String(identity).toLocaleLowerCase() === value.toLocaleLowerCase()));
+    }
+    function retain(entry) {
+        return entry.time >= Date.now() - settings.historyDays * 86400000 && !excluded(entry)
+            && (recordTransient || !entry.transient);
+    }
+    function pruneHistory() {
+        // Memory history is still useful when disk persistence is disabled.
+        history = history.filter(entry => retain(entry));
+        current = current.filter(entry => retain(entry));
+        for (const wrapper of liveNotifications.slice()) {
+            if (!popups.includes(wrapper) && !current.some(entry => entry.recordKey === wrapper.recordKey)) expire(wrapper);
+        }
+    }
+    Timer { interval: 60000; repeat: true; running: root.historyLoaded && root.settingsReady
+        onTriggered: { root.pruneHistory(); root.persistHistory(); } }
 
     function limitPopups() {
         while (popups.length > maxVisible)
@@ -192,18 +244,15 @@ Scope {
         if (wrapper) {
             wrapper.notification = payload;
             wrapper.time = Date.now();
-            if (!popups.includes(wrapper)) popups = [...popups, wrapper];
         } else {
             wrapper = notifWrapperComponent.createObject(root, {
                 notification: payload, localKey: key, recordKey: "local:" + key
             });
             if (!wrapper) return false;
             liveNotifications = [...liveNotifications, wrapper];
-            popups = [...popups, wrapper];
         }
         saveRecord(wrapper);
-        wrapper.restartTimeout();
-        limitPopups();
+        present(wrapper);
         limitLive();
         return true;
     }
@@ -223,10 +272,11 @@ Scope {
     }
 
     function saveRecord(wrapper) {
+        if (!settingsReady) return;
         current = current.filter(e => e.recordKey !== wrapper.recordKey);
         history = history.filter(e => e.recordKey !== wrapper.recordKey);
-        // Some apps mark useful warnings as transient, including fcitx5.
-        if (recordTransient || !wrapper.notification.transient) {
+        // Applications may explicitly request toast-only transient hints.
+        if ((recordTransient || !wrapper.notification.transient) && !excluded(wrapper)) {
             const record = {
                 recordKey: wrapper.recordKey,
                 appName: wrapper.appName,
@@ -236,6 +286,7 @@ Scope {
                 desktopEntry: wrapper.desktopEntry || "",
                 contentImage: NotificationUtils.savedImage(wrapper.contentImage),
                 urgency: wrapper.urgency,
+                transient: wrapper.notification.transient === true,
                 time: wrapper.time
             };
             // The same record object backs both lists this session, so the
@@ -405,8 +456,8 @@ Scope {
         // Anything that arrived before the async load sits in front.
         const historyKeys = new Set(history.map(e => e.recordKey));
         const currentKeys = new Set(current.map(e => e.recordKey));
-        history = [...history, ...loadedHistory.filter(e => !historyKeys.has(e.recordKey))].slice(0, maxHistory);
-        current = [...current, ...loadedCurrent.filter(e => !currentKeys.has(e.recordKey))].slice(0, maxCurrent);
+        history = [...history, ...(settings.persistHistory ? loadedHistory.filter(e => !historyKeys.has(e.recordKey) && retain(e)) : [])].slice(0, maxHistory);
+        current = [...current, ...(settings.persistHistory ? loadedCurrent.filter(e => !currentKeys.has(e.recordKey) && retain(e)) : [])].slice(0, maxCurrent);
         closedLocalKeys = [];
         currentClearedBeforeLoad = false;
         historyClearedBeforeLoad = false;
@@ -423,6 +474,7 @@ Scope {
 
     function applyLoaded(contents, legacy) {
         if (historyLoaded || legacy !== legacyRequested) return;
+        if (!settingsReady) { pendingLoad = {contents: contents, legacy: legacy}; return; }
         let data;
         try {
             data = JSON.parse(contents);
@@ -438,7 +490,7 @@ Scope {
         }
         loadHistory(data);
         if (!legacy) persistedContents = contents;
-        if (legacy) persistHistory();
+        persistHistory();
         finishLoad(true, "");
     }
 
@@ -457,8 +509,9 @@ Scope {
     }
 
     function flushHistory() {
-        if (!historyLoaded || !persistenceAllowed || !historyDirty || writeInFlight) return;
-        const contents = JSON.stringify({version: 1, notifications: history, current: current}) + "\n";
+        if (!settingsReady || !historyLoaded || !persistenceAllowed || !historyDirty || writeInFlight) return;
+        const contents = JSON.stringify({version: 1, notifications: settings.persistHistory ? history : [],
+            current: settings.persistHistory ? current : []}) + "\n";
         // FileView skips same-content writes without emitting saved.
         if (contents === persistedContents) {
             historyDirty = false;

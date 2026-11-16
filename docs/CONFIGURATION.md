@@ -39,7 +39,7 @@ Missing files at first startup are normal. Removing a previously loaded file
 retains that process's snapshot; use `{"version":1}` to reset explicitly.
 
 The authoritative parser/defaults are `ConfigRules.js`; `ShellConfig.qml`
-owns file loading and publication. Pages do not read files. Configuration covers terminal, idle and appearance scheduling. Wallpaper and
+owns file loading and publication. Pages do not read files. Configuration covers terminal, idle, search aliases, notification history and appearance scheduling. Wallpaper and
 greeter configuration remain separate settings domains. Legacy state migration is documented in
 [DEPLOYMENT.md](DEPLOYMENT.md).
 
@@ -50,6 +50,72 @@ Other distributions can set `NULLSHELL_GREETER_STATE_FILE` to a writable path ow
 by the greeter account. Missing or invalid state falls back to an empty user and
 the available session list. Passwords are never stored, and the greeter does not
 read a desktop user's home directory.
+
+## Search aliases and notification policy
+
+The empty command-panel state is unchanged. Exact names and literal keywords
+rank before conservative name abbreviations (ASCII subsequences and initials,
+such as `ff` for Firefox or `vsc` for Visual Studio Code). Comments are never
+matched fuzzily. This is abbreviation matching, not spelling correction.
+Existing command keywords include Chinese. Add personal aliases without editing
+the command catalog or desktop entries:
+
+```json
+{
+  "version": 1,
+  "search": {
+    "aliases": {
+      "app:firefox": ["火狐", "浏览器"],
+      "action:audio": ["声音设置"]
+    }
+  },
+  "notifications": {
+    "persistHistory": true,
+    "historyDays": 7,
+    "recordTransient": false,
+    "excludedApplications": []
+  }
+}
+```
+
+Alias targets are `app:DESKTOP_ID` (with or without `.desktop`) or
+`action:COMMAND_ID`. Aliases only affect matching, never execute commands or
+create entries. At most 128 targets, 16 aliases per target and 128 characters per
+alias are accepted. Prefix scopes and panel/action filtering remain unchanged.
+
+Notification history stays bounded to 50 entries and pending notifications to
+20. `historyDays` accepts 1–365 days (default 7); expired entries are removed on
+load, policy changes and a one-minute maintenance tick. `recordTransient` defaults
+to false, so transient hints appear without entering the center or disk history.
+Older saved records lacking a transient flag cannot be retroactively classified.
+`excludedApplications` matches exact desktop-entry IDs or app names, ignoring
+case; excluded notifications still show banners, but are not recorded. It accepts
+up to 128 names of 256 characters each.
+
+`persistHistory: false` retains current-session history in memory, clears the
+valid saved snapshot and stops writing notification contents. It does not import
+previous disk history. Invalid saved files are preserved for explicit repair;
+policy changes never overwrite an unreadable or unsupported snapshot. These
+preferences are configuration, not writable UI overrides.
+
+Search for **Pause notifications for one hour** / `勿扰`, or use **Quiet · 1h**
+inside the existing notification details. Critical alerts, including critical
+battery warnings, still appear. Ordinary notifications remain in the center;
+resume never replays accumulated banners. **Resume notifications** ends the
+period early. The desktop alone writes its expiry atomically to
+`$XDG_STATE_HOME/nullshell/notification-quiet.json`; restart preserves an unexpired
+period. This state does not override history policy. Invalid state uses an
+inactive in-memory default and is preserved; read/write errors appear in the
+details control's tooltip. Nothing is added to the homepage or idle desktop.
+
+Application search dispatches through short-lived `systemd-run` clients into
+independent user services in `app.slice`. `Type=exec` reports execution failures;
+`ExitType=cgroup` keeps forked descendants owned by the application unit. The
+client does not wait for application exit. Session display, input-method, PATH
+and XDG context are passed by environment variable name, without values in argv.
+No shell evaluates desktop-entry arguments. Up to eight dispatches can be pending;
+manager startup has a ten-second deadline. Client timeout/failure is reported as
+a local notification. Accepted dispatch does not guarantee a mapped window.
 
 ## Appearance snapshots (version 1)
 

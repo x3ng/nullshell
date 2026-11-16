@@ -42,8 +42,15 @@ ShellRoot {
         query: launcher.query
         actions: shellActions
         terminalCommand: config.values.terminal
+        aliases: config.values.search.aliases
+        onFeedback: (key, summary, body, critical) =>
+            notifications.notifyLocal(key, {summary: summary, body: body, critical: critical})
     }
-    Notifications { id: notifications }
+    Notifications {
+        id: notifications
+        settings: config.values.notifications
+        settingsReady: config.ready
+    }
     BatteryAlerts { battery: desktop.battery; notifications: notifications }
     ScreenKeyboard {
         id: keyboard
@@ -64,6 +71,7 @@ ShellRoot {
         appearance: appearance
         keyboard: keyboard
         hyprControls: hyprControls
+        notifs: notifications
         onNavigateRequested: section => launcher.navigate(section)
     }
 

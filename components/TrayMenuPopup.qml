@@ -64,6 +64,24 @@ PopupWindow {
         var title = owner?.title || owner?.id || "APPLICATION";
         return title.toUpperCase();
     }
+    function moveSelection(delta) {
+        const rows = menuList.model || [];
+        const start = menuList.currentIndex < 0 && delta < 0 ? 0 : menuList.currentIndex;
+        for (let offset = 1; offset <= rows.length; offset++) {
+            const index = (start + delta * offset + rows.length) % rows.length;
+            if (!rows[index].isSeparator && rows[index].enabled) {
+                menuList.currentIndex = index;
+                menuList.positionViewAtIndex(index, ListView.Contain);
+                return;
+            }
+        }
+    }
+    function activateSelection(submenuOnly = false) {
+        const entry = menuList.model?.[menuList.currentIndex];
+        if (!entry || entry.isSeparator || !entry.enabled) return;
+        if (entry.hasChildren) enterSubmenu(entry);
+        else if (!submenuOnly) triggerEntry(entry);
+    }
 
     anchor.window: panelWindow
     visible: open && panelWindow.visible
@@ -98,6 +116,13 @@ PopupWindow {
         materialTheme: popup.style
         anchors.fill: parent
         focus: true
+        Keys.onDownPressed: popup.moveSelection(1)
+        Keys.onUpPressed: popup.moveSelection(-1)
+        Keys.onReturnPressed: popup.activateSelection()
+        Keys.onEnterPressed: popup.activateSelection()
+        Keys.onSpacePressed: popup.activateSelection()
+        Keys.onRightPressed: popup.activateSelection(true)
+        Keys.onLeftPressed: { if (popup.menuStack.length > 1) popup.leaveSubmenu(); }
         Keys.onEscapePressed: {
             if (popup.menuStack.length > 1) popup.leaveSubmenu();
             else popup.dismiss();
@@ -207,7 +232,12 @@ PopupWindow {
             id: menuList
             property var hoveredEntry: null
             spacing: 3
-            onModelChanged: hoveredEntry = null
+            currentIndex: -1
+            onModelChanged: {
+                hoveredEntry = null;
+                currentIndex = -1;
+                Qt.callLater(() => popup.moveSelection(1));
+            }
             onContentYChanged: hoveredEntry = null
             anchors.top: header.bottom
             anchors.topMargin: 5
@@ -223,6 +253,7 @@ PopupWindow {
 
             delegate: Item {
                 id: entry
+                required property int index
                 required property QsMenuEntry modelData
                 readonly property bool checked: modelData.checkState !== Qt.Unchecked
                 width: menuList.width
@@ -244,7 +275,9 @@ PopupWindow {
                     visible: !entry.modelData.isSeparator
                     anchors.fill: parent
                     radius: popup.style.radiusControl
-                    color: menuList.hoveredEntry === entry && entryMouse.containsMouse && entry.modelData.enabled
+                    color: menuList.currentIndex === entry.index && entry.modelData.enabled && !entry.modelData.isSeparator
+                        ? popup.style.surfaceSelected
+                        : menuList.hoveredEntry === entry && entryMouse.containsMouse && entry.modelData.enabled
                         ? popup.style.surfaceHover
                         : "transparent"
                 }
@@ -333,8 +366,8 @@ PopupWindow {
                     anchors.fill: parent
                     enabled: !entry.modelData.isSeparator && entry.modelData.enabled
                     hoverEnabled: true
-                    onEntered: menuList.hoveredEntry = entry
-                    onPositionChanged: menuList.hoveredEntry = entry
+                    onEntered: { menuList.hoveredEntry = entry; menuList.currentIndex = entry.index; }
+                    onPositionChanged: { menuList.hoveredEntry = entry; menuList.currentIndex = entry.index; }
                     onExited: {
                         if (menuList.hoveredEntry === entry) menuList.hoveredEntry = null;
                     }

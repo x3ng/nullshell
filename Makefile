@@ -5,7 +5,7 @@ CARGO_TARGET_DIR ?= backend/target
 
 .DEFAULT_GOAL := help
 
-.PHONY: check-session check-sleep check-settings help build helper install check check-backend check-pairing check-preview check-material check-appearance install-greeter install-assets
+.PHONY: check-command check-session check-sleep check-settings help build helper install check check-backend check-pairing check-preview check-material check-appearance install-greeter install-assets
 
 help:
 	@printf '%s\n' \
@@ -15,6 +15,7 @@ help:
 	  '  install           Build and install runtime commands (PREFIX, DESTDIR)' \
 	  '  install-greeter   Install checkout QML using sudo; no service restart' \
 	  '  check             Run lightweight syntax and launcher checks' \
+	  '  check-command     Check search, app dispatch and notifications on a private bus' \
 	  '  check-backend     Run Rust tests' \
 	  '  check-sleep       Check logind coordination on a private bus' \
 	  '  check-session     Check session commands using fake executables' \
@@ -59,6 +60,9 @@ check:
 
 check-pairing:
 	python3 tests/test_pairing_adapter.py
+
+check-command:
+	python3 tests/test_command_panel.py
 
 check-backend:
 	CARGO_BUILD_JOBS=$(CARGO_BUILD_JOBS) cargo test --locked --manifest-path backend/Cargo.toml

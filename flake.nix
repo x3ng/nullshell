@@ -28,6 +28,7 @@
           panel = import ./nix/tests/panel.nix { inherit pkgs packages; };
           preview = import ./nix/tests/preview.nix { inherit pkgs packages; };
           config = import ./nix/tests/config.nix { inherit pkgs; };
+          command-panel = import ./nix/tests/command-panel.nix { inherit pkgs; };
           settings = import ./nix/tests/settings.nix { inherit pkgs packages; };
           sleep = import ./nix/tests/sleep.nix { inherit pkgs packages; };
           session = import ./nix/tests/session.nix { inherit pkgs; };
@@ -41,6 +42,9 @@
       );
       # Explicit, heavier integration test; not part of every local flake check.
       legacyPackages = eachSystem (system: {
+        tests.launch-vm = import ./nix/tests/launch-vm.nix {
+          pkgs = nixpkgs.legacyPackages.${system};
+        };
         tests.desktop-vm = import ./nix/tests/desktop-vm.nix {
           pkgs = nixpkgs.legacyPackages.${system};
           packages = self.packages.${system};

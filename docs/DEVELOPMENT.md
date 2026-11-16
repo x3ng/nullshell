@@ -245,9 +245,17 @@ The headless preview regression covers split targets, appearance settings,
 disabled/busy actions, both palettes and narrow/wide home layouts, in addition to
 the existing detail, search and session-menu checks. Preview actions remain fake.
 
-Known keyboard limitation: when the overview overflows, Tab can focus a control
-outside the visible scroll area without scrolling it into view. Pointer scrolling
-still reaches it; keyboard focus-following needs a separate follow-up.
+The overview scrolls keyboard-focused controls into view, including wrapped tray
+and session controls. Tray items support Enter/Space to activate and Menu or
+Shift+F10 to open their menu. Native menus support Up/Down, Enter/Space, Right to
+enter a submenu and Left/Escape to leave it. Disabled entries and separators are
+skipped. Preview checks exercise focus visibility and synthetic tray activation;
+native DBusMenu population still needs integration acceptance.
+
+The notification detail's Quiet/Resume control and corresponding searchable
+commands pause ordinary banners for one hour without adding homepage content.
+Critical alerts remain visible. Search aliases and disk-history policy are
+documented in [CONFIGURATION.md](CONFIGURATION.md).
 
 ### Detachable settings
 

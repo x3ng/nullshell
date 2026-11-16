@@ -8,6 +8,12 @@ Scope {
     id: fixture
     property string scenario: "normal"
     property string lastAction: ""
+    property bool quietReady: true
+    property bool doNotDisturb: false
+    property double quietUntil: 0
+    property string quietError: ""
+    function pause(minutes = 60) { doNotDisturb = true; quietUntil = Date.now() + minutes * 60000; return true; }
+    function resume() { doNotDisturb = false; quietUntil = 0; return true; }
     property QtObject session: QtObject {
         property bool busy: false
         property string error: ""
@@ -221,6 +227,8 @@ Scope {
         else if (action === "auto") selectMode("auto");
         else if (action === "appearance-resume") resumeAutomatic();
         else if (action === "keep-awake") keepAwake = !keepAwake;
+        else if (action === "notifications-pause") pause();
+        else if (action === "notifications-resume") resume();
         else if (action === "light" || action === "dark") {
             darkMode = action === "dark";
             if (automatic) overrideUntil = 1794736800;

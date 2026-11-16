@@ -1,6 +1,21 @@
 # Releases
 
-## Unreleased — installation boundary
+## Unreleased
+
+Command-panel reliability and small capability additions, preserving the empty
+idle desktop and existing homepage layout:
+
+- Scroll keyboard focus into view and support tray activation/menu navigation.
+- Report bounded application-launch failures through independent user services.
+- Match conservative name abbreviations and configurable application/command aliases.
+- Add one-hour notification quiet periods with critical-alert exceptions and
+  restart-safe expiry. History defaults to seven days (still at most 50 entries),
+  excludes transient hints by default, and supports opt-out and per-app exclusions.
+
+Validation: portable checks, private-bus configuration/command tests, isolated
+keyboard previews with inspected 440/740 px screenshots in both palettes, and a
+real systemd application-launch VM. Native tray application compatibility and
+physical-device acceptance remain separate from synthetic preview checks.
 
 Keep upstream Quickshell and native named configuration discovery. Install the
 helper/runtime independently of user QML; greeter resources remain separate.

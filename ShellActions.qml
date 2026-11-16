@@ -11,6 +11,7 @@ Scope {
     required property var appearance
     required property var keyboard
     required property var hyprControls
+    required property var notifs
     readonly property var session: sessionActions
     SessionActions { id: sessionActions }
     signal navigateRequested(string section)
@@ -30,6 +31,8 @@ Scope {
         {id: "wifi-toggle", description: "Enable or disable the wireless radio", title: services.controls.wifiEnabled ? "Turn off Wi-Fi" : "Turn on Wi-Fi", keywords: "wireless radio 无线 网络 开关", icon: "wifi", enabled: services.controls.wifiAvailable && !services.controls.wifiBusy},
         {id: "bluetooth-toggle", description: "Enable or disable the Bluetooth radio", title: services.controls.bluetoothEnabled ? "Turn off Bluetooth" : "Turn on Bluetooth", keywords: "radio 蓝牙 开关", icon: "bluetooth", enabled: services.controls.bluetoothAvailable && !services.controls.bluetoothBusy},
         {id: "notifications", description: "Read recent notifications and history", title: "Notification center", keywords: "messages 通知 历史 消息", icon: "app", enabled: true},
+        {id: "notifications-pause", description: "Silence banners for one hour; critical alerts still appear", title: "Pause notifications for one hour", keywords: "dnd quiet do not disturb 勿扰 免打扰 暂停 通知", icon: "bell", enabled: notifs.quietReady && !notifs.doNotDisturb},
+        {id: "notifications-resume", description: "Show notification banners again", title: "Resume notifications", keywords: "dnd quiet 勿扰 恢复 通知", icon: "bell", enabled: notifs.quietReady && notifs.doNotDisturb},
         {id: "output-mute", description: "Toggle sound on the current output", title: services.sink?.audio?.muted ? "Unmute output" : "Mute output", keywords: "sound speaker 静音 扬声器 取消静音", icon: "volume", enabled: !!services.sink?.audio},
         {id: "mic-mute", description: "Toggle the current microphone", title: services.source?.audio?.muted ? "Unmute microphone" : "Mute microphone", keywords: "mic 静音 麦克风 取消静音", icon: "mic", enabled: !!services.source?.audio},
         {id: "keep-awake", description: "Pause or resume automatic dimming, locking and screen power-off", title: services.keepAwake ? "Resume idle behavior" : "Keep awake", keywords: "idle dim lock screen 保持唤醒 空闲 息屏 自动锁屏", icon: "eye", enabled: true},
@@ -65,6 +68,8 @@ Scope {
         case "output-mute": return services.toggleOutputMute();
         case "mic-mute": return services.toggleMicMute();
         case "keep-awake": return services.toggleKeepAwake();
+        case "notifications-pause": return notifs.pause(60);
+        case "notifications-resume": return notifs.resume();
         case "auto": return appearance.selectMode("auto");
         case "appearance-resume": appearance.resumeAutomatic(); return true;
         case "light": return appearance.setTheme(false);

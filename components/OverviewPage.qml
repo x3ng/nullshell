@@ -3,6 +3,7 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Layouts
 import QtQuick.Controls
+import QtQuick.Window
 import Quickshell.Widgets
 import ".."
 
@@ -42,6 +43,22 @@ ColumnLayout {
         restoreMode: Binding.RestoreNone
     }
     onPanelOpenChanged: if (panelOpen) viewport.contentY = 0
+    function revealFocus() {
+        if (!panelOpen) return;
+        const item = page.Window.window?.activeFocusItem;
+        if (!item) return;
+        let ancestor = item;
+        while (ancestor && ancestor !== content) ancestor = ancestor.parent;
+        if (!ancestor) return;
+        const point = item.mapToItem(viewport, 0, 0);
+        if (point.y < 0) viewport.contentY += point.y;
+        else if (point.y + item.height > viewport.height) viewport.contentY += point.y + item.height - viewport.height;
+        viewport.contentY = Math.max(0, Math.min(viewport.contentY, viewport.contentHeight - viewport.height));
+    }
+    Connections {
+        target: page.Window.window
+        function onActiveFocusItemChanged() { Qt.callLater(page.revealFocus); }
+    }
     Item {
         Layout.fillWidth: true
         Layout.fillHeight: true

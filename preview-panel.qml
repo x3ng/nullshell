@@ -1,5 +1,6 @@
 //@ pragma UseQApplication
 import QtQuick
+import QtQuick.Window
 import Quickshell
 import Quickshell.Wayland
 import Quickshell.Io
@@ -97,7 +98,7 @@ ShellRoot {
                 scroll: view?.contentY ?? 0, imageWidth: image?.width ?? 0, imageHeight: image?.height ?? 0});
         }
         function focusControl(name: string, control: string): bool {
-            const page = panel.detailPages.pageItem(name);
+            const page = name === "overview" ? panel.contentItem : panel.detailPages.pageItem(name);
             const item = page ? root.findItem(page, control) : null;
             if (!item) return false;
             item.forceActiveFocus();
@@ -182,7 +183,13 @@ ShellRoot {
             return item ? item.grabToImage(result => result.saveToFile(path)) : false;
         }
         function status(): string {
+            const viewport = root.findItem(panel.contentItem, "overview-scroll");
+            const focus = panel.contentItem.Window.window?.activeFocusItem;
+            const point = focus && viewport ? focus.mapToItem(viewport, 0, 0) : null;
             return JSON.stringify({open: panel.open, page: panel.pageKey, scenario: fixture.scenario,
+                doNotDisturb: fixture.doNotDisturb,
+                focusedItem: focus?.objectName ?? "", overviewScroll: viewport?.contentY ?? 0,
+                focusY: point?.y ?? 0, focusHeight: focus?.height ?? 0, overviewHeight: viewport?.height ?? 0,
                 detached: panel.detailPages.sections.filter(section => panel.detailPages.isDetached(section)),
                 detachedFocus: panel.detailPages.sections.filter(section => panel.detailPages.isDetached(section)).map(section => ({section: section,
                     active: panel.detailPages.slot(section).window.active,

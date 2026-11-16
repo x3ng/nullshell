@@ -6,6 +6,7 @@ With Python 3, Cargo and Quickshell installed, no Nix evaluation is needed:
 
 ```sh
 make check
+make check-command
 make check-backend
 cargo clippy --locked --manifest-path backend/Cargo.toml -- -D warnings
 # Inside a Wayland compositor (starts and closes only its fixture preview):
@@ -20,6 +21,23 @@ same QML panel with mock states, checks routing and settled geometry, selection
 identity across title updates, resize/palette changes, logs and process cleanup.
 It does not claim to prove hover stability from a result count or screenshot.
 The test refuses to attach to an existing preview instance.
+
+`make check-command` additionally requires D-Bus and Python dbus-next (available
+in `nix develop`). It stages real search/config/notification/launcher modules in
+temporary XDG directories, uses a private session bus and fake systemd-run, and
+checks exact/abbreviated/Chinese alias matching, scope filtering, launch errors,
+timeout, quiet-period expiry/restart, critical exceptions, transient/excluded
+notifications, disk-disabled history and corrupt-state preservation. The Nix
+wrapper is `checks.<system>.command-panel`. It does not launch host applications.
+
+The separate `legacyPackages.<system>.tests.launch-vm` integration test uses a
+real systemd user manager in a disposable VM. It verifies exec failure feedback,
+literal arguments, session environment, working directory, app.slice ownership
+and application survival after the Quickshell launch client exits:
+
+```sh
+nix build path:.#legacyPackages.x86_64-linux.tests.launch-vm --no-link --max-jobs 1 --cores 2
+```
 
 Nix can supply these tools via `nix develop`; it is an optional environment,
 not a runtime dependency of these scripts. The isolated config/migration/BlueZ

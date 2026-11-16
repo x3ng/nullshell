@@ -207,6 +207,37 @@ def main():
             narrow = settle()
             assert narrow["card"]["width"] == 440 and not narrow["dark"], narrow
             screenshot("narrow-light")
+            # Focus-following must reveal controls below the overview viewport.
+            if args.keyboard:
+                call("page", "overview")
+                call("scenario", "crowded")
+                call("width", "440")
+                call("scrollOverview", "false")
+                settle()
+                assert call("focusControl", "overview", "tray-item-5") == "true"
+                focused = settle()
+                assert focused["focusedItem"] == "tray-item-5", focused
+                assert focused["focusY"] >= -1 and focused["focusY"] + focused["focusHeight"] <= focused["overviewHeight"] + 1, focused
+                subprocess.run(["wtype", "-k", "Return"], check=True, timeout=5)
+                assert state()["lastAction"] == "tray activated"
+                # Tab continues from the tray to the session button without
+                # losing focus outside the visible scroll area.
+                subprocess.run(["wtype", "-k", "Tab"], check=True, timeout=5)
+                focused = settle()
+                assert focused["focusedItem"] == "power-menu-button", focused
+                assert focused["focusY"] >= -1 and focused["focusY"] + focused["focusHeight"] <= focused["overviewHeight"] + 1, focused
+                screenshot("overview-keyboard-focus")
+            call("page", "notifications")
+            for width in ["440", "740"]:
+                call("width", width)
+                for light in ["false", "true"]:
+                    call("light", light)
+                    call("activateControl", "notification-quiet")
+                    assert settle()["doNotDisturb"]
+                    screenshot("notifications-quiet-" + width + "-" + light)
+                    call("activateControl", "notification-quiet")
+                    assert not settle()["doNotDisturb"]
+            call("page", "overview")
             # Quick toggles stay on the homepage; labelled arrows navigate.
             for section in ["wifi", "bluetooth"]:
                 call("page", "overview")
