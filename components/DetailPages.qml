@@ -76,7 +76,7 @@ Item {
                 id: contentLoader
                 parent: entry.detached ? floating.contentItem : entry
                 anchors.fill: parent
-                anchors.margins: entry.detached ? 20 : 0
+                anchors.margins: entry.detached ? host.panel.style.panelPadding : 0
                 active: entry.detached || entry.selected
                 visible: active
                 sourceComponent: ControlDetails {
@@ -98,7 +98,7 @@ Item {
                             floating.height = Math.max(floating.minimumHeight, Math.min(
                                 host.panel.style.maximumPanelHeight,
                                 floating.screen.height - 64,
-                                contentLoader.item.naturalHeight + 40));
+                                contentLoader.item.naturalHeight + 2 * host.panel.style.panelPadding));
                             floating.raise(); floating.requestActivate();
                             contentLoader.item?.forceActiveFocus();
                         });

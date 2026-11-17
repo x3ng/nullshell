@@ -273,6 +273,12 @@ PanelWindow {
         // Keep the search field stationary as status/search content changes height.
         anchors.topMargin: Math.max(16, Math.round(parent.height * 0.18))
         width: Math.min(panel.maximumCardWidth, parent.width - 32)
+        // Header content is centered in the full stripHeight band. The footer
+        // combines its content gap and bottom inset into the same-sized band.
+        readonly property int topPadding: panel.showingDetails || panel.showingWorkspace
+            ? panel.style.panelPadding : 0
+        readonly property int bottomPadding: panel.showingDetails || panel.showingWorkspace
+            ? panel.style.panelPadding : panel.style.spaceMd
         readonly property real contentHeight: panel.showingDetails ? controlDetails.naturalHeight
             : panel.searching ? searchResultsPage.naturalHeight
             : panel.homeTab === "desktop" ? desktopPage.naturalHeight
@@ -283,7 +289,7 @@ PanelWindow {
         // Fit the active page; long content scrolls under the shared screen limit.
         readonly property real targetHeight: Math.max(0, Math.min(panel.style.maximumPanelHeight,
             parent.height - anchors.topMargin - 16,
-            contentHeight + chromeHeight + panel.style.panelPadding * 2))
+            contentHeight + chromeHeight + card.topPadding + card.bottomPadding))
         property real layoutHeight: 0
         Binding {
             target: card
@@ -312,14 +318,15 @@ PanelWindow {
             // reveals/clips it instead of squeezing every row on every frame.
             anchors { left: parent.left; right: parent.right; top: parent.top }
             anchors.margins: panel.style.panelPadding
-            height: Math.max(0, card.layoutHeight - panel.style.panelPadding * 2)
+            anchors.topMargin: card.topPadding
+            height: Math.max(0, card.layoutHeight - card.topPadding - card.bottomPadding)
             spacing: panel.style.panelGap
 
             Rectangle {
                 id: searchStrip
                 visible: !panel.showingDetails && !panel.showingWorkspace
                 Layout.fillWidth: true
-                implicitHeight: 44
+                implicitHeight: panel.style.stripHeight
                 Layout.preferredHeight: implicitHeight
                 Layout.minimumHeight: implicitHeight
                 Layout.maximumHeight: implicitHeight
@@ -333,7 +340,7 @@ PanelWindow {
                 EmacsInput {
                     id: search
                     anchors.fill: parent
-                    anchors.leftMargin: 10
+                    anchors.leftMargin: panel.style.spaceSm
                     anchors.rightMargin: panel.commandScope ? scopeHints.implicitWidth + 16 : 4
                     anchors.topMargin: panel.style.spaceSm
                     anchors.bottomMargin: panel.style.spaceSm
@@ -362,7 +369,7 @@ PanelWindow {
                 }
                 RowLayout {
                     anchors.fill: parent
-                    anchors.leftMargin: 10
+                    anchors.leftMargin: panel.style.spaceSm
                     anchors.rightMargin: 4
                     spacing: 12
                     visible: panel.commandScope || (search.text.length === 0 && search.preeditText.length === 0)
@@ -405,7 +412,7 @@ PanelWindow {
                                     text: scopeHint.hint.prefix + (panel.commandScope || searchStrip.width >= 600 ? " " + scopeHint.hint.label : "")
                                     color: panel.style.textSecondary
                                     font.family: panel.style.fontFamily
-                                    font.pixelSize: 12
+                                    font.pixelSize: panel.style.fontSizeLabel
                                 }
                             }
                         }

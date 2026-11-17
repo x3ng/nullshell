@@ -29,8 +29,8 @@ RowLayout {
                 text: Qt.formatDateTime(status.date, status.expanded ? "MMM d, ddd" : "M/d")
                 color: status.style.textSecondary
                 font.family: status.style.fontFamily
-                font.pixelSize: 15
-                font.weight: Font.DemiBold
+                font.pixelSize: status.style.fontSizeBody
+                font.weight: Font.Normal
             }
             HoverHandler { id: clockHover }
             ShellToolTip {

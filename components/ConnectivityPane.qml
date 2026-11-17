@@ -70,7 +70,7 @@ ColumnLayout {
             font.pixelSize: pane.style.fontSizeSmall
         }
         ChoiceButton {
-            Layout.preferredWidth: 108
+            Layout.preferredWidth: 132
             style: pane.style
             label: pane.system.bluetoothScanRequested ? "Stop search" : "Search devices"
             filled: true

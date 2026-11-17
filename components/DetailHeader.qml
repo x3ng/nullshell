@@ -11,14 +11,14 @@ RowLayout {
     property string backIcon: "back"
     property alias actions: actionRow.data
     signal backRequested()
-    implicitHeight: 32
+    implicitHeight: 36
     Layout.fillWidth: true
-    Layout.preferredHeight: 32
-    Layout.minimumHeight: 32
+    Layout.preferredHeight: 36
+    Layout.minimumHeight: 36
     spacing: 8
     ChoiceButton {
-        Layout.preferredWidth: 30
-        Layout.preferredHeight: 30
+        Layout.preferredWidth: 32
+        Layout.preferredHeight: 32
         style: header.style
         label: ""
         iconKind: header.backIcon
@@ -33,8 +33,8 @@ RowLayout {
         text: header.title
         color: header.style.textPrimary
         font.family: header.style.fontFamily
-        font.pixelSize: 15
-        font.weight: Font.Medium
+        font.pixelSize: header.style.fontSizeBody
+        font.weight: Font.DemiBold
         HoverHandler { id: titleHover }
         ShellToolTip { style: header.style; visible: titleHover.hovered && header.subtitle !== ""; text: header.subtitle }
     }

@@ -16,8 +16,8 @@ Scope {
     // Palette sync: the values below are mirrored in adapters/Hyprland.lua
     // (borders, groupbar). Keep both files in step when changing a colour;
     // accent is intentionally darker in Hyprland borders than in the shell.
-    readonly property int panelPadding: 22
-    readonly property int panelGap: 14
+    readonly property int panelPadding: 24
+    readonly property int panelGap: 16
     // Shared spacing scale; one-off optical adjustments stay literal.
     readonly property int spaceXs: 4
     readonly property int spaceSm: 8
@@ -28,7 +28,8 @@ Scope {
     readonly property int maximumPanelWidth: 740
     readonly property int maximumTooltipWidth: 320
     readonly property int tooltipDelay: 500
-    readonly property int stripHeight: 48
+    // Full header/footer band: a 32px control with 12px on each side.
+    readonly property int stripHeight: 56
     // Shared motion rhythm: entrance settles gently; dismissal is shorter.
     readonly property int motionEnter: 200
     readonly property int motionExit: 140
@@ -72,6 +73,7 @@ Scope {
     // Typography scale; every text size in the shell maps to one of these.
     readonly property int fontSizeMicro: 10
     readonly property int fontSizeCaption: 11
+    readonly property int fontSizeLabel: 12
     readonly property int fontSizeSmall: 13
     readonly property int fontSizeBody: 14
     readonly property int fontSizeControl: 14

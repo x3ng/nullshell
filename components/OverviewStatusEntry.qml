@@ -20,17 +20,18 @@ RowLayout {
     Layout.fillWidth: true
     Layout.preferredWidth: 1
     Layout.minimumWidth: 0
-    implicitHeight: 52
-    spacing: 4
+    implicitHeight: 44
+    spacing: entry.style.spaceSm
     UtilityButton {
         objectName: "quick-" + entry.action + "-toggle"
         Layout.preferredWidth: 40
-        Layout.preferredHeight: 40
+        Layout.preferredHeight: 32
         style: entry.style
         label: ""
         iconKind: entry.icon
         checkable: true
-        selected: entry.online
+        // Status text carries the radio state; avoid a selected tile on the home page.
+        Accessible.checked: entry.online
         available: entry.available && entry.actions.available(entry.toggleAction)
         tooltip: entry.toggleTooltip
         onTriggered: entry.actions.execute(entry.toggleAction)
@@ -39,7 +40,7 @@ RowLayout {
         objectName: "quick-" + entry.action + "-details"
         Layout.fillWidth: true
         Layout.minimumWidth: 0
-        Layout.preferredHeight: 48
+        Layout.preferredHeight: 44
         style: entry.style
         label: ""
         tooltip: "Open " + entry.title + " settings · " + (entry.error || entry.detail)
@@ -47,33 +48,33 @@ RowLayout {
         onTriggered: entry.actions.execute(entry.action)
         RowLayout {
             anchors.fill: parent
-            anchors.margins: 6
-            spacing: 6
-            ColumnLayout {
+            anchors.margins: entry.style.spaceXs
+            spacing: entry.style.spaceSm
+            Text {
                 Layout.fillWidth: true
                 Layout.minimumWidth: 0
-                spacing: 2
-                Text {
-                    Layout.fillWidth: true
-                    text: entry.title
-                    color: entry.style.textSecondary
-                    font.family: entry.style.fontFamily
-                    font.pixelSize: 12
-                }
-                Text {
-                    Layout.fillWidth: true
-                    text: entry.error || (entry.detail + (entry.secondary ? " · " + entry.secondary : ""))
-                    textFormat: Text.PlainText
-                    elide: Text.ElideRight
-                    color: entry.error ? entry.style.danger : entry.available ? entry.style.textPrimary : entry.style.textMuted
-                    font.family: entry.style.fontFamily
-                    font.pixelSize: 14
-                }
+                text: entry.error || entry.detail
+                textFormat: Text.PlainText
+                elide: Text.ElideRight
+                color: entry.error ? entry.style.danger : entry.available ? entry.style.textPrimary : entry.style.textMuted
+                font.family: entry.style.fontFamily
+                font.pixelSize: entry.style.fontSizeBody
             }
             Text {
-                text: "›"
-                color: entry.style.textSecondary
-                font.pixelSize: 22
+                visible: entry.available && entry.secondary !== "" && entry.error === ""
+                Layout.maximumWidth: parent.width * 0.38
+                text: entry.secondary
+                textFormat: Text.PlainText
+                elide: Text.ElideRight
+                color: entry.style.textMuted
+                font.family: entry.style.fontFamily
+                font.pixelSize: entry.style.fontSizeLabel
+            }
+            StatusIcon {
+                kind: "chevron"
+                Layout.preferredWidth: 20
+                Layout.preferredHeight: 20
+                ink: entry.style.textMuted
             }
         }
     }

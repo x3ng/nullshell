@@ -6,7 +6,8 @@ import ".."
 Rectangle {
     id: footer
     required property Theme style
-    implicitHeight: 48
+    // The panel supplies the remaining spaceMd below this band.
+    implicitHeight: style.stripHeight - style.spaceMd
     color: "transparent"
     Rectangle {
         anchors { top: parent.top; left: parent.left; right: parent.right }
@@ -15,8 +16,8 @@ Rectangle {
     }
     RowLayout {
         anchors.fill: parent
-        anchors.topMargin: 9
-        anchors.bottomMargin: 3
+        anchors.topMargin: footer.style.spaceMd
+        anchors.bottomMargin: 0
         spacing: 18
         Repeater {
             model: ["↑ ↓  Navigate", "esc  Back"]

@@ -75,7 +75,7 @@ ColumnLayout {
             ColumnLayout {
                 id: content
                 width: viewport.width
-                spacing: 10
+                spacing: page.style.spaceMd
                 ConnectivitySummary {
                     Layout.fillWidth: true
                     style: page.style
@@ -85,8 +85,8 @@ ColumnLayout {
                 GridLayout {
                     Layout.fillWidth: true
                     columns: width < 500 ? 1 : 2
-                    columnSpacing: 16
-                    rowSpacing: 4
+                    columnSpacing: page.style.spaceLg
+                    rowSpacing: page.style.spaceSm
                     OverviewLevelControl {
                         style: page.style
                         actions: page.actions
@@ -127,13 +127,18 @@ ColumnLayout {
                         onTriggered: page.actions.execute("notifications")
                         RowLayout {
                             anchors.fill: parent
-                            anchors.leftMargin: 10
-                            anchors.rightMargin: 10
-                            spacing: 8
-                            StatusIcon {
-                                kind: "bell"
-                                ink: page.style.textSecondary
-                                Layout.preferredWidth: 18; Layout.preferredHeight: 18
+                            anchors.leftMargin: 0
+                            anchors.rightMargin: page.style.spaceXs
+                            spacing: page.style.spaceMd
+                            Item {
+                                Layout.preferredWidth: 40
+                                Layout.preferredHeight: 32
+                                StatusIcon {
+                                    anchors.centerIn: parent
+                                    kind: "bell"
+                                    ink: page.style.textMuted
+                                    width: 20; height: 20
+                                }
                             }
                             Text {
                                 Layout.fillWidth: true
@@ -146,13 +151,18 @@ ColumnLayout {
                                 elide: Text.ElideRight
                                 color: page.style.textSecondary
                                 font.family: page.style.fontFamily
-                                font.pixelSize: 15
+                                font.pixelSize: page.style.fontSizeBody
                             }
                             Text {
-                                text: (page.notifs.current.length > 99 ? "99+" : String(page.notifs.current.length)) + "  ›"
+                                text: page.notifs.current.length > 99 ? "99+" : String(page.notifs.current.length)
                                 color: page.style.textMuted
                                 font.family: page.style.fontFamily
-                                font.pixelSize: 13
+                                font.pixelSize: page.style.fontSizeSmall
+                            }
+                            StatusIcon {
+                                kind: "chevron"
+                                ink: page.style.textMuted
+                                Layout.preferredWidth: 20; Layout.preferredHeight: 20
                             }
                         }
                     }
@@ -165,7 +175,7 @@ ColumnLayout {
                     color: page.style.surfaceRaised
                     RowLayout {
                         anchors.fill: parent
-                        anchors.margins: 10
+                        anchors.margins: page.style.spaceMd
                         spacing: 12
                         ClippingRectangle {
                             Layout.preferredWidth: 42
@@ -199,7 +209,7 @@ ColumnLayout {
                                 elide: Text.ElideRight
                                 color: page.style.textPrimary
                                 font.family: page.style.fontFamily
-                                font.pixelSize: 15
+                                font.pixelSize: page.style.fontSizeBody
                                 font.weight: Font.Medium
                             }
                             Text {
@@ -209,7 +219,7 @@ ColumnLayout {
                                 elide: Text.ElideRight
                                 color: page.style.textMuted
                                 font.family: page.style.fontFamily
-                                font.pixelSize: 13
+                                font.pixelSize: page.style.fontSizeSmall
                             }
                         }
                         ChoiceButton {

@@ -47,8 +47,8 @@ Rectangle {
     readonly property var rows: renderContent && section === "audio"
         ? (audioInput ? services.audioInputs : services.audioOutputs) : []
     onSectionChanged: { audioInput = false; showHistory = false; viewport.contentY = 0; }
-    readonly property real naturalHeight: detailHeader.implicitHeight + 10 + content.implicitHeight
-        + (isNotifs ? notificationToolbar.implicitHeight + 10 : 0)
+    readonly property real naturalHeight: detailHeader.Layout.preferredHeight + 1 + 2 * style.spaceMd + content.implicitHeight
+        + (isNotifs ? notificationToolbar.implicitHeight + style.spaceMd : 0)
     implicitWidth: 380
     color: detached ? style.panelSurface : "transparent"
     focus: visible
@@ -79,7 +79,7 @@ Rectangle {
 
     ColumnLayout {
         anchors.fill: parent
-        spacing: 10
+        spacing: detail.style.spaceMd
         DetailHeader {
             id: detailHeader
             style: detail.style
@@ -92,8 +92,8 @@ Rectangle {
                 ChoiceButton {
                     objectName: "detach-page"
                     visible: !detail.detached && detail.section !== "session"
-                    Layout.preferredWidth: 30
-                    Layout.preferredHeight: 30
+                    Layout.preferredWidth: 32
+                    Layout.preferredHeight: 32
                     style: detail.style
                     label: ""
                     iconKind: "window"
@@ -103,7 +103,7 @@ Rectangle {
                 ChoiceButton {
                     visible: detail.section === "wifi" || detail.section === "bluetooth"
                     Layout.preferredWidth: 72
-                    Layout.preferredHeight: 30
+                    Layout.preferredHeight: 32
                     style: detail.style
                     label: detail.radioEnabled ? "On" : "Off"
                     selected: detail.radioEnabled
@@ -114,7 +114,7 @@ Rectangle {
             ChoiceButton {
                 objectName: "notification-clear-all"
                 Layout.preferredWidth: 112
-                Layout.preferredHeight: 30
+                Layout.preferredHeight: 32
                 visible: detail.isNotifs
                 style: detail.style
                 label: detail.showHistory ? "Clear history" : "Clear all"
@@ -169,7 +169,13 @@ Rectangle {
             }
 
         }
+        Rectangle {
+            Layout.fillWidth: true
+            implicitHeight: 1
+            color: detail.style.separator
+        }
         ClippingRectangle {
+            id: scrollFrame
             Layout.fillWidth: true
             Layout.fillHeight: true
             Layout.minimumHeight: 0
@@ -186,7 +192,17 @@ Rectangle {
                 boundsBehavior: Flickable.StopAtBounds
                 ScrollBar.vertical: ScrollBar {
                     id: scrollBar
+                    // Keep the content aligned with the header. The scroll track
+                    // lives in the panel's outer inset, not in the content column.
+                    parent: detail
+                    x: detail.width + detail.style.spaceXs
+                    y: scrollFrame.y
+                    width: 8
+                    height: viewport.height
+                    padding: 2
                     policy: ScrollBar.AsNeeded
+                    // A custom contentItem must provide its own AsNeeded visibility.
+                    visible: viewport.contentHeight > viewport.height + 1
                     contentItem: Rectangle {
                         implicitWidth: 4
                         radius: 2
@@ -197,7 +213,7 @@ Rectangle {
                 ColumnLayout {
                     id: content
                     width: viewport.width
-                    spacing: 10
+                    spacing: detail.style.spaceMd
                     RowLayout {
                         Layout.fillWidth: true
                         visible: detail.section === "audio"
@@ -216,11 +232,6 @@ Rectangle {
                             selected: detail.audioInput
                             onTriggered: { detail.audioInput = true; viewport.contentY = 0; }
                         }
-                    }
-                    Rectangle {
-                        Layout.fillWidth: true
-                        implicitHeight: 1
-                        color: detail.style.separator
                     }
                     ColumnLayout {
                         Layout.fillWidth: true

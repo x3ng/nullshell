@@ -52,6 +52,7 @@ ColumnLayout {
     }
     RowLayout {
         Layout.fillWidth: true
+        spacing: root.style.spaceSm
         Text {
             text: "Display"
             color: root.style.textPrimary
@@ -97,11 +98,12 @@ ColumnLayout {
     }
     RowLayout {
         Layout.fillWidth: true
+        spacing: root.style.spaceSm
         ChoiceButton {
             objectName: "wallpaper-choose"
             Layout.fillWidth: true
             Layout.preferredWidth: 140
-            Layout.preferredHeight: 38
+            Layout.preferredHeight: 40
             style: root.style
             label: "Choose image…"
             filled: true
@@ -112,7 +114,7 @@ ColumnLayout {
         ChoiceButton {
             objectName: "wallpaper-apply"
             Layout.preferredWidth: 80
-            Layout.preferredHeight: 38
+            Layout.preferredHeight: 40
             style: root.style
             filled: true
             label: root.wallpaper.saving ? "Saving…" : "Apply"

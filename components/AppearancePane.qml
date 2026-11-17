@@ -11,13 +11,13 @@ ColumnLayout {
     property bool editingFixed: false
     property string inputError: ""
     readonly property bool fixed: editingFixed || appearance.effectiveSettings.location === "fixed"
-    spacing: 14
+    spacing: pane.style.spaceMd
     function nextTime(timestamp) {
         return timestamp ? new Date(timestamp * 1000).toLocaleString(Qt.locale(), "ddd hh:mm") : "";
     }
     RowLayout {
         Layout.fillWidth: true
-        spacing: 6
+        spacing: pane.style.spaceSm
         Repeater {
             model: [{key: "light", label: "Light", icon: "brightness"},
                 {key: "dark", label: "Dark", icon: "moon"}, {key: "auto", label: "Automatic", icon: "clock"}]
@@ -45,7 +45,7 @@ ColumnLayout {
         wrapMode: Text.Wrap
         color: pane.style.textSecondary
         font.family: pane.style.fontFamily
-        font.pixelSize: 13
+        font.pixelSize: pane.style.fontSizeSmall
     }
     ColumnLayout {
         Layout.fillWidth: true
@@ -62,7 +62,7 @@ ColumnLayout {
             wrapMode: Text.Wrap
             color: pane.style.textSecondary
             font.family: pane.style.fontFamily
-            font.pixelSize: 13
+            font.pixelSize: pane.style.fontSizeSmall
         }
         ChoiceButton {
             objectName: "appearance-resume"
@@ -75,15 +75,16 @@ ColumnLayout {
             onTriggered: pane.appearance.resumeAutomatic()
         }
         Text {
+            Layout.topMargin: pane.style.spaceSm
             text: "Location"
             color: pane.style.textPrimary
             font.family: pane.style.fontFamily
-            font.pixelSize: 14
+            font.pixelSize: pane.style.fontSizeBody
             font.weight: Font.Medium
         }
         RowLayout {
             Layout.fillWidth: true
-            spacing: 6
+            spacing: pane.style.spaceSm
             ChoiceButton {
                 objectName: "appearance-device-location"
                 Layout.fillWidth: true
@@ -124,7 +125,7 @@ ColumnLayout {
                         Text {
                             text: parent.modelData === "latitude" ? "Latitude (−90 to 90)" : "Longitude (−180 to 180)"
                             font.family: pane.style.fontFamily
-                            font.pixelSize: 12
+                            font.pixelSize: pane.style.fontSizeLabel
                             color: pane.style.textSecondary
                         }
                         TextField {
@@ -139,7 +140,9 @@ ColumnLayout {
                             placeholderTextColor: pane.style.textMuted
                             selectionColor: pane.style.surfaceSelected
                             font.family: pane.style.fontFamily
-                            font.pixelSize: 14
+                            font.pixelSize: pane.style.fontSizeBody
+                            leftPadding: pane.style.spaceMd
+                            rightPadding: pane.style.spaceMd
                             selectByMouse: true
                             Accessible.name: coordinate
                             onTextEdited: { pane.inputError = ""; pane.coordinateDraft[coordinate] = text; }
@@ -179,7 +182,7 @@ ColumnLayout {
             wrapMode: Text.Wrap
             color: pane.style.textSecondary
             font.family: pane.style.fontFamily
-            font.pixelSize: 13
+            font.pixelSize: pane.style.fontSizeSmall
         }
         ChoiceButton {
             objectName: "appearance-retry-location"
@@ -199,10 +202,11 @@ ColumnLayout {
         wrapMode: Text.Wrap
         color: pane.style.danger
         font.family: pane.style.fontFamily
-        font.pixelSize: 13
+        font.pixelSize: pane.style.fontSizeSmall
     }
     ChoiceButton {
         objectName: "appearance-reset"
+        Layout.topMargin: pane.style.spaceSm
         Layout.fillWidth: true
         Layout.preferredHeight: 34
         visible: pane.appearance.preferencesOverridden

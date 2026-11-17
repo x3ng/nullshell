@@ -132,10 +132,11 @@ MaterialSurface {
         RowLayout {
             Layout.fillWidth: true
             spacing: 12
-            Action { text: "Cancel"; Layout.fillWidth: true; onClicked: root.cancel() }
+            Action { text: "Cancel"; Layout.fillWidth: true; Layout.preferredWidth: 1; onClicked: root.cancel() }
             Action {
                 text: root.waiting ? "Authenticate" : "Authenticating…"
                 primary: true
+                Layout.preferredWidth: 1
                 enabled: root.waiting
                 Layout.fillWidth: true
                 onClicked: root.submit()

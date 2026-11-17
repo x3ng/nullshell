@@ -31,10 +31,12 @@ ColumnLayout {
             required property var modelData
             objectName: "power-action-" + modelData.id
             Layout.fillWidth: true
-            Layout.preferredHeight: 42
+            Layout.preferredHeight: 40
             style: pane.style
             label: modelData.title
             iconKind: modelData.icon
+            contentAlignment: Qt.AlignLeft
+            iconSize: 20
             filled: true
             selected: pane.pendingAction === modelData.id
             available: modelData.id === "lock" ? pane.actions.available("lock") : pane.session.available(modelData.id)
@@ -52,7 +54,7 @@ ColumnLayout {
     ColumnLayout {
         visible: pane.pendingAction !== ""
         Layout.fillWidth: true
-        spacing: 10
+        spacing: pane.style.spaceMd
         Text {
             Layout.fillWidth: true
             text: pane.pendingTitle + "? Save your work before continuing."

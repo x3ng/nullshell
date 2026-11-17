@@ -12,8 +12,8 @@ GridLayout {
     readonly property var network: system.wifiNetworks.find(network => network.connected) ?? null
     readonly property var devices: system.bluetoothDevices.filter(device => device.connected)
     columns: width < 500 ? 1 : 2
-    columnSpacing: 16
-    rowSpacing: 4
+    columnSpacing: style.spaceLg
+    rowSpacing: style.spaceSm
     OverviewStatusEntry {
         style: summary.style
         actions: summary.actions
@@ -42,7 +42,7 @@ GridLayout {
         ].filter(text => text !== "").join(" · ") : ""
         detail: !summary.system.bluetoothAvailable ? "Unavailable"
             : summary.system.bluetoothBusy ? "Changing Bluetooth…"
-            : !summary.system.bluetoothEnabled ? "Off"
+            : !summary.system.bluetoothEnabled ? "Bluetooth off"
             : summary.devices.length ? (summary.devices[0].name || summary.devices[0].address) : "Not connected"
         online: summary.system.bluetoothEnabled
         toggleAction: "bluetooth-toggle"

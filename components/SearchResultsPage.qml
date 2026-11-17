@@ -28,24 +28,24 @@ ColumnLayout {
     }
 
     readonly property real naturalHeight: resultHeading.implicitHeight + spacing
-        + (page.results.length ? page.results.length * 58
+        + (page.results.length ? page.results.length * 60
             + Math.max(0, page.results.length - 1) * resultList.spacing : 110)
     Layout.minimumHeight: 0
     Layout.fillWidth: true
     Layout.fillHeight: true
-    spacing: 10
+    spacing: page.style.spaceMd
 
     RowLayout {
         id: resultHeading
         spacing: 16
         Layout.fillWidth: true
-        Layout.leftMargin: 10
-        Layout.rightMargin: 10
+        Layout.leftMargin: page.style.spaceSm
+        Layout.rightMargin: page.style.spaceSm
         Text {
             text: page.searchModel.scopeLabel || "Results"
             color: page.style.textMuted
             font.family: page.style.fontFamily
-            font.pixelSize: page.style.fontSizeCaption
+            font.pixelSize: page.style.fontSizeLabel
         }
         Item { Layout.fillWidth: true }
         Text {
@@ -53,13 +53,13 @@ ColumnLayout {
             text: "> Commands    @ Windows    / Applications"
             color: page.style.textMuted
             font.family: page.style.fontFamily
-            font.pixelSize: page.style.fontSizeCaption
+            font.pixelSize: page.style.fontSizeLabel
         }
         Text {
             text: page.results.length === 1 ? "1 result" : page.results.length + " results"
             color: page.style.textMuted
             font.family: page.style.fontFamily
-            font.pixelSize: page.style.fontSizeCaption
+            font.pixelSize: page.style.fontSizeLabel
         }
     }
     ListView {
@@ -69,29 +69,30 @@ ColumnLayout {
         Layout.fillHeight: true
         clip: true
         model: StableRows { rows: page.active ? page.results : [] }
-        spacing: 3
+        spacing: page.style.spaceXs
         delegate: Rectangle {
             id: resultRow
             required property var record
             readonly property var modelData: record
             required property int index
             width: resultList.width
-            height: 58
+            height: 60
             opacity: modelData.enabled === false ? 0.45 : 1
             radius: page.style.radiusControl
             color: index === page.selectedIndex ? page.style.surfaceSelected
                 : rowMouse.containsMouse ? page.style.surfaceHover : "transparent"
             RowLayout {
                 anchors.fill: parent
-                anchors.leftMargin: 12
-                anchors.rightMargin: 12
+                anchors.leftMargin: 0
+                anchors.rightMargin: page.style.spaceMd
                 spacing: 12
                 Item {
-                    Layout.preferredWidth: 30
+                    Layout.preferredWidth: 40
                     Layout.preferredHeight: 30
                     IconImage {
                         id: resultIcon
-                        anchors.fill: parent
+                        anchors.centerIn: parent
+                        width: 30; height: 30
                         implicitSize: 30
                         source: page.searchModel.desktopIconSource(resultRow.modelData.entry)
                         visible: status === Image.Ready
@@ -108,7 +109,7 @@ ColumnLayout {
                 }
                 ColumnLayout {
                     Layout.fillWidth: true
-                    spacing: 3
+                    spacing: page.style.spaceXs
                     Text {
                         Layout.fillWidth: true
                         text: resultRow.modelData.title
@@ -128,7 +129,7 @@ ColumnLayout {
                         color: page.style.textMuted
                         elide: Text.ElideRight
                         font.family: page.style.fontFamily
-                        font.pixelSize: page.style.fontSizeCaption
+                        font.pixelSize: page.style.fontSizeLabel
                     }
                 }
                 Text {
@@ -136,7 +137,7 @@ ColumnLayout {
                         ? page.actionHint(resultRow.modelData) : page.kindLabel(resultRow.modelData)
                     color: resultRow.index === page.selectedIndex ? page.style.textSecondary : page.style.textMuted
                     font.family: page.style.fontFamily
-                    font.pixelSize: page.style.fontSizeCaption
+                    font.pixelSize: page.style.fontSizeLabel
                     Layout.preferredWidth: 84
                     horizontalAlignment: Text.AlignRight
                 }
@@ -172,7 +173,7 @@ ColumnLayout {
                 wrapMode: Text.Wrap
                 color: page.style.textMuted
                 font.family: page.style.fontFamily
-                font.pixelSize: page.style.fontSizeCaption
+                font.pixelSize: page.style.fontSizeLabel
             }
         }
     }

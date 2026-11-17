@@ -20,17 +20,18 @@ Rectangle {
     Accessible.onPressAction: { if (available) triggered(); }
     Keys.onReturnPressed: { if (available) triggered(); }
     Keys.onSpacePressed: { if (available) triggered(); }
-    implicitHeight: subtitle ? 54 : 44
+    implicitHeight: subtitle ? 60 : 44
     radius: style.radiusControl
-    color: selected ? style.surfaceSelected : mouse.containsMouse ? style.surfaceHover : "transparent"
+    color: mouse.containsMouse && available ? style.surfaceHover
+        : expanded ? style.surfaceRaised : "transparent"
     opacity: available ? 1 : 0.5
-    border.width: expanded || activeFocus ? 1 : 0
+    border.width: activeFocus ? 1 : 0
     border.color: style.accent
     Behavior on color { ColorAnimation { duration: 120 } }
     RowLayout {
         anchors.fill: parent
         anchors.margins: row.style.spaceMd
-        spacing: 10
+        spacing: row.style.spaceMd
         StatusIcon {
             visible: row.iconKind !== ""
             kind: row.iconKind
@@ -40,7 +41,7 @@ Rectangle {
         }
         ColumnLayout {
             Layout.fillWidth: true
-            spacing: row.style.spaceXs
+            spacing: 2
             Text {
                 Layout.fillWidth: true
                 text: row.title
@@ -59,13 +60,13 @@ Rectangle {
                 elide: Text.ElideRight
                 color: row.style.textMuted
                 font.family: row.style.fontFamily
-                font.pixelSize: row.style.fontSizeCaption
+                font.pixelSize: row.style.fontSizeLabel
             }
         }
         StatusIcon {
             kind: row.selected ? "check" : "chevron"
-            width: 16
-            height: 16
+            Layout.preferredWidth: 20
+            Layout.preferredHeight: 20
             ink: row.selected ? row.style.accent : row.style.textMuted
         }
     }

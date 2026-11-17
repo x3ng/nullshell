@@ -15,13 +15,13 @@ Item {
     property var trayItems: []
     property Component toolsComponent: null
     signal menuRequested(var owner, real right, real top)
-    implicitHeight: footer.implicitHeight + 8
+    // The parent owns space to the separator and outer edge.
+    implicitHeight: Math.max(style.stripHeight - 2 * style.spaceMd, footer.implicitHeight)
     Item {
         id: footer
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.top: parent.top
-        anchors.topMargin: 4
         implicitHeight: entries.implicitHeight
         Item {
             id: entries

@@ -40,7 +40,7 @@ ColumnLayout {
     property string pendingWorkspaceAddress: ""
     property int pendingWorkspaceRequestId: 0
     readonly property var selectedWorkspace: controls.workspaces.find(w => w.address === selectedWorkspaceAddress) ?? null
-    readonly property real naturalHeight: detailHeader.implicitHeight + spacing + content.implicitHeight
+    readonly property real naturalHeight: detailHeader.Layout.preferredHeight + spacing + content.implicitHeight
     spacing: 10
     signal backRequested()
     signal dismissRequested()

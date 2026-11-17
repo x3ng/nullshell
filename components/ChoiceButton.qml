@@ -22,6 +22,7 @@ Rectangle {
     // Background for filled buttons; override to surfaceHover inside cards.
     property color filledColor: style.surfaceRaised
     property int textSize: style.fontSizeSmall
+    property int contentAlignment: Qt.AlignHCenter
     // Optional leading glyph. With a label it sits left of the text
     // (icon + description); alone it replaces the label (play/back/etc).
     property string iconKind: ""
@@ -57,7 +58,7 @@ Rectangle {
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.margins: choice.style.spaceSm
-        horizontalAlignment: Text.AlignHCenter
+        horizontalAlignment: choice.contentAlignment
         elide: Text.ElideRight
         text: choice.label
         textFormat: Text.PlainText
@@ -69,9 +70,12 @@ Rectangle {
     }
 
     RowLayout {
-        anchors.centerIn: parent
-        width: Math.min(implicitWidth, Math.max(0, choice.width - 2 * choice.style.spaceSm))
-        spacing: choice.style.spaceXs
+        anchors.verticalCenter: parent.verticalCenter
+        anchors.horizontalCenter: choice.contentAlignment === Qt.AlignLeft ? undefined : parent.horizontalCenter
+        anchors.left: choice.contentAlignment === Qt.AlignLeft ? parent.left : undefined
+        anchors.leftMargin: choice.style.spaceMd
+        width: Math.min(implicitWidth, Math.max(0, choice.width - 2 * (choice.contentAlignment === Qt.AlignLeft ? choice.style.spaceMd : choice.style.spaceSm)))
+        spacing: choice.contentAlignment === Qt.AlignLeft ? choice.style.spaceMd : choice.style.spaceXs
         visible: choice.iconKind !== "" && choice.label !== ""
 
         StatusIcon {

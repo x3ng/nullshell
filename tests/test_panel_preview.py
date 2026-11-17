@@ -291,7 +291,12 @@ def main():
                     call("light", light)
                     for scenario in ["fixed", "locating", "unavailable", "override"]:
                         call("appearanceState", scenario)
-                        settle()
+                        current = settle()
+                        geometry = json.loads(call("detailGeometry", "appearance"))
+                        # These short pages fit below the height cap; header sizing
+                        # must not create a spurious scroll range or scrollbar.
+                        assert current["card"]["height"] < 700, current
+                        assert geometry["contentHeight"] <= geometry["viewportHeight"] + 1, geometry
                         screenshot("appearance-" + width + "-" + light + "-" + scenario)
             call("appearanceState", "override")
             settle()

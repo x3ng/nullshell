@@ -229,8 +229,10 @@ panel card; inspect both palettes and narrow/wide appearance states before relea
 
 The empty-query home page is Quick controls. Radio icons perform
 one immediate action; their separate labelled rows and arrows open detail pages.
-Selected radio icons mean enabled, not connected. A busy or unavailable control
-cannot toggle, while its details remain reachable. Volume's icon toggles mute;
+Radio icons use the same neutral treatment as the other home controls. Connection
+names and secondary status share one compact row; off/busy/error states replace
+the connection text. Toggle accessibility reports whether the radio is enabled.
+A busy or unavailable control cannot toggle, while its details remain reachable. Volume's icon toggles mute;
 its arrow opens audio devices. Search keeps explicit action names separate from
 settings-page names.
 
@@ -256,6 +258,31 @@ The notification detail's Quiet/Resume control and corresponding searchable
 commands pause ordinary banners for one hour without adding homepage content.
 Critical alerts remain visible. Search aliases and disk-history policy are
 documented in [CONFIGURATION.md](CONFIGURATION.md).
+
+### Visual geometry conventions
+
+Evaluate the complete visible region, including parent gaps, child padding and
+control height. Equal outer margins alone do not produce equal visual bands.
+The home/search header and single-row footer use `Theme.stripHeight`; workspace
+wrapping adds rows without changing the edge insets or horizontal centering.
+
+The parent owns spacing between sections; children own spacing inside a control.
+Avoid adding the same edge inset at both levels. Detail content uses the full
+header width, with its scrollbar inside the outer panel inset. Detached detail
+windows use the same `panelPadding` as embedded pages.
+
+Use equal explicit heights for adjacent controls serving the same role (including
+native ComboBoxes beside custom buttons). `Layout.fillWidth` alone does not make
+buttons equal-width: use equal preferred widths for paired actions. In vertical
+command lists, align icon and text columns independently of label length; retain
+centered content for standalone and paired buttons.
+
+Qt layouts can compute `implicitHeight` from their children even when a larger
+preferred/minimum height is specified. Content-fit calculations must use the same
+height constraint as the layout, or otherwise-fitting pages gain a scroll range.
+Check actual rendered light/dark, narrow/wide, short/long and wrapped states;
+font metrics and icon optical weight still need visual judgment. Authentication
+views are reviewed through their previews, never by restarting live agents.
 
 ### Detachable settings
 
