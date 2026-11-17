@@ -16,6 +16,18 @@ pkgs.runCommand "nullshell-preview-check"
     export DBUS_SYSTEM_BUS_ADDRESS=unix:path="$TMPDIR/no-system-bus"
     unset WAYLAND_DISPLAY DISPLAY HYPRLAND_INSTANCE_SIGNATURE
     mkdir -p $out
+    # Load the real independent locker entry as well as its visual preview.
+    # Offscreen rendering and private buses cannot lock the host session.
+    log="$out/locker-entry.log"
+    status=0
+    timeout 4s dbus-run-session --config-file=${pkgs.dbus}/share/dbus-1/session.conf -- \
+      ${pkgs.quickshell}/bin/quickshell --path ${packages.assets}/share/nullshell/lock/shell.qml \
+      >"$log" 2>&1 || status=$?
+    if [ "$status" != 124 ]; then cat "$log"; exit 1; fi
+    if ! grep -q 'Configuration Loaded' "$log"; then cat "$log"; exit 1; fi
+    if grep -Ei 'failed to load|TypeError|ReferenceError|SyntaxError|is not a type|Cannot assign' "$log"; then
+      exit 1
+    fi
     for mode in greeter lock polkit connectivity; do
       for light in 0 1; do
         export QS_PREVIEW_LIGHT=$light

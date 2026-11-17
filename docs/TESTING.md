@@ -56,6 +56,9 @@ Each process receives a temporary HOME/XDG directories, private D-Bus session,
 an inaccessible system bus and software/offscreen Qt rendering. Nix sandboxing
 separates it from the host session. The test requires successful QML loading,
 rejects common QML errors and verifies that the preview remains running.
+It also loads the actual `lock/shell.qml` entry offscreen, with its default
+unlocked state, to catch component discovery failures that the shared visual
+preview cannot detect.
 It does not verify pixel appearance or real authentication.
 
 The config check runs the real `ShellConfig.qml` with a synthetic temporary
