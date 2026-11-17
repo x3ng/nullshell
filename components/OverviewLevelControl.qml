@@ -16,6 +16,7 @@ Item {
     property bool muted: false
     property string action: ""
     property string detailsAction: ""
+    property string detailsTooltip: ""
     signal edited(real value)
     Layout.fillWidth: true
     Layout.preferredWidth: 1
@@ -100,11 +101,12 @@ Item {
             ChoiceButton {
                 anchors.fill: parent
                 visible: level.detailsAction !== ""
+                objectName: level.icon + "-details"
                 style: level.style
                 label: ""
                 iconKind: "chevron"
                 iconSize: 20
-                tooltip: "Audio devices and microphone"
+                tooltip: level.detailsTooltip
                 onTriggered: level.actions.execute(level.detailsAction)
             }
         }

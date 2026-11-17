@@ -97,6 +97,7 @@ ColumnLayout {
                         muted: page.sink?.audio?.muted ?? false
                         action: "output-mute"
                         detailsAction: "audio"
+                        detailsTooltip: "Audio devices and microphone"
                         onEdited: value => page.services.setVolume(value)
                     }
                     OverviewLevelControl {
@@ -106,6 +107,8 @@ ColumnLayout {
                         icon: "brightness"
                         value: Math.max(0, page.services.brightness)
                         available: page.services.brightness >= 0
+                        detailsAction: "appearance"
+                        detailsTooltip: "Appearance settings"
                         onEdited: value => page.services.setBrightness(value)
                     }
                 }

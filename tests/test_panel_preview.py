@@ -269,9 +269,11 @@ def main():
             settle()
             screenshot("quick-error")
             call("quickState", "normal")
-            # Exercise the actual production buttons with fixture-only side effects.
-            call("page", "appearance")
+            # Enter appearance through the brightness row's production button.
+            call("page", "overview")
             settle()
+            assert call("activateControl", "brightness-details") == "true"
+            assert settle()["page"] == "detail:appearance"
             for mode in ["light", "dark", "auto"]:
                 assert call("activateControl", "appearance-mode-" + mode) == "true"
                 assert settle()["appearanceMode"] == mode

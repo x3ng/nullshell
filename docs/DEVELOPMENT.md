@@ -233,7 +233,8 @@ Radio icons use the same neutral treatment as the other home controls. Connectio
 names and secondary status share one compact row; off/busy/error states replace
 the connection text. Toggle accessibility reports whether the radio is enabled.
 A busy or unavailable control cannot toggle, while its details remain reachable. Volume's icon toggles mute;
-its arrow opens audio devices. Search keeps explicit action names separate from
+its arrow opens audio devices. Brightness's arrow opens appearance settings;
+the slider continues to adjust backlight. Search keeps explicit action names separate from
 settings-page names.
 
 Appearance settings and explicit light/dark/resume actions remain searchable;
