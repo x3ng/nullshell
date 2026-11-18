@@ -110,10 +110,6 @@ Scope {
     function toggleFullscreen(address) { return windowRequest("fullscreen", address); }
     function moveWindow(address, workspaceAddress) { return windowRequest("move", address, workspaceAddress); }
     function closeWindow(address) { return windowRequest("close", address); }
-    function lock() {
-        // Acknowledge launch; the separate Quickshell locker owns the session lock and PAM.
-        return run({code: Commands.result("hl.dsp.exec_cmd('nullshell lock')")}, "lock", "session");
-    }
     function refresh() {
         if (!available) return;
         Hyprland.refreshToplevels();

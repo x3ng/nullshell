@@ -22,6 +22,10 @@ ShellRoot {
                {name: "Mouse", connected: true, batteryAvailable: false}]
             : [{name: "Headphones", connected: true, batteryAvailable: true, battery: 0.72}]
         readonly property var bluetoothConnected: bluetoothDevices
+        function available(action) {
+            return (action === "wifi-toggle" && wifiAvailable)
+                || (action === "bluetooth-toggle" && bluetoothAvailable);
+        }
         function execute(action) { feedback.text = "Open " + action + " (preview only)"; }
     }
     FloatingWindow {

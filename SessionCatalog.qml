@@ -10,6 +10,7 @@ Item {
     property string selectedId: ""
     property string preferredId: ""
     readonly property var current: sessions.find(entry => entry.id === selectedId) ?? null
+    property var priorityById: Object.create(null)
     property var loadedPaths: ({})
 
     onPreferredIdChanged: {
@@ -55,25 +56,22 @@ Item {
             if (separator <= 0) continue;
             fields[line.slice(0, separator)] = line.slice(separator + 1).trim();
         }
-        if (fields.Hidden === "true" || fields.NoDisplay === "true") return;
-        if (!fields.Name || !fields.Exec) return;
-        const args = parseExec(fields.Exec);
-        if (args.length === 0) return;
-        const id = path.slice(path.lastIndexOf("/") + 1);
-        const entry = {
-            id: id,
-            name: fields.Name,
-            args: args,
-            desktopNames: fields.DesktopNames || ""
-        };
-        const updated = sessions.filter(session => session.id !== id).concat([entry]);
+        const slash = path.lastIndexOf("/");
+        const id = path.slice(slash + 1);
+        const priority = sessionDirectories.indexOf(path.slice(0, slash));
+        if (priorityById[id] !== undefined && priorityById[id] < priority) return;
+        priorityById[id] = priority;
+        const updated = sessions.filter(session => session.id !== id);
+        const args = parseExec(fields.Exec || "");
+        if (fields.Hidden !== "true" && fields.NoDisplay !== "true" && fields.Name && args.length)
+            updated.push({id: id, name: fields.Name, args: args, desktopNames: fields.DesktopNames || ""});
         updated.sort((a, b) => a.name.localeCompare(b.name));
         sessions = updated;
         if (!selectionTouched && updated.some(session => session.id === preferredId)) {
             selectedId = preferredId;
         } else if (!selectedId || !updated.some(session => session.id === selectedId)) {
             selectedId = updated.some(session => session.id === "hyprland-uwsm.desktop")
-                ? "hyprland-uwsm.desktop" : updated[0].id;
+                ? "hyprland-uwsm.desktop" : (updated[0]?.id || "");
         } else if (selectedId === "hyprland.desktop"
                    && updated.some(session => session.id === "hyprland-uwsm.desktop")
                    && !selectionTouched) {

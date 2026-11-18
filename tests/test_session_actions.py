@@ -24,11 +24,14 @@ if name == "busctl":
 if name == "uwsm" and args == ["check","is-active"]:
     sys.exit(0 if os.environ["TEST_UWSM"] == "yes" else 1)
 with open(os.environ["TEST_CALLS"],"a") as out: out.write(json.dumps([name]+args)+"\\n")
+if args == ["lock"] and os.environ["TEST_UWSM"] == "no":
+    print("Synthetic lock failure",file=sys.stderr)
+    sys.exit(1)
 if args[-1] == "suspend":
     print("Synthetic denial",file=sys.stderr)
     sys.exit(1)
 '''
-    for name in ['busctl', 'systemctl', 'uwsm', 'loginctl']:
+    for name in ['busctl', 'systemctl', 'uwsm', 'loginctl', 'nullshell']:
         tool = binaries / name
         tool.write_text('#!' + sys.executable + '\n' + script)
         tool.chmod(0o755)
@@ -48,5 +51,5 @@ if args[-1] == "suspend":
         actual = [json.loads(line) for line in calls.read_text().splitlines()]
         logout = ['uwsm', 'stop'] if uwsm == 'yes' else ['loginctl', 'terminate-session', 'synthetic-session']
         assert actual == [['systemctl', '--no-ask-password', '--no-block', 'reboot'], logout,
-                          ['systemctl', '--no-ask-password', '--no-block', 'suspend']], actual
+                          ['systemctl', '--no-ask-password', '--no-block', 'suspend'], ['nullshell', 'lock']], actual
 print('Session actions: capability gating, command argv, UWSM/logind logout and failure feedback passed')

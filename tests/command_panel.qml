@@ -23,7 +23,6 @@ ShellRoot {
         services: fixture
         appearance: fixture
         keyboard: fixture
-        hyprControls: fixture
         notifs: notifs
     }
     DesktopSearch {
@@ -35,6 +34,7 @@ ShellRoot {
     }
     IpcHandler {
         target: "test"
+        function cacheDirectory(): string { return Quickshell.cacheDir; }
         function status(): string {
             return JSON.stringify({ready: notifs.historyLoaded && notifs.quietReady,
                 quiet: notifs.doNotDisturb, until: notifs.quietUntil,

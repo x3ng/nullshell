@@ -92,11 +92,13 @@ if 'slow' in args: time.sleep(20)
 
     def start(policy='{"version":1}', early=False):
         global process
+        loading_history = history_file.exists()
         with log.open("a") as output:
             process = subprocess.Popen([quickshell, "--path", entry], env=env, stdout=output, stderr=output)
         wait_for(lambda s: True)
         # Real saved history must wait until configuration has been published.
-        assert not json.loads(call("status"))["ready"]
+        if loading_history:
+            assert not json.loads(call("status"))["ready"]
         if early:
             asyncio.run(send("startup excluded"))
         call("configure", policy)
@@ -194,6 +196,14 @@ if 'slow' in args: time.sleep(20)
         early = start('{"version":1,"notifications":{"excludedApplications":["Test"]}}', early=True)
         assert not early["history"] and not early["current"], early
         wait_for(lambda s: "startup excluded" in s["popups"])
+        stop()
+        start()
+        legacy = Path(call("cacheDirectory")) / "notification_history.json"
+        legacy.parent.mkdir(parents=True, exist_ok=True)
+        legacy.write_text(json.dumps({"notifications": [dict(stale, time=time.time() * 1000)]}))
+        stop()
+        history_file.unlink()
+        assert not start()["history"]
         stop()
         # Invalid state is reported and preserved, including when persistence
         # is disabled. A policy change cannot silently erase a corrupt file.

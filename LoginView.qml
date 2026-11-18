@@ -1,4 +1,5 @@
 import QtQuick
+import "components"
 import Quickshell
 
 Item {
@@ -146,32 +147,6 @@ Item {
                         }
                     }
 
-                }
-
-                Column {
-                    width: parent.width
-                    spacing: 6
-                    visible: root.batteryText !== "" || root.keyboardLayout !== ""
-                    Text {
-                        width: parent.width
-                        visible: text !== ""
-                        text: root.batteryText
-                        textFormat: Text.PlainText
-                        wrapMode: Text.Wrap
-                        color: root.batteryLow ? root.theme.accentWarm : root.theme.textSecondary
-                        font.family: root.theme.fontFamily
-                        font.pixelSize: 13
-                    }
-                    Text {
-                        width: parent.width
-                        visible: root.keyboardLayout !== ""
-                        text: root.keyboardLayout ? "Keyboard · " + root.keyboardLayout : ""
-                        textFormat: Text.PlainText
-                        wrapMode: Text.Wrap
-                        color: root.theme.textSecondary
-                        font.family: root.theme.fontFamily
-                        font.pixelSize: 13
-                    }
                 }
 
                 Rectangle {
@@ -400,8 +375,49 @@ Item {
                     textFormat: Text.PlainText
                 }
 
+                Item {
+                    id: statusLine
+                    width: parent.width
+                    visible: root.batteryText !== "" || root.keyboardLayout !== ""
+                    height: Math.max(charge.visible ? charge.implicitHeight : 0,
+                        layoutInfo.visible ? layoutInfo.height : 0)
 
-
+                    Text {
+                        id: charge
+                        anchors.verticalCenter: parent.verticalCenter
+                        visible: root.batteryText !== ""
+                        text: root.batteryText
+                        textFormat: Text.PlainText
+                        color: root.batteryLow ? root.theme.accentWarm : root.theme.textSecondary
+                        font.family: root.theme.fontFamily
+                        font.pixelSize: 13
+                    }
+                    Row {
+                        id: layoutInfo
+                        visible: root.keyboardLayout !== ""
+                        spacing: 6
+                        x: charge.visible ? statusLine.width - width : 0
+                        anchors.verticalCenter: parent.verticalCenter
+                        StatusIcon {
+                            kind: "keyboard"
+                            ink: root.theme.textSecondary
+                            width: 16
+                            height: 16
+                            anchors.verticalCenter: parent.verticalCenter
+                        }
+                        Text {
+                            text: root.keyboardLayout
+                            textFormat: Text.PlainText
+                            width: Math.min(implicitWidth, Math.max(1, statusLine.width
+                                - (charge.visible ? charge.width + 12 : 0) - 16 - layoutInfo.spacing))
+                            wrapMode: Text.Wrap
+                            color: root.theme.textSecondary
+                            font.family: root.theme.fontFamily
+                            font.pixelSize: 13
+                            Accessible.name: "Keyboard · " + text
+                        }
+                    }
+                }
             }
 
             Column {

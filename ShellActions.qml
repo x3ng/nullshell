@@ -10,7 +10,6 @@ Scope {
     required property var services
     required property var appearance
     required property var keyboard
-    required property var hyprControls
     required property var notifs
     readonly property var session: sessionActions
     SessionActions { id: sessionActions }
@@ -39,7 +38,7 @@ Scope {
         {id: "light", description: "Switch desktop and applications to light mode", title: "Use light appearance", keywords: "theme 浅色 主题 外观", icon: "brightness", enabled: appearance.appearanceAvailable && appearance.appearanceKnown},
         {id: "dark", description: "Switch desktop and applications to dark mode", title: "Use dark appearance", keywords: "theme 深色 主题 外观", icon: "moon", enabled: appearance.appearanceAvailable && appearance.appearanceKnown},
         {id: "keyboard", description: "Toggle the on-screen keyboard", title: keyboard.shown ? "Hide screen keyboard" : "Show screen keyboard", keywords: "osk 屏幕键盘 虚拟键盘", icon: "keyboard", enabled: keyboard.available && !keyboard.pending},
-        {id: "lock", description: "Secure the current session", title: "Lock screen", keywords: "session 锁屏 锁定", icon: "window", enabled: hyprControls.available && !hyprControls.busy}
+        {id: "lock", description: "Secure the current session", title: "Lock screen", keywords: "session 锁屏 锁定", icon: "window", enabled: !session.lockPending}
     ].concat(services.controls.powerProfiles.map(profile => ({
         id: "power:" + profile,
         title: "Use power profile: " + profile,
@@ -75,7 +74,7 @@ Scope {
         case "light": return appearance.setTheme(false);
         case "dark": return appearance.setTheme(true);
         case "keyboard": return keyboard.toggle();
-        case "lock": return hyprControls.lock();
+        case "lock": return session.lock();
         default:
             if (!id.startsWith("power:")) return false;
             return services.controls.setPowerProfile(id.slice(6));

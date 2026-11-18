@@ -5,12 +5,14 @@ import "."
 ShellRoot {
     id: root
     property int stage: 0
+    property string lockError: ""
     SessionActions { id: actions }
     function check(condition, message) {
         if (!condition) { console.error(message); Qt.exit(1); }
     }
     Connections {
         target: actions
+        function onLockFailed(reason) { root.lockError = reason; }
         function onAccepted(action) {
             if (root.stage === 1) {
                 root.check(action === "reboot", "Wrong reboot action");
@@ -34,6 +36,11 @@ ShellRoot {
                 root.check(!actions.execute("logout"), "Concurrent operation accepted");
             } else if (root.stage === 3 && !actions.busy && actions.error !== "") {
                 root.check(actions.error.includes("Synthetic denial"), "Failure not reported");
+                root.stage = 4;
+                root.check(actions.lock(), "Lock rejected");
+                root.check(!actions.lock(), "Duplicate lock accepted");
+            } else if (root.stage === 4 && !actions.lockPending) {
+                root.check(root.lockError === (Quickshell.env("TEST_UWSM") === "yes" ? "" : "Synthetic lock failure"), "Incorrect lock feedback");
                 console.log("SESSION_ACTIONS_OK");
                 Qt.quit();
             }

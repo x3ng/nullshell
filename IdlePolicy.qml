@@ -10,6 +10,8 @@ Scope {
     property bool dimmed: false
     property bool displayOff: false
 
+    signal lockRequested()
+
     function run(command) {
         Quickshell.execDetached(command);
     }
@@ -55,7 +57,7 @@ Scope {
         enabled: root.ready && !root.keepAwake
         respectInhibitors: true
         onIsIdleChanged: {
-            if (isIdle) root.run(["nullshell", "lock"]);
+            if (isIdle) root.lockRequested();
         }
     }
 

@@ -19,6 +19,32 @@ Scope {
         {action: "poweroff", method: "CanPowerOff"}
     ]
     signal accepted(string action)
+    signal lockFailed(string reason)
+    property bool lockPending: false
+
+    function lock() {
+        if (lockPending) return false;
+        locker.started = false;
+        lockPending = true;
+        locker.running = true;
+        return true;
+    }
+    Process {
+        id: locker
+        property bool started: false
+        command: ["nullshell", "lock"]
+        stderr: StdioCollector { id: lockError }
+        onStarted: started = true
+        onRunningChanged: if (!running && !started && session.lockPending) {
+            session.lockPending = false;
+            session.lockFailed("Could not start the lock command.");
+        }
+        onExited: (code, status) => {
+            session.lockPending = false;
+            if (code !== 0 || status !== 0)
+                session.lockFailed(lockError.text.trim() || "The compositor did not confirm the lock.");
+        }
+    }
 
     function available(action) {
         return !busy && (action === "logout" ? useUwsm || sessionId !== "" : capabilities[action] === true);

@@ -39,10 +39,10 @@ Scope {
             saveRecord(wrapper);
             present(wrapper);
         }
-        if (pendingLoad) {
+        if (pendingLoad !== null) {
             const pending = pendingLoad;
             pendingLoad = null;
-            applyLoaded(pending.contents, pending.legacy);
+            applyLoaded(pending);
         }
         if (historyLoaded) { pruneHistory(); persistHistory(); }
     }
@@ -73,14 +73,12 @@ Scope {
 
     readonly property string historyFile: (Quickshell.env("XDG_STATE_HOME")
         || Quickshell.env("HOME") + "/.local/state") + "/nullshell/notifications.json"
-    readonly property string legacyHistoryFile: Quickshell.cacheDir + "/notification_history.json"
     property int nextRecord: 0
     // Bulk-clear intent must survive the asynchronous startup snapshot load.
     property bool currentClearedBeforeLoad: false
     property bool historyClearedBeforeLoad: false
     property bool historyLoaded: false
     property var closedLocalKeys: []
-    property bool legacyRequested: false
     property bool persistenceAllowed: false
     property string persistenceError: ""
     property bool historyDirty: false
@@ -472,9 +470,9 @@ Scope {
         if (historyDirty) saveTimer.restart();
     }
 
-    function applyLoaded(contents, legacy) {
-        if (historyLoaded || legacy !== legacyRequested) return;
-        if (!settingsReady) { pendingLoad = {contents: contents, legacy: legacy}; return; }
+    function applyLoaded(contents) {
+        if (historyLoaded) return;
+        if (!settingsReady) { pendingLoad = contents; return; }
         let data;
         try {
             data = JSON.parse(contents);
@@ -489,19 +487,15 @@ Scope {
             return;
         }
         loadHistory(data);
-        if (!legacy) persistedContents = contents;
+        persistedContents = contents;
         persistHistory();
         finishLoad(true, "");
     }
 
-    function loadFailed(error, legacy) {
-        if (historyLoaded || legacy !== legacyRequested) return;
+    function loadFailed(error) {
+        if (historyLoaded) return;
         if (error !== FileViewError.FileNotFound) {
             finishLoad(false, "Could not read history; preserving the original file.");
-        } else if (!legacy) {
-            // Only absence permits migration. Existing empty/corrupt state is
-            // never replaced by stale cache contents.
-            legacyRequested = true;
         } else {
             persistHistory();
             finishLoad(true, "");
@@ -556,21 +550,10 @@ Scope {
         atomicWrites: true
         watchChanges: false
         printErrors: false
-        onLoaded: root.applyLoaded(text(), false)
-        onLoadFailed: error => root.loadFailed(error, false)
+        onLoaded: root.applyLoaded(text())
+        onLoadFailed: error => root.loadFailed(error)
         onSaved: root.historySaved()
         onSaveFailed: root.historySaveFailed()
-    }
-
-    FileView {
-        id: legacyFileView
-        path: root.legacyRequested ? root.legacyHistoryFile : ""
-        preload: root.legacyRequested
-        blockLoading: false
-        watchChanges: false
-        printErrors: false
-        onLoaded: { if (root.legacyRequested) root.applyLoaded(text(), true); }
-        onLoadFailed: error => { if (root.legacyRequested) root.loadFailed(error, true); }
     }
 
     Component {

@@ -36,7 +36,7 @@ with tempfile.TemporaryDirectory(prefix="ns-login-info-") as directory:
             call("mode", lock)
             for light in ["false", "true"]:
                 call("light", light)
-                for width, height in [(1100, 640), (480, 640)]:
+                for width, height in [(1100, 640), (480, 640), (400, 640)]:
                     call("size", str(width), str(height))
                     time.sleep(.4)
                     for scenario in ["normal", "low", "full", "missing", "long", "cage"]:

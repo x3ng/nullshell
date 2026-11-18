@@ -25,4 +25,9 @@ with tempfile.TemporaryDirectory(prefix="nullshell-migration-") as temp:
     subprocess.run(["sh", str(script)], env=env, check=True)
     assert not (new / "keep-awake").exists(), "Cleared state must not be re-imported"
     assert not list(new.glob("*.import.*"))
+    cache = root / "notification_history.json"
+    cache.write_text('{"notifications":[]}')
+    env["XDG_STATE_HOME"] = str(root / "fresh")
+    subprocess.run(["sh", str(script), "--notification-cache", str(cache)], env=env, check=True)
+    assert (root / "fresh/nullshell/notifications.json").read_bytes() == cache.read_bytes()
 print("Legacy migration concurrency, ownership and one-time import passed")

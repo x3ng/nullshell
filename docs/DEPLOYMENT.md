@@ -48,7 +48,9 @@ Only an explicit `nullshell migrate-state` command performs a locked, one-time i
 `$XDG_STATE_HOME/quickshell` to `$XDG_STATE_HOME/nullshell`. Existing target files
 win. Sources are retained, permissions on copied files are 0600, and a completion
 marker prevents cleared state from reappearing. Legacy wallpaper defaults are
-likewise copied from the old XDG config location. Normal startup, lock requests, previews and greeter never perform migration.
+likewise copied from the old XDG config location. If notifications exist only in
+an older shell cache, pass `--notification-cache /path/to/notification_history.json`
+on the first migration. The legacy state file takes precedence over that cache. Normal startup, lock requests, previews and greeter never perform migration.
 
 ## Nix
 

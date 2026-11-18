@@ -36,6 +36,7 @@ ShellRoot {
         keepAwake: desktop.keepAwake
         ready: desktop.keepAwakeReady && config.ready
         deadlines: config.values.idle
+        onLockRequested: shellActions.session.lock()
     }
     DesktopSearch {
         id: desktopSearch
@@ -70,11 +71,16 @@ ShellRoot {
         services: desktop
         appearance: appearance
         keyboard: keyboard
-        hyprControls: hyprControls
         notifs: notifications
         onNavigateRequested: section => launcher.navigate(section)
     }
 
+    Connections {
+        target: shellActions.session
+        function onLockFailed(reason) {
+            notifications.notifyLocal("session-lock", {summary: "Could not lock the screen", body: reason, critical: true});
+        }
+    }
     Connections {
         target: desktop.controls
         function onFeedback(key, summary, body, critical) {

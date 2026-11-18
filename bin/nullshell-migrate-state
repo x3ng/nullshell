@@ -2,6 +2,14 @@
 # Idempotent legacy import. No source is changed; existing destinations win.
 set -eu
 umask 077
+cache_file=
+if [ "$#" -ne 0 ]; then
+    [ "$#" -eq 2 ] && [ "$1" = --notification-cache ] && [ -f "$2" ] || {
+        echo 'Usage: nullshell migrate-state [--notification-cache FILE]' >&2
+        exit 2
+    }
+    cache_file=$2
+fi
 state=${XDG_STATE_HOME:-$HOME/.local/state}
 config=${XDG_CONFIG_HOME:-$HOME/.config}
 mkdir -p "$state/nullshell" "$config/nullshell"
@@ -23,5 +31,6 @@ copy_once() {
 for name in keep-awake notifications.json wallpaper.json appearance-mode battery-alerts.json; do
     copy_once "$state/quickshell/$name" "$state/nullshell/$name"
 done
+if [ -n "$cache_file" ]; then copy_once "$cache_file" "$state/nullshell/notifications.json"; fi
 copy_once "$config/quickshell/wallpaper.json" "$config/nullshell/wallpaper.json"
 printf '%s\n' '1' > "$state/nullshell/.imported-quickshell-v1"
