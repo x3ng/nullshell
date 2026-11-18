@@ -1,4 +1,18 @@
-# Rust helper protocol v1
+# Rust system integration
+
+The installed command is `nullshell-helper`. Each invocation selects one capability.
+The CLI dispatches to the following modules in `backend/src/`.
+
+| Subcommand | Module | Owner and lifetime |
+| --- | --- | --- |
+| `bluetooth-agent` | `bluetooth.rs` | BlueZ Agent1 for one pairing conversation |
+| `sleep-bridge` | `sleep.rs` | logind session and delay-inhibitor FD |
+| `settings-portal` | `settings_portal.rs` | D-Bus activated Settings backend, reading the desktop’s published mode |
+| `appearance-export`, `wallpaper-export` | `appearance.rs`, `wallpaper.rs` | One validated snapshot publication per invocation |
+| `solar`, `location` | `solar.rs`, `location.rs` | One calculation or coarse GeoClue query per invocation |
+
+Compatibility is defined by each command’s argv, protocol and exit behavior.
+The Cargo package and QML configuration have independent build and release paths.
 
 ## Sleep coordination
 
