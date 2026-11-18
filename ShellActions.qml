@@ -13,9 +13,12 @@ Scope {
     required property var notifs
     readonly property var session: sessionActions
     SessionActions { id: sessionActions }
+    property bool captureBusy: false
+    signal captureRequested()
     signal navigateRequested(string section)
-    readonly property var panelActions: ["overview", "desktop", "wifi", "bluetooth", "audio", "notifications", "appearance", "session", "wallpaper", "brightness"]
+    readonly property var panelActions: ["overview", "desktop", "wifi", "bluetooth", "audio", "media", "notifications", "appearance", "session", "wallpaper", "brightness"]
     readonly property var entries: [
+        {id: "capture-region", title: "Capture a region", description: "Select an area and save a screenshot", keywords: "screenshot snip 截图 区域 截屏", icon: "window", enabled: !captureBusy},
         {id: "session", description: "Lock, sleep, log out, restart or shut down", title: "Power and session", keywords: "power shutdown reboot logout suspend 电源 关机 重启 注销 休眠 锁屏", icon: "power", enabled: true},
         {id: "appearance", description: "Light, dark, automatic and location settings", title: "Appearance settings", keywords: "theme auto solar 深色 浅色 自动 定位 主题 外观", icon: "brightness", enabled: true},
         {id: "auto", description: "Follow local sunrise and sunset", title: "Use automatic appearance", keywords: "theme solar 自动 主题 日出 日落", icon: "clock", enabled: appearance.appearanceAvailable},
@@ -24,7 +27,8 @@ Scope {
         {id: "overview", description: "Adjust frequent controls and see current status", title: "Open quick controls", keywords: "status settings 总览 状态 系统 设置 控制 快捷", icon: "app", enabled: true},
         {id: "wifi", description: "Choose a network and manage connections", title: "Wi-Fi settings", keywords: "network wireless 网络 无线", icon: "wifi", enabled: true},
         {id: "bluetooth", description: "Connect, pair and manage devices", title: "Bluetooth settings", keywords: "devices 蓝牙 设备", icon: "bluetooth", enabled: true},
-        {id: "audio", description: "Choose output and microphone devices", title: "Audio devices", keywords: "sound volume output input 声音 音频 音量 输出 输入", icon: "headphones", enabled: true},
+        {id: "media", description: "Choose a player and control playback", title: "Media player", keywords: "music playback 媒体 播放 音乐", icon: "music", enabled: true},
+        {id: "audio", description: "Choose devices and mix application playback", title: "Audio devices", keywords: "sound volume output input 声音 音频 音量 输出 输入", icon: "headphones", enabled: true},
         {id: "wallpaper", description: "Choose a shared desktop and lock-screen background", title: "Choose wallpaper", keywords: "background image desktop lock 壁纸 背景 桌面 锁屏", icon: "window", enabled: true},
         {id: "brightness", description: "Adjust the display backlight", title: "Adjust brightness", keywords: "display screen 亮度 屏幕 显示", icon: "brightness", enabled: true},
         {id: "wifi-toggle", description: "Enable or disable the wireless radio", title: services.controls.wifiEnabled ? "Turn off Wi-Fi" : "Turn on Wi-Fi", keywords: "wireless radio 无线 网络 开关", icon: "wifi", enabled: services.controls.wifiAvailable && !services.controls.wifiBusy},
@@ -56,12 +60,12 @@ Scope {
     // Service feedback signals report asynchronous failures independently.
     function execute(id) {
         if (!available(id)) return false;
-        if (["overview", "desktop", "wifi", "bluetooth", "audio", "notifications", "appearance", "wallpaper", "session"].includes(id)) {
-            navigateRequested(id);
+        if (panelActions.includes(id)) {
+            navigateRequested(id === "brightness" ? "overview" : id);
             return true;
         }
         switch (id) {
-        case "brightness": navigateRequested("overview"); break;
+        case "capture-region": captureRequested(); break;
         case "wifi-toggle": return services.controls.toggleWifi();
         case "bluetooth-toggle": return services.controls.toggleBluetooth();
         case "output-mute": return services.toggleOutputMute();

@@ -14,7 +14,8 @@ Scope {
     readonly property var players: Mpris.players.values
     readonly property var player: players.find(p => p.isPlaying) ?? players[0] ?? null
     // Persisted user intent gates idle before the transient inhibitor starts.
-    readonly property bool keepAwake: keepAwakeRequested
+    readonly property bool keepAwake: keepAwakeRequested || keepAwakeUntil > 0
+    property double keepAwakeUntil: 0
     readonly property bool keepAwakeInhibitorActive: idleInhibitor.running
     property bool keepAwakeRequested: false
     property bool keepAwakeReady: false
@@ -23,6 +24,10 @@ Scope {
     property bool controlsVisible: false
     property bool wifiDiscoveryActive: false
     readonly property var controls: systemControls
+    property bool mixerVisible: false
+    readonly property var audioStreams: mixerVisible ? Pipewire.nodes.values.filter(n => n.audio && n.isStream) : []
+    readonly property var playbackStreams: audioStreams.filter(n => n.properties["media.class"] === "Stream/Output/Audio")
+    PwObjectTracker { objects: root.audioStreams }
     readonly property var audioOutputs: Pipewire.nodes.values.filter(n => n.audio && !n.isStream && n.isSink)
     readonly property var audioInputs: Pipewire.nodes.values.filter(n => n.audio && !n.isStream && !n.isSink)
 
@@ -56,7 +61,7 @@ Scope {
         stderr: StdioCollector { onStreamFinished: idleInhibitor.failure = text.trim() }
         onExited: (code, status) => {
             // Rapid off/on can arrive while the old cat is closing its stdin.
-            if (root.keepAwakeRequested && code === 0 && status === 0)
+            if (root.keepAwake && code === 0 && status === 0)
                 Qt.callLater(root.reconcileIdleInhibitor);
             if (!startFailed && (code !== 0 || status !== 0))
                 root.feedback("keep-awake", "Could not keep the desktop awake",
@@ -77,14 +82,24 @@ Scope {
     }
 
     Component.onCompleted: {
-        keepAwakeRequested = keepAwakeFile.text().trim() === "true";
+        const saved = keepAwakeFile.text().trim();
+        if (saved.startsWith("{")) {
+            try {
+                const state = JSON.parse(saved);
+                if (state.version === 1) {
+                    keepAwakeRequested = state.permanent === true;
+                    if (Number.isSafeInteger(state.until) && state.until > Date.now())
+                        keepAwakeUntil = state.until;
+                }
+            } catch (_) { feedback("keep-awake-save", "Invalid Keep awake state", "Idle behavior has been restored.", false); }
+        } else keepAwakeRequested = saved === "true";
         keepAwakeReady = true;
         reconcileIdleInhibitor();
     }
 
     function reconcileIdleInhibitor() {
         if (!keepAwakeReady) return;
-        if (!keepAwakeRequested) {
+        if (!keepAwake) {
             idleInhibitor.stdinEnabled = false;
         } else if (!idleInhibitor.running) {
             idleInhibitor.stdinEnabled = true;
@@ -98,13 +113,30 @@ Scope {
     function setKeepAwake(value) {
         if (!keepAwakeReady) return false;
         keepAwakeRequested = value;
-        // Tiny local state; complete the atomic write before allowing a reload.
-        keepAwakeFile.setText(value ? "true\n" : "false\n");
+        if (!value) keepAwakeUntil = 0;
+        saveKeepAwake();
         reconcileIdleInhibitor();
         return true;
     }
 
-    function toggleKeepAwake() { return setKeepAwake(!keepAwakeRequested); }
+    function saveKeepAwake() {
+        keepAwakeFile.setText((keepAwakeUntil ? JSON.stringify({version: 1, permanent: keepAwakeRequested, until: keepAwakeUntil})
+            : String(keepAwakeRequested)) + "\n");
+    }
+    function keepAwakeFor(minutes) {
+        if (!keepAwakeReady || !Number.isInteger(minutes) || minutes < 0 || minutes > 1440) return false;
+        keepAwakeUntil = minutes ? Date.now() + minutes * 60000 : 0;
+        saveKeepAwake();
+        reconcileIdleInhibitor();
+        return true;
+    }
+    Timer {
+        interval: 1000
+        running: root.keepAwakeUntil > 0
+        repeat: true
+        onTriggered: if (Date.now() >= root.keepAwakeUntil) root.keepAwakeFor(0)
+    }
+    function toggleKeepAwake() { return setKeepAwake(!keepAwake); }
 
     PwObjectTracker {
         objects: root.audioOutputs.concat(root.audioInputs)

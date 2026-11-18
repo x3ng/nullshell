@@ -20,14 +20,19 @@ Rectangle {
     readonly property bool dialogOpen: wallpaperLoader.item?.dialogOpen ?? false
     readonly property var system: services.controls
     required property string section
-    property bool audioInput: false
+    property string audioTab: "Output"
+    readonly property bool audioInput: audioTab === "Microphone"
+    readonly property bool mixerVisible: panelOpen && section === "audio" && audioTab === "Mixer"
+    readonly property string historyQuery: historyFilter.text.trim().toLowerCase()
     property bool showHistory: false
     // Keep the current page through its exit animation, then release delegates.
     // Never instantiate unrelated detail lists behind the selected section.
     property bool retainContent: false
     readonly property bool renderContent: panelOpen || retainContent
     readonly property var notificationEntries: renderContent && isNotifs
-        ? (showHistory ? notifs.history : notifs.current) : []
+        ? (showHistory ? notifs.history.filter(entry => !historyQuery ||
+            [entry.appName, entry.desktopEntry, entry.summary, entry.body].some(value =>
+                String(value || "").toLowerCase().includes(historyQuery))) : notifs.current) : []
     property bool panelOpen: visible
     signal dismissRequested()
     signal closePanelRequested()
@@ -35,18 +40,20 @@ Rectangle {
     readonly property string title: section === "session" ? "Power and session" : section === "appearance" ? "Appearance"
         : section === "wallpaper" ? "Wallpaper" : section === "wifi" ? "Wi-Fi"
         : section === "bluetooth" ? "Bluetooth"
+        : section === "media" ? "Media player"
         : detail.isNotifs ? "Notifications"
         : "Audio devices"
     readonly property string subtitle: section === "session" ? "Lock your screen or leave this session" : section === "appearance" ? "Light, dark and sunrise-to-sunset scheduling"
         : section === "wallpaper" ? "Desktop and lock-screen background" : section === "wifi" ? "Nearby networks · connect & manage"
         : section === "bluetooth" ? "Devices · discover, pair & connect"
+        : section === "media" ? "Players in this session"
         : detail.isNotifs ? (detail.showHistory ? "Saved notifications · clearing history also dismisses pending entries"
             : "Pending notifications · cleared entries remain in history")
-        : "Choose your default device"
+        : "Playback streams and default devices"
     readonly property bool radioEnabled: section === "wifi" ? system.wifiEnabled : system.bluetoothEnabled
-    readonly property var rows: renderContent && section === "audio"
+    readonly property var rows: renderContent && section === "audio" && audioTab !== "Mixer"
         ? (audioInput ? services.audioInputs : services.audioOutputs) : []
-    onSectionChanged: { audioInput = false; showHistory = false; viewport.contentY = 0; }
+    onSectionChanged: { audioTab = "Output"; showHistory = false; viewport.contentY = 0; }
     readonly property real naturalHeight: detailHeader.Layout.preferredHeight + 1 + 2 * style.spaceMd + content.implicitHeight
         + (isNotifs ? notificationToolbar.implicitHeight + style.spaceMd : 0)
     implicitWidth: 380
@@ -115,7 +122,7 @@ Rectangle {
                 objectName: "notification-clear-all"
                 Layout.preferredWidth: 112
                 Layout.preferredHeight: 32
-                visible: detail.isNotifs
+                visible: detail.isNotifs && !(detail.showHistory && detail.historyQuery)
                 style: detail.style
                 label: detail.showHistory ? "Clear history" : "Clear all"
                 available: detail.notificationEntries.length > 0
@@ -147,6 +154,7 @@ Rectangle {
                 Layout.preferredHeight: 36
                 filled: true
                 style: detail.style
+                objectName: "notification-history"
                 label: "History · " + detail.notifs.history.length
                 selected: detail.showHistory
                 onTriggered: { detail.showHistory = true; viewport.contentY = 0; }
@@ -218,24 +226,36 @@ Rectangle {
                         Layout.fillWidth: true
                         visible: detail.section === "audio"
                         spacing: detail.style.spaceSm
-                        ChoiceButton {
-                            Layout.fillWidth: true
-                            style: detail.style
-                            label: "Output"
-                            selected: !detail.audioInput
-                            onTriggered: { detail.audioInput = false; viewport.contentY = 0; }
+                        Repeater {
+                            model: ["Output", "Microphone", "Mixer"]
+                            delegate: ChoiceButton {
+                                required property string modelData
+                                objectName: "audio-" + modelData
+                                Layout.fillWidth: true
+                                Layout.preferredWidth: 1
+                                Layout.preferredHeight: 36
+                                style: detail.style
+                                label: modelData
+                                selected: detail.audioTab === modelData
+                                onTriggered: { detail.audioTab = modelData; viewport.contentY = 0; }
+                            }
                         }
-                        ChoiceButton {
-                            Layout.fillWidth: true
-                            style: detail.style
-                            label: "Microphone"
-                            selected: detail.audioInput
-                            onTriggered: { detail.audioInput = true; viewport.contentY = 0; }
-                        }
+                    }
+                    Loader {
+                        Layout.fillWidth: true
+                        active: detail.mixerVisible
+                        visible: active
+                        sourceComponent: PlaybackMixer { style: detail.style; streams: detail.services.playbackStreams }
+                    }
+                    Loader {
+                        Layout.fillWidth: true
+                        active: detail.renderContent && detail.section === "media"
+                        visible: active
+                        sourceComponent: MediaPane { style: detail.style; services: detail.services }
                     }
                     ColumnLayout {
                         Layout.fillWidth: true
-                        visible: detail.section === "audio"
+                        visible: detail.section === "audio" && detail.audioTab !== "Mixer"
                         spacing: detail.style.spaceXs
                         Repeater {
                             model: detail.rows
@@ -281,7 +301,7 @@ Rectangle {
                         active: detail.renderContent && detail.section === "session"
                         visible: active
                         sourceComponent: Component {
-                            PowerPane { style: detail.style; actions: detail.actions; onCloseRequested: detail.closePanelRequested() }
+                            PowerPane { style: detail.style; services: detail.services; actions: detail.actions; onCloseRequested: detail.closePanelRequested() }
                         }
                     }
                     ConnectivityPane {
@@ -298,6 +318,16 @@ Rectangle {
                         Layout.fillWidth: true
                         visible: detail.isNotifs
                         spacing: detail.style.spaceXs
+                        ConnectionField {
+                            id: historyFilter
+                            objectName: detail.isNotifs ? "notification-filter" : ""
+                            Layout.fillWidth: true
+                            visible: detail.showHistory
+                            style: detail.style
+                            placeholderText: "Filter by application or notification text"
+                            Accessible.name: placeholderText
+                            onTextChanged: viewport.contentY = 0
+                        }
                         Repeater {
                             model: detail.notificationEntries
                             delegate: NotificationRow {
@@ -305,6 +335,7 @@ Rectangle {
                                 required property var modelData
                                 Layout.fillWidth: true
                                 style: detail.style
+                                objectName: "notification-record-" + modelData.recordKey
                                 entry: modelData
                                 compact: false
                                 actions: detail.notifs.entryActions(entry)
@@ -312,7 +343,7 @@ Rectangle {
                                 onActivated: { if (detail.notifs.activateEntry(entry)) detail.closePanelRequested(); }
                                 onActionRequested: action => { if (detail.notifs.invokeEntryAction(entry, action)) detail.closePanelRequested(); }
                                 onTriggered: {
-                                    if (detail.showHistory) detail.notifs.removeHistory(index);
+                                    if (detail.showHistory) detail.notifs.removeHistory(detail.notifs.history.findIndex(record => record.recordKey === entry.recordKey));
                                     else detail.notifs.removeCurrent(index);
                                 }
                             }
@@ -323,7 +354,7 @@ Rectangle {
                             horizontalAlignment: Text.AlignHCenter
                             verticalAlignment: Text.AlignVCenter
                             visible: detail.notificationEntries.length === 0
-                            text: detail.showHistory ? "No saved notifications" : "No pending notifications"
+                            text: detail.showHistory && detail.historyQuery ? "No matching notifications" : detail.showHistory ? "No saved notifications" : "No pending notifications"
                             color: detail.style.textMuted
                             font.family: detail.style.fontFamily
                             font.pixelSize: detail.style.fontSizeBody

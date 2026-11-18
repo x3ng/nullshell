@@ -4,10 +4,12 @@ import Quickshell.Io
 import "SearchMatch.js" as Match
 import "ConfigRules.js" as Rules
 import "preview"
+import "adapters"
 
 ShellRoot {
     id: root
     property var failures: []
+    HyprlandBindings { id: bindingsAdapter }
     ApplicationLauncher {
         id: launcher
         onFeedback: (key, summary, body, critical) => root.failures = [...root.failures, {summary: summary, body: body}]
@@ -44,12 +46,25 @@ ShellRoot {
         }
         function configure(value: string): void { notifs.settings = Rules.parse(value).notifications; notifs.settingsReady = true; }
         function command(value: string): bool { return shellActions.execute(value); }
+        function refreshBindings(): void { bindingsAdapter.refresh(); }
+        function bindings(): string { return JSON.stringify(bindingsAdapter.rows); }
         function searchFor(value: string): string {
             search.query = value;
             return JSON.stringify(search.results.map(row => ({title: row.title, kind: row.kind, key: row.key})));
         }
         function pause(): bool { return notifs.pause(60); }
         function resume(): bool { return notifs.resume(); }
+        function checkLocalAction(): bool {
+            let opened = false;
+            notifs.notifyLocal("capture-test", {summary: "Synthetic screenshot", actions: [
+                {identifier: "open", text: "Open image", invoke: () => { opened = true; }}
+            ]});
+            const entry = notifs.current.find(row => row.recordKey === "local:capture-test");
+            const action = notifs.entryActions(entry)[0];
+            const invoked = action && notifs.invokeEntryAction(entry, action);
+            notifs.closeLocal("capture-test");
+            return !!invoked && opened && !entry.actions;
+        }
         function local(key: string, critical: bool): void { notifs.notifyLocal(key, {summary: key, critical: critical}); }
         function clear(): void { notifs.clearHistory(); }
         function launch(name: string, terminal: bool): bool {

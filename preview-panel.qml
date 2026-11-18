@@ -10,7 +10,7 @@ import "preview"
 // The production view, synthetic state. Never instantiate shell.qml here.
 ShellRoot {
     id: root
-    PanelFixture { id: fixture; query: panel.query; onNavigateRequested: section => panel.navigate(section) }
+    PanelFixture { id: fixture; mixerVisible: panel.mixerVisible; query: panel.query; onNavigateRequested: section => panel.navigate(section) }
     Theme { id: theme; darkMode: fixture.darkMode }
     QtObject {
         id: wallpaperFixture
@@ -157,6 +157,13 @@ ShellRoot {
             item.triggered();
             return true;
         }
+        function setToolField(name: string, value: string): bool {
+            if (!["awake-duration", "shortcut-filter", "notification-filter"].includes(name)) return false;
+            const field = root.control(name);
+            if (field) field.text = value;
+            return !!field;
+        }
+        function shortcutCount(): int { return root.control("shortcut-list")?.matches.length ?? -1; }
         function coordinate(name: string, value: string): bool {
             const item = root.control("appearance-" + name);
             if (!item || !["latitude", "longitude"].includes(name)) return false;
@@ -194,6 +201,13 @@ ShellRoot {
                 detachedFocus: panel.detailPages.sections.filter(section => panel.detailPages.isDetached(section)).map(section => ({section: section,
                     active: panel.detailPages.slot(section).window.active,
                     focusedItem: panel.detailPages.slot(section).window.activeFocusItem?.objectName ?? ""})),
+                mediaPlayer: root.control("media-pane")?.player?.identity ?? "",
+                seekEnabled: root.control("media-position")?.enabled ?? false,
+                mediaPosition: fixture.player?.position ?? 0,
+                streamVolume: fixture.playbackStreams[0]?.audio.volume ?? 0,
+                streamMuted: fixture.playbackStreams[0]?.audio.muted ?? false,
+                savedKeys: fixture.history.map(entry => entry.recordKey),
+                historyFilter: panel.detailPages.pageItem("notifications")?.historyQuery ?? "",
                 detachedWifi: panel.detachedWifi, detachedControls: panel.detachedControls,
                 dialogOpen: panel.detailPages.dialogOpen,
                 wallpaperDraft: root.control("wallpaper-picker")?.pendingPath ?? null,

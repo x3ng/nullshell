@@ -117,7 +117,7 @@ def main():
             call("light", "false")
             for scenario in ["empty", "crowded", "media", "normal"]:
                 assert call("scenario", scenario) == "true"
-                for page in ["overview", "wifi", "bluetooth", "audio", "notifications", "desktop", "appearance", "wallpaper"]:
+                for page in ["overview", "wifi", "bluetooth", "audio", "media", "notifications", "desktop", "appearance", "wallpaper"]:
                     call("page", page)
                     current = settle()
                     expected = page if page in ["overview", "desktop"] else "detail:" + page
@@ -148,6 +148,18 @@ def main():
             changed = settle()
             assert changed["results"] == before["results"]
             assert changed["selectedKey"] == before["selectedKey"]
+            for width, light in [("440", "true"), ("740", "false")]:
+                call("width", width)
+                call("light", light)
+                call("page", "overview")
+                call("page", "desktop")
+                settle()
+                assert call("activateControl", "desktop-shortcuts") == "true"
+                settle()
+                assert call("shortcutCount") == "2"
+                screenshot("shortcuts-" + width)
+                assert call("setToolField", "shortcut-filter", "terminal") == "true"
+                assert call("shortcutCount") == "1"
             call("search", ">")
             assert settle()["results"] == 6
             for width in ["440", "740"]:
@@ -318,6 +330,11 @@ def main():
                     call("light", light)
                     settle()
                     screenshot("power-" + width + "-" + light)
+            assert call("setToolField", "awake-duration", "37") == "true"
+            assert call("activateControl", "awake-duration-apply") == "true"
+            settle()
+            screenshot("session-timed-awake")
+            assert call("activateControl", "awake-duration-apply") == "true"
             for action in ["logout", "reboot", "poweroff"]:
                 previous = state()["lastAction"]
                 assert call("activateControl", "power-action-" + action) == "true"
@@ -390,16 +407,53 @@ def main():
             else:
                 assert call("activateControl", "detach-page") == "true"
             assert state()["latitudeDraft"] == "12.345"
-            for page in ["wifi", "bluetooth", "audio", "notifications"]:
+            call("scenario", "crowded")
+            call("page", "overview")
+            settle()
+            assert call("activateControl", "open-media") == "true"
+            assert settle()["page"] == "detail:media"
+            assert state()["seekEnabled"]
+            if args.keyboard:
+                assert call("focusControl", "media", "media-position") == "true"
+                subprocess.run(["wtype", "-k", "Right"], check=True, timeout=5)
+                assert state()["mediaPosition"] > 45, state()
+            screenshot("media-player")
+            for page in ["wifi", "bluetooth", "audio", "media", "notifications"]:
                 call("page", page)
                 settle()
+                if page == "media":
+                    assert call("activateControl", "select-player-Radio") == "true"
+                if page == "audio":
+                    assert call("activateControl", "audio-Mixer") == "true"
+                    assert call("activateControl", "stream-mute-17") == "true"
+                    assert state()["streamMuted"]
+                    if args.keyboard:
+                        assert call("focusControl", "audio", "stream-volume-17") == "true"
+                        subprocess.run(["wtype", "-k", "Left"], check=True, timeout=5)
+                        assert abs(state()["streamVolume"] - 0.6) < 0.001
+                    screenshot("playback-mixer")
+                if page == "notifications":
+                    assert call("activateControl", "notification-history") == "true"
+                    assert call("setToolField", "notification-filter", "messenger") == "true"
+                    assert call("activateControl", "notification-clear-all") == "false"
+                    screenshot("history-filter")
                 assert call("activateControl", "detach-page") == "true"
                 assert page in state()["detached"] and not state()["open"]
+            assert state()["mediaPlayer"] == "Radio" and not state()["seekEnabled"]
+            assert state()["streamMuted"]
+            assert state()["historyFilter"] == "messenger"
+            assert call("activateControl", "notification-record-message") == "true"
+            assert state()["savedKeys"] == ["download"]
+            call("scenario", "empty")
+            assert state()["mediaPlayer"] == ""
+            assert call("activateControl", "stream-mute-17") == "false"
+            call("scenario", "media")
+            assert state()["mediaPlayer"] == "Preview player"
             assert state()["detachedWifi"] and state()["detachedControls"]
             # Opening/closing the launcher does not close detached views.
             call("openPanel")
             call("close")
-            assert len(state()["detached"]) == 6
+            assert len(state()["detached"]) == 7
             if args.keyboard:
                 # IPC alone has never supplied Qt with an input seat/serial.
                 subprocess.run(["wtype", "-k", "Shift_L"], check=True, timeout=5)
@@ -436,7 +490,7 @@ def main():
             if args.keyboard:
                 subprocess.run(["wtype", "-k", "Escape"], check=True, timeout=5)
                 time.sleep(.2)
-                assert "wallpaper" not in state()["detached"] and len(state()["detached"]) == 5, state()
+                assert "wallpaper" not in state()["detached"] and len(state()["detached"]) == 6, state()
             for page in list(state()["detached"]):
                 call("closeDetached", page)
             assert not state()["detachedControls"] and not state()["detachedWifi"]

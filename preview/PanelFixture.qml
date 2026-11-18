@@ -71,6 +71,22 @@ Scope {
         locationStatus = "inactive"; overrideUntil = 0;
         effectiveSettings = {mode: "manual", location: "geoclue", latitude: null, longitude: null};
     }
+    property QtObject shortcuts: QtObject {
+        readonly property string status: ""
+        readonly property var rows: [
+            {chord: "Super + Return", description: "Open terminal", dispatcher: "exec"},
+            {chord: "Super + Shift + S", description: "Capture a region", dispatcher: "exec"}
+        ]
+        function refresh() {}
+    }
+    function keepAwakeFor(minutes) {
+        keepAwakeUntil = minutes ? Date.now() + minutes * 60000 : 0;
+        keepAwake = keepAwakeRequested || keepAwakeUntil > 0;
+        return true;
+    }
+    property bool keepAwakeReady: true
+    property double keepAwakeUntil: 0
+    property bool keepAwakeRequested: true
     property bool keepAwake: true
     property var trayItems: scenario === "empty" ? [] : Array.from({length: scenario === "crowded" ? 6 : 1}, () => tray)
     QtObject {
@@ -89,6 +105,14 @@ Scope {
     property var sink: output
     property var source: input
     property var audioOutputs: [output]
+    property bool mixerVisible: false
+    readonly property var playbackStreams: mixerVisible && scenario !== "empty" ? [previewStream] : []
+    QtObject {
+        id: previewStream
+        readonly property int id: 17
+        readonly property var properties: ({"application.name": "Preview browser", "media.name": "Video playback"})
+        property QtObject audio: QtObject { property real volume: 0.62; property bool muted: false }
+    }
     property var audioInputs: [input]
     QtObject { id: output; property string description: "Preview speakers"; property var audio: outputAudio }
     QtObject { id: outputAudio; property real volume: 0.45; property bool muted: false }
@@ -100,9 +124,31 @@ Scope {
     function setBrightness(value) { brightness = value; }
     function selectAudioDevice(device, isInput) { lastAction = "select audio"; }
 
-    property var player: scenario === "media" || scenario === "crowded" ? media : null
+    readonly property var players: scenario === "crowded" ? [media, broadcast] : scenario === "media" ? [media] : []
+    readonly property var player: players.find(p => p.isPlaying) ?? players[0] ?? null
+    QtObject {
+        id: broadcast
+        property string identity: "Radio"
+        property string trackTitle: "Live broadcast"
+        property string trackArtist: ""
+        property bool positionSupported: false
+        property bool lengthSupported: false
+        property bool canSeek: false
+        property bool isPlaying: false
+        property bool canTogglePlaying: true
+        property bool canGoNext: false
+        property bool canGoPrevious: false
+        property real position: 0
+        function togglePlaying() { isPlaying = !isPlaying; }
+    }
     QtObject {
         id: media
+        property real position: 45
+        property real length: 180
+        property bool positionSupported: true
+        property bool lengthSupported: true
+        property bool canSeek: true
+        property string uniqueId: "fixture-track"
         property string trackTitle: "A very long track title to check truncation without changing the panel width"
         property string trackArtist: "Preview artist"
         property string identity: "Preview player"
@@ -187,10 +233,13 @@ Scope {
     function setLayout(address, layout) { lastAction = "layout " + layout; return false; }
 
     property var current: scenario === "empty" ? [] : [{
-        id: 1, appName: "Preview", summary: "Download completed — ready to review",
+        recordKey: "download", id: 1, appName: "Preview", summary: "Download completed — ready to review",
         body: "Synthetic notification. No application is contacted.", time: Date.now(), urgency: 1
     }]
-    property var history: current
+    property var history: scenario === "empty" ? [] : [...current, {
+        recordKey: "message", appName: "Messenger", summary: "Incoming message",
+        body: "Preview conversation", time: Date.now(), urgency: 1
+    }]
     function entryActions(entry) { return []; }
     function activationLabel(entry) { return ""; }
     function activateEntry(entry) { lastAction = "notification"; return false; }
@@ -223,7 +272,7 @@ Scope {
     function activateResult(result, forceTerminal) { lastAction = "activate " + result.key; return {accepted: true, closePanel: false}; }
     function execute(action) {
         lastAction = action;
-        if (["overview", "desktop", "wifi", "bluetooth", "audio", "notifications", "appearance", "session"].includes(action)) navigateRequested(action);
+        if (["overview", "desktop", "wifi", "bluetooth", "audio", "media", "notifications", "appearance", "session"].includes(action)) navigateRequested(action);
         else if (action === "auto") selectMode("auto");
         else if (action === "appearance-resume") resumeAutomatic();
         else if (action === "keep-awake") keepAwake = !keepAwake;

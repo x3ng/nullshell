@@ -22,3 +22,20 @@ under external configuration.
 
 The standalone panel preview injects a synthetic session adapter. Its power
 controls never execute host commands or read host power capabilities.
+
+## On-demand tools
+
+Open **Workspaces** and choose the keyboard button to read the current Hyprland
+bindings. Filter by key combination, description, submap or dispatcher. Entries
+are read-only. Hyprland may supply only a dispatcher name for a Lua binding.
+
+Search for **Capture a region** or bind `nullshell ipc call capture region` in
+your compositor. The desktop closes its panel before selection. Escape cancels.
+The image is saved to the XDG Pictures directory under `Screenshots/`, with
+`~/Pictures` as fallback. The notification offers **Open image**.
+
+In **Power and session**, enter a duration in minutes and choose **Start**.
+The expiry survives shell restarts. **End timer** preserves any permanent setting. Clicking an active Keep
+awake button resumes idle behavior immediately. IPC also accepts a duration in
+minutes, for example `nullshell ipc call idle keepAwakeFor 30` (1–1440, or 0 to
+cancel). `idle status` exposes the permanent choice and the expiry in epoch ms.

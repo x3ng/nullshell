@@ -227,14 +227,14 @@ Scope {
     }
 
     // Stable local keys replace one record instead of growing duplicate alerts.
-    // Local payloads deliberately have no application actions or D-Bus lifetime.
+    // Optional local actions live only on the in-memory wrapper.
     function notifyLocal(key, details) {
         if (!key || !details || !details.summary) return false;
         closedLocalKeys = closedLocalKeys.filter(k => k !== key);
         const payload = {
             appName: details.appName || "System", desktopEntry: "",
             summary: details.summary, body: details.body || "",
-            appIcon: details.appIcon || "", image: "", actions: [],
+            appIcon: details.appIcon || "", image: "", actions: details.actions || [],
             urgency: details.critical ? NotificationUrgency.Critical : NotificationUrgency.Normal,
             expireTimeout: -1, transient: false, resident: false
         };

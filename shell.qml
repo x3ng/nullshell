@@ -24,6 +24,7 @@ ShellRoot {
     }
     DesktopServices {
         id: desktop
+        mixerVisible: launcher.mixerVisible
         controlsVisible: launcher.open || launcher.detachedControls
         wifiDiscoveryActive: launcher.detachedWifi || (launcher.open && launcher.showingDetails && launcher.controlSection === "wifi")
         onFeedback: (key, summary, body, critical) =>
@@ -66,12 +67,25 @@ ShellRoot {
         onFeedback: (key, summary, body, critical) =>
             notifications.notifyLocal(key, {summary: summary, body: body, critical: critical})
     }
+    RegionCapture {
+        id: capture
+        panelVisible: launcher.visible
+        onHidePanel: launcher.dismiss()
+        onFailed: reason => notifications.notifyLocal("screenshot-error", {summary: "Screenshot failed", body: reason})
+        onSaved: path => {
+            const url = "file://" + path.split("/").map(encodeURIComponent).join("/");
+            notifications.notifyLocal("screenshot", {summary: "Screenshot saved", body: path,
+                actions: [{identifier: "open", text: "Open image", invoke: () => Qt.openUrlExternally(url)}]});
+        }
+    }
     ShellActions {
         id: shellActions
         services: desktop
         appearance: appearance
         keyboard: keyboard
         notifs: notifications
+        captureBusy: capture.pending
+        onCaptureRequested: capture.request()
         onNavigateRequested: section => launcher.navigate(section)
     }
 
@@ -113,10 +127,11 @@ ShellRoot {
 
     IpcHandler {
         target: "idle"
+        function keepAwakeFor(minutes: int): bool { return desktop.keepAwakeFor(minutes); }
         function setKeepAwake(enabled: bool): bool { return desktop.setKeepAwake(enabled); }
         function status(): string {
             return JSON.stringify({ready: desktop.keepAwakeReady, keepAwake: desktop.keepAwake,
-                inhibitorActive: desktop.keepAwakeInhibitorActive});
+                until: desktop.keepAwakeUntil, permanent: desktop.keepAwakeRequested, inhibitorActive: desktop.keepAwakeInhibitorActive});
         }
     }
 
@@ -145,6 +160,10 @@ ShellRoot {
         }
     }
 
+    IpcHandler {
+        target: "capture"
+        function region(): bool { return capture.request(); }
+    }
     IpcHandler {
         target: "launcher"
         function search(query: string): void { launcher.openSearch(query); }

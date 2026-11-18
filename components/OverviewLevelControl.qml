@@ -52,8 +52,9 @@ Item {
                 ink: level.style.textSecondary
             }
         }
-        Slider {
-            id: adjustment
+        PanelSlider {
+            style: level.style
+            muted: level.muted
             Layout.fillWidth: true
             implicitHeight: 36
             Layout.minimumWidth: 48
@@ -63,28 +64,6 @@ Item {
             activeFocusOnTab: true
             Accessible.name: level.title
             onMoved: level.edited(value)
-            background: Rectangle {
-                x: adjustment.leftPadding
-                y: adjustment.topPadding + adjustment.availableHeight / 2 - height / 2
-                width: adjustment.availableWidth
-                height: 6
-                radius: 3
-                color: level.style.separator
-                Rectangle {
-                    width: adjustment.visualPosition * parent.width
-                    height: parent.height
-                    radius: 3
-                    color: level.muted ? level.style.textMuted : level.style.accent
-                    opacity: level.available ? 1 : 0.4
-                }
-            }
-            handle: Rectangle {
-                x: adjustment.leftPadding + adjustment.visualPosition * (adjustment.availableWidth - width)
-                y: adjustment.topPadding + adjustment.availableHeight / 2 - height / 2
-                width: 12; height: 12; radius: 6
-                color: level.style.accent
-                visible: adjustment.hovered || adjustment.pressed || adjustment.activeFocus
-            }
         }
         Text {
             Layout.preferredWidth: 42

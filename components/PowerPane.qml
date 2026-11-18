@@ -6,6 +6,7 @@ import ".."
 ColumnLayout {
     id: pane
     required property Theme style
+    required property var services
     required property var actions
     readonly property var session: actions.session
     property string pendingAction: ""
@@ -99,4 +100,38 @@ ColumnLayout {
         font.family: pane.style.fontFamily
         font.pixelSize: pane.style.fontSizeSmall
     }
+    RowLayout {
+        Layout.fillWidth: true
+        visible: pane.pendingAction === ""
+        Text {
+            Layout.fillWidth: true
+            wrapMode: Text.WordWrap
+            text: pane.services.keepAwakeUntil > 0
+                ? "Keep awake until " + Qt.formatTime(new Date(pane.services.keepAwakeUntil), "hh:mm")
+                : "Keep awake for"
+            color: pane.style.textSecondary
+            font.family: pane.style.fontFamily
+            font.pixelSize: pane.style.fontSizeBody
+        }
+        ConnectionField {
+            id: duration
+            objectName: "awake-duration"
+            style: pane.style
+            Layout.preferredWidth: 88
+            visible: !pane.services.keepAwakeUntil
+            placeholderText: "Minutes"
+            validator: IntValidator { bottom: 1; top: 1440 }
+            onAccepted: if (acceptableInput) pane.services.keepAwakeFor(Number(text))
+        }
+        ChoiceButton {
+            objectName: "awake-duration-apply"
+            Layout.preferredWidth: 88
+            Layout.preferredHeight: 40
+            style: pane.style
+            label: pane.services.keepAwakeUntil ? "End timer" : "Start"
+            available: pane.services.keepAwakeReady && (pane.services.keepAwakeUntil > 0 || duration.acceptableInput)
+            onTriggered: pane.services.keepAwakeFor(pane.services.keepAwakeUntil ? 0 : Number(duration.text))
+        }
+    }
+
 }

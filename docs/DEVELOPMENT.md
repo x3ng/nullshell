@@ -59,7 +59,7 @@ preview scenario crowded     # normal, empty, crowded, media
 preview width 440            # default 740; narrow layout and workspace wrapping
 preview light true
 preview blur false          # simulate opaque fallback; true simulates blur support
-preview page bluetooth       # overview, desktop, wifi, bluetooth, audio, notifications, appearance
+preview page bluetooth       # overview, desktop, wifi, bluetooth, audio, media, notifications, appearance
 preview search terminal
 preview tick                 # change window titles without changing identities
 preview status
@@ -287,7 +287,7 @@ views are reviewed through their previews, never by restarting live agents.
 
 ### Detachable settings
 
-Wi-Fi, Bluetooth, audio, notifications, appearance and wallpaper open inside
+Wi-Fi, Bluetooth, audio, media, notifications, appearance and wallpaper open inside
 the command panel by default. Their header's window button moves the existing
 page into an ordinary resizable window and dismisses the launcher. Ctrl+Shift+D
 also detaches the current detail page;

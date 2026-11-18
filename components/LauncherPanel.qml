@@ -20,6 +20,7 @@ PanelWindow {
     required property var actions
     required property var wallpaper
     property alias detailPages: controlDetails
+    readonly property bool mixerVisible: controlDetails.pageItem("audio")?.mixerVisible ?? false
     readonly property bool detachedWifi: controlDetails.isDetached("wifi")
     readonly property bool detachedControls: controlDetails.sections.some(section => controlDetails.isDetached(section))
     required property var preferredScreen
@@ -159,6 +160,7 @@ PanelWindow {
         return true;
     }
     function handleEscape() {
+        if (showingWorkspace && desktopPage.showingShortcuts) { desktopPage.showingShortcuts = false; return; }
         if (showingDetails || searching || homeTab !== "overview") returnToHome();
         else dismiss();
     }

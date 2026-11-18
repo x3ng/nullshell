@@ -3,6 +3,7 @@ let
   source = pkgs.lib.fileset.toSource {
     root = ../..;
     fileset = pkgs.lib.fileset.unions [
+      ../../adapters/HyprlandBindings.qml
       ../../ApplicationLauncher.qml
       ../../DesktopSearch.qml
       ../../ShellActions.qml

@@ -36,11 +36,12 @@ ColumnLayout {
     property int pendingDismissRequestId: 0
     property string pendingDismissAddress: ""
     property bool choosingWorkspace: false
+    property bool showingShortcuts: false
     property bool choosingLayout: false
     property string pendingWorkspaceAddress: ""
     property int pendingWorkspaceRequestId: 0
     readonly property var selectedWorkspace: controls.workspaces.find(w => w.address === selectedWorkspaceAddress) ?? null
-    readonly property real naturalHeight: detailHeader.Layout.preferredHeight + spacing + content.implicitHeight
+    readonly property real naturalHeight: detailHeader.Layout.preferredHeight + spacing + (showingShortcuts ? (shortcuts.item?.naturalHeight ?? 0) : content.implicitHeight)
     spacing: 10
     signal backRequested()
     signal dismissRequested()
@@ -80,6 +81,7 @@ ColumnLayout {
         pendingWorkspaceRequestId = 0;
         choosingWorkspace = false;
         choosingLayout = false;
+        showingShortcuts = false;
         expandedAddress = "";
         if (panelOpen) { ensureSelection(true); viewport.contentY = 0; }
     }
@@ -109,14 +111,25 @@ ColumnLayout {
     DetailHeader {
         id: detailHeader
         style: page.style
-        title: "Workspaces"
-        subtitle: page.controls.workspaces.length + (page.controls.workspaces.length === 1 ? " workspace · " : " workspaces · ")
+        title: page.showingShortcuts ? "Keyboard shortcuts" : "Workspaces"
+        subtitle: page.showingShortcuts ? "" : page.controls.workspaces.length + (page.controls.workspaces.length === 1 ? " workspace · " : " workspaces · ")
             + page.controls.windows.length + (page.controls.windows.length === 1 ? " window" : " windows")
-        onBackRequested: page.backRequested()
+        backTooltip: page.showingShortcuts ? "Back to workspaces" : "Back to overview"
+        onBackRequested: { if (page.showingShortcuts) page.showingShortcuts = false; else page.backRequested(); }
         actions: [ChoiceButton {
+            objectName: "desktop-shortcuts"
+            Layout.preferredWidth: 32
+            Layout.preferredHeight: 30
+            visible: !page.showingShortcuts && page.controls.available
+            style: page.style
+            label: ""
+            iconKind: "keyboard"
+            tooltip: "Keyboard shortcuts"
+            onTriggered: page.showingShortcuts = true
+        }, ChoiceButton {
             Layout.preferredWidth: 132
             Layout.preferredHeight: 30
-            visible: page.controls.workspaceTargets.some(w => !w.exists)
+            visible: !page.showingShortcuts && page.controls.workspaceTargets.some(w => !w.exists)
             style: page.style
             label: "＋ New workspace"
             selected: page.choosingWorkspace
@@ -125,7 +138,16 @@ ColumnLayout {
         }]
     }
 
+    Loader {
+        id: shortcuts
+        Layout.fillWidth: true
+        Layout.fillHeight: true
+        active: page.panelOpen && page.showingShortcuts
+        visible: active
+        sourceComponent: ShortcutList { style: page.style; source: page.controls.shortcuts }
+    }
     ClippingRectangle {
+        visible: !page.showingShortcuts
         Layout.fillWidth: true
         Layout.fillHeight: true
         Layout.minimumHeight: 0

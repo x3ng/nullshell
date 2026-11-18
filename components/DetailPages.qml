@@ -9,7 +9,7 @@ import ".."
 Item {
     id: host
     required property var panel
-    readonly property var sections: ["wifi", "bluetooth", "audio", "notifications", "appearance", "wallpaper", "session"]
+    readonly property var sections: ["wifi", "bluetooth", "audio", "media", "notifications", "appearance", "wallpaper", "session"]
     property int revision: 0
     readonly property real naturalHeight: currentPage()?.naturalHeight ?? 0
     readonly property bool dialogOpen: currentPage()?.dialogOpen ?? false

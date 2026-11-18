@@ -201,29 +201,15 @@ ColumnLayout {
                                 ink: page.style.textMuted
                             }
                         }
-                        ColumnLayout {
+                        DeviceRow {
+                            objectName: "open-media"
                             Layout.fillWidth: true
                             Layout.minimumWidth: 0
-                            spacing: 4
-                            Text {
-                                Layout.fillWidth: true
-                                text: page.player?.trackTitle || page.player?.identity || "Media"
-                                textFormat: Text.PlainText
-                                elide: Text.ElideRight
-                                color: page.style.textPrimary
-                                font.family: page.style.fontFamily
-                                font.pixelSize: page.style.fontSizeBody
-                                font.weight: Font.Medium
-                            }
-                            Text {
-                                Layout.fillWidth: true
-                                text: page.player?.trackArtist || page.player?.identity || ""
-                                textFormat: Text.PlainText
-                                elide: Text.ElideRight
-                                color: page.style.textMuted
-                                font.family: page.style.fontFamily
-                                font.pixelSize: page.style.fontSizeSmall
-                            }
+                            Layout.fillHeight: true
+                            style: page.style
+                            title: page.player?.trackTitle || page.player?.identity || "Media"
+                            subtitle: page.player?.trackArtist || page.player?.identity || ""
+                            onTriggered: page.actions.execute("media")
                         }
                         ChoiceButton {
                             Layout.preferredWidth: 30

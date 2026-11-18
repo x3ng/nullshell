@@ -30,7 +30,9 @@ RowLayout {
         iconSize: 18
         checkable: true
         selected: tools.services.keepAwake
-        tooltip: tools.services.keepAwake ? "Keep awake: on · Click to resume idle" : "Keep awake: off · Click to prevent idle"
+        tooltip: tools.services.keepAwakeUntil > 0
+            ? "Keep awake until " + Qt.formatTime(new Date(tools.services.keepAwakeUntil), "hh:mm") + (tools.services.keepAwakeRequested ? " · Permanent setting also on" : "")
+            : tools.services.keepAwake ? "Keep awake: on · Click to resume idle" : "Keep awake: off · Click to prevent idle"
         onTriggered: tools.actions.execute("keep-awake")
     }
 }

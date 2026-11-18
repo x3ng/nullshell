@@ -4,6 +4,7 @@ import QtQuick
 import Quickshell
 import Quickshell.Io
 import Quickshell.Hyprland
+import "adapters"
 import "components/HyprlandControlCommands.js" as Commands
 
 // Views select explicit workspace addresses and window addresses. Opening the panel
@@ -12,6 +13,7 @@ Scope {
     id: root
     required property var layoutState
     readonly property bool available: !!Quickshell.env("HYPRLAND_INSTANCE_SIGNATURE")
+    readonly property HyprlandBindings shortcuts: HyprlandBindings {}
     property var pendingOperation: null
     readonly property bool busy: pendingOperation !== null
     property int requestSequence: 0

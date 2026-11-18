@@ -21,6 +21,8 @@ with tempfile.TemporaryDirectory(prefix="ns-command-", dir="/tmp") as directory:
     source = Path(__file__).resolve().parent
     for name in ["ApplicationLauncher.qml", "DesktopSearch.qml", "ShellActions.qml", "SessionActions.qml", "SearchQuery.js", "Notifications.qml", "NotificationQuiet.qml", "SearchMatch.js", "ConfigRules.js"]:
         shutil.copy2(source.parent / name, base / name)
+    (base / "adapters").mkdir()
+    shutil.copy2(source.parent / "adapters/HyprlandBindings.qml", base / "adapters/HyprlandBindings.qml")
     (base / "components").mkdir()
     shutil.copy2(source.parent / "components/NotificationUtils.js", base / "components/NotificationUtils.js")
     (base / "preview").mkdir()
@@ -28,6 +30,17 @@ with tempfile.TemporaryDirectory(prefix="ns-command-", dir="/tmp") as directory:
     shutil.copy2(source / "command_panel.qml", base / "shell.qml")
     binaries = base / "bin"
     binaries.mkdir()
+    binds = binaries / "hyprctl"
+    binding_data = base / "hyprland-binds.json"
+    binding_data.write_text(json.dumps([
+        {"modmask": 65, "key": "S", "description": "Select a region", "dispatcher": "exec", "arg": "hidden-argument"},
+        {"modmask": 4, "keycode": 34, "dispatcher": "focuswindow", "submap": "movement"},
+    ]))
+    binds.write_text("#!" + sys.executable + "\n" + """import pathlib, sys
+assert sys.argv[1:] == ["-j", "binds"]
+print((pathlib.Path(__file__).resolve().parents[1] / "hyprland-binds.json").read_text())
+""")
+    binds.chmod(0o755)
     executable = binaries / "systemd-run"
     executable.write_text("#!" + sys.executable + "\n" + '''import json,os,pathlib,sys,time
 args=sys.argv[1:]
@@ -128,6 +141,22 @@ if 'slow' in args: time.sleep(20)
         for query in ["/ vscs", "/ 测试应用"]:
             result = json.loads(call("searchFor", query))
             assert len(result) == 1 and result[0]["kind"] == "APP", (query, result, call("searchFor", "/"))
+        assert not json.loads(call("searchFor", "keys: region"))
+        for identifier in ["awake-hour", "awake-end", "shortcuts"]:
+            assert call("command", identifier) == "false"
+        call("refreshBindings")
+        wait_for(lambda _: len(json.loads(call("bindings"))) == 2)
+        rows = json.loads(call("bindings"))
+        assert rows[0]["chord"] == "Shift + Super + S" and rows[0]["description"] == "Select a region"
+        assert rows[1]["chord"] == "Ctrl + code:34" and "movement" in rows[1]["description"]
+        assert "hidden-argument" not in json.dumps(rows)
+        binding_data.write_text(json.dumps([
+            {"modmask": 8, "key": "F7", "description": "Changed binding"},
+            {"catch_all": True, "key": "", "keycode": 0, "dispatcher": "function: 0x1234"},
+        ]))
+        call("refreshBindings")
+        wait_for(lambda _: [row["chord"] for row in json.loads(call("bindings"))] == ["Alt + F7", "Any key"])
+        assert json.loads(call("bindings"))[1]["description"] == "Lua callback"
         audio = json.loads(call("searchFor", ">? 音频"))
         assert [row["title"] for row in audio] == ["Audio devices"], (audio, log.read_text())
         assert not json.loads(call("searchFor", ">! 音频"))
@@ -204,6 +233,9 @@ if 'slow' in args: time.sleep(20)
         stop()
         history_file.unlink()
         assert not start()["history"]
+        stop()
+        start()
+        assert call("checkLocalAction") == "true"
         stop()
         # Invalid state is reported and preserved, including when persistence
         # is disabled. A policy change cannot silently erase a corrupt file.

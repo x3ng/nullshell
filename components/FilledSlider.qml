@@ -12,6 +12,15 @@ ClippingRectangle {
     property bool available: true
     signal edited(real newValue)
 
+    activeFocusOnTab: available
+    Accessible.role: Accessible.Slider
+    Accessible.name: label + ", " + percentage.text
+    function step(direction) { if (available) edited(Math.max(0, Math.min(1, value + direction * 0.02))); }
+    Keys.onLeftPressed: step(-1)
+    Keys.onRightPressed: step(1)
+    Accessible.onIncreaseAction: step(1)
+    Accessible.onDecreaseAction: step(-1)
+
     // Neutral fill keeps the label readable and matches other filled controls.
     implicitWidth: 240
     implicitHeight: 36
@@ -32,6 +41,7 @@ ClippingRectangle {
         anchors.rightMargin: slider.style.spaceSm
         elide: Text.ElideRight
         anchors.verticalCenter: parent.verticalCenter
+        textFormat: Text.PlainText
         text: slider.label
         color: slider.style.textPrimary
         font.family: slider.style.fontFamily
@@ -47,6 +57,13 @@ ClippingRectangle {
         color: slider.style.textPrimary
         font.family: slider.style.fontFamily
         font.pixelSize: slider.style.fontSizeSmall
+    }
+    Rectangle {
+        anchors.fill: parent
+        visible: slider.activeFocus
+        color: "transparent"
+        radius: slider.radius
+        border.color: slider.style.accent
     }
     MouseArea {
         anchors.fill: parent

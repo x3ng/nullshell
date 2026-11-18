@@ -49,6 +49,9 @@ let
     # Networking/Bluetooth use system D-Bus services through native APIs.
     # Their daemons are host choices, not CLI dependencies of this runtime.
     brightnessctl
+    slurp
+    grim
+    xdg-user-dirs
     hyprland
     wvkbd
     util-linux
