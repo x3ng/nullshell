@@ -52,7 +52,8 @@ with tempfile.TemporaryDirectory(prefix="ns-panel-", dir="/tmp") as directory:
                     stdin=subprocess.DEVNULL, stdout=output, stderr=output)
                 time.sleep(.2)
             subprocess.run([sys.executable, str(Path(__file__).with_name(test_name)), *test_arguments],
-                env=env, check=True, timeout=240)
+                # The full screenshot matrix uses software rendering in Nix builders.
+                env=env, check=True, timeout=600 if "--screenshots" in test_arguments and test_name == "test_panel_preview.py" else 240)
         finally:
             if keyboard is not None:
                 keyboard.terminate()
