@@ -1,6 +1,7 @@
 pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Controls
+import Quickshell.Services.Mpris
 import QtQuick.Layouts
 import ".."
 
@@ -99,6 +100,19 @@ ColumnLayout {
         Layout.alignment: Qt.AlignHCenter
         visible: !!media.player
         ChoiceButton {
+            objectName: "media-shuffle"
+            style: media.style
+            Layout.preferredWidth: media.style.controlHeight
+            visible: !!media.player?.shuffleSupported
+            available: !!media.player?.canControl
+            label: ""; iconKind: "shuffle"; tone: "toggle"
+            selected: !!media.player?.shuffle
+            tooltip: selected ? "Turn shuffle off" : "Turn shuffle on"
+            Accessible.checkable: true
+            Accessible.checked: selected
+            onTriggered: media.player.shuffle = !media.player.shuffle
+        }
+        ChoiceButton {
             Layout.preferredWidth: 44
             style: media.style
             label: ""; iconKind: "prev"; tooltip: "Previous track"
@@ -120,6 +134,22 @@ ColumnLayout {
             label: ""; iconKind: "next"; tooltip: "Next track"
             available: media.player?.canGoNext ?? false
             onTriggered: media.player.next()
+        }
+        ChoiceButton {
+            objectName: "media-repeat"
+            style: media.style
+            Layout.preferredWidth: media.style.controlHeight
+            visible: !!media.player?.loopSupported
+            available: !!media.player?.canControl
+            readonly property int mode: media.player?.loopState ?? MprisLoopState.None
+            label: ""; iconKind: mode === MprisLoopState.Track ? "repeat-one" : "repeat"
+            tone: "toggle"
+            selected: mode !== MprisLoopState.None
+            tooltip: mode === MprisLoopState.None ? "Repeat off · Repeat playlist"
+                : mode === MprisLoopState.Playlist ? "Repeating playlist · Repeat track"
+                : "Repeating track · Turn repeat off"
+            onTriggered: media.player.loopState = mode === MprisLoopState.None ? MprisLoopState.Playlist
+                : mode === MprisLoopState.Playlist ? MprisLoopState.Track : MprisLoopState.None
         }
     }
     ColumnLayout {

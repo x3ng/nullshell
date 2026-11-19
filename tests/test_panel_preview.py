@@ -417,6 +417,10 @@ def main():
                 assert call("focusControl", "media", "media-position") == "true"
                 subprocess.run(["wtype", "-k", "Right"], check=True, timeout=5)
                 assert state()["mediaPosition"] > 45, state()
+            assert call("activateControl", "media-shuffle") == "true" and state()["shuffle"]
+            for icon, active in [("repeat", True), ("repeat-one", True), ("repeat", False)]:
+                assert call("activateControl", "media-repeat") == "true"
+                assert (state()["repeatIcon"], state()["repeating"]) == (icon, active)
             screenshot("media-player")
             for page in ["wifi", "bluetooth", "audio", "media", "notifications"]:
                 call("page", page)
@@ -440,6 +444,8 @@ def main():
                 assert call("activateControl", "detach-page") == "true"
                 assert page in state()["detached"] and not state()["open"]
             assert state()["mediaPlayer"] == "Radio" and not state()["seekEnabled"]
+            assert call("activateControl", "media-repeat") == "false"
+            assert call("activateControl", "media-shuffle") == "false"
             assert state()["streamMuted"]
             assert state()["historyFilter"] == "messenger"
             assert call("activateControl", "notification-record-message") == "true"
@@ -448,7 +454,8 @@ def main():
             assert state()["mediaPlayer"] == ""
             assert call("activateControl", "stream-mute-17") == "false"
             call("scenario", "media")
-            assert state()["mediaPlayer"] == "Preview player"
+            assert state()["mediaPlayer"] == "Preview player" and state()["shuffle"]
+            assert call("activateControl", "media-shuffle") == "true" and not state()["shuffle"]
             assert state()["detachedWifi"] and state()["detachedControls"]
             # Opening/closing the launcher does not close detached views.
             call("openPanel")

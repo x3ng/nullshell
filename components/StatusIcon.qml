@@ -121,6 +121,25 @@ Canvas {
             c.beginPath();
             c.moveTo(9, 15); c.lineTo(9, 5); c.lineTo(17, 3); c.lineTo(17, 13);
             c.stroke();
+        } else if (kind === "shuffle") {
+            c.beginPath();
+            c.moveTo(2, 5); c.lineTo(5, 5); c.lineTo(8, 8);
+            c.moveTo(12, 12); c.lineTo(15, 15); c.lineTo(18, 15);
+            c.moveTo(2, 15); c.lineTo(5, 15); c.lineTo(15, 5); c.lineTo(18, 5);
+            for (const y of [5, 15]) {
+                c.moveTo(16, y - 2); c.lineTo(18, y); c.lineTo(16, y + 2);
+            }
+            c.stroke();
+        } else if (kind === "repeat" || kind === "repeat-one") {
+            c.beginPath();
+            c.moveTo(3, 10); c.lineTo(3, 8); c.quadraticCurveTo(3, 5, 6, 5); c.lineTo(16, 5);
+            c.moveTo(14, 3); c.lineTo(16, 5); c.lineTo(14, 7);
+            c.moveTo(17, 10); c.lineTo(17, 12); c.quadraticCurveTo(17, 15, 14, 15); c.lineTo(4, 15);
+            c.moveTo(6, 13); c.lineTo(4, 15); c.lineTo(6, 17);
+            if (kind === "repeat-one") {
+                c.moveTo(8.5, 9); c.lineTo(10.5, 8); c.lineTo(10.5, 12);
+            }
+            c.stroke();
         } else if (kind === "play") {
             c.beginPath(); c.moveTo(6, 4.5); c.lineTo(16, 10); c.lineTo(6, 15.5);
             c.closePath(); c.stroke();

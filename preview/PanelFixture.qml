@@ -1,3 +1,4 @@
+import Quickshell.Services.Mpris
 import QtQuick
 import Quickshell
 import "../SearchQuery.js" as SearchQuery
@@ -143,6 +144,11 @@ Scope {
     }
     QtObject {
         id: media
+        property bool canControl: true
+        property bool shuffleSupported: true
+        property bool loopSupported: true
+        property bool shuffle: false
+        property int loopState: MprisLoopState.None
         property real position: 45
         property real length: 180
         property bool positionSupported: true
