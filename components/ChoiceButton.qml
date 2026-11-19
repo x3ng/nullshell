@@ -43,7 +43,9 @@ Rectangle {
         text: choice.tooltip
     }
 
-    height: 34
+    property bool compact: false
+    implicitHeight: compact ? style.compactControlHeight : style.controlHeight
+    implicitWidth: compact && !label ? implicitHeight : 0
     radius: style.radiusControl
     color: selected ? style.surfaceSelected
         : (mouse.containsMouse && available ? style.surfaceHover : filled ? choice.filledColor : "transparent")

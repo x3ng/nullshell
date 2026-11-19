@@ -19,21 +19,8 @@ ColumnLayout {
         const whole = Math.floor(Math.max(0, seconds));
         return Math.floor(whole / 60) + ":" + String(whole % 60).padStart(2, "0");
     }
-    Repeater {
-        model: media.players.length > 1 ? media.players : []
-        delegate: DeviceRow {
-            required property var modelData
-            objectName: "select-player-" + modelData.identity
-            Layout.fillWidth: true
-            style: media.style
-            title: modelData.identity
-            selected: modelData === media.player
-            onTriggered: media.selectedPlayer = modelData
-        }
-    }
     Text {
         Layout.fillWidth: true
-        Layout.topMargin: media.style.spaceSm
         text: media.player?.trackTitle || media.player?.identity || "No media players available"
         textFormat: Text.PlainText
         wrapMode: Text.Wrap
@@ -58,6 +45,7 @@ ColumnLayout {
         Text {
             text: media.clockTime(timeline.pressed ? timeline.position * timeline.to : timeline.currentTime)
             font.family: media.style.fontFamily
+            font.pixelSize: media.style.fontSizeSmall
             color: media.style.textSecondary
         }
         PanelSlider {
@@ -103,6 +91,7 @@ ColumnLayout {
         Text {
             text: media.clockTime(timeline.to)
             font.family: media.style.fontFamily
+            font.pixelSize: media.style.fontSizeSmall
             color: media.style.textSecondary
         }
     }
@@ -111,7 +100,6 @@ ColumnLayout {
         visible: !!media.player
         ChoiceButton {
             Layout.preferredWidth: 44
-            Layout.preferredHeight: 36
             style: media.style
             label: ""; iconKind: "prev"; tooltip: "Previous track"
             available: media.player?.canGoPrevious ?? false
@@ -119,7 +107,6 @@ ColumnLayout {
         }
         ChoiceButton {
             Layout.preferredWidth: 52
-            Layout.preferredHeight: 36
             style: media.style
             filled: true
             label: ""; iconKind: media.player?.isPlaying ? "pause" : "play"
@@ -129,11 +116,29 @@ ColumnLayout {
         }
         ChoiceButton {
             Layout.preferredWidth: 44
-            Layout.preferredHeight: 36
             style: media.style
             label: ""; iconKind: "next"; tooltip: "Next track"
             available: media.player?.canGoNext ?? false
             onTriggered: media.player.next()
+        }
+    }
+    ColumnLayout {
+        Layout.fillWidth: true
+        Layout.topMargin: media.style.spaceSm
+        spacing: media.style.spaceXs
+        visible: media.players.length > 1
+        Repeater {
+            model: media.players.length > 1 ? media.players : []
+            delegate: DeviceRow {
+                required property var modelData
+                objectName: "select-player-" + modelData.identity
+                Layout.fillWidth: true
+                style: media.style
+                selectionOnly: true
+                title: modelData.identity
+                selected: modelData === media.player
+                onTriggered: media.selectedPlayer = modelData
+            }
         }
     }
 }

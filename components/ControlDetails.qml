@@ -97,20 +97,9 @@ Rectangle {
             onBackRequested: detail.dismissRequested()
             actions: [
                 ChoiceButton {
-                    objectName: "detach-page"
-                    visible: !detail.detached && detail.section !== "session"
-                    Layout.preferredWidth: 32
-                    Layout.preferredHeight: 32
-                    style: detail.style
-                    label: ""
-                    iconKind: "window"
-                    tooltip: "Detach into a window (Ctrl+Shift+D)"
-                    onTriggered: detail.detachRequested()
-                },
-                ChoiceButton {
                     visible: detail.section === "wifi" || detail.section === "bluetooth"
                     Layout.preferredWidth: 72
-                    Layout.preferredHeight: 32
+                    compact: true
                     style: detail.style
                     label: detail.radioEnabled ? "On" : "Off"
                     selected: detail.radioEnabled
@@ -118,19 +107,47 @@ Rectangle {
                     available: detail.actions.available(detail.section + "-toggle")
                     onTriggered: detail.actions.execute(detail.section + "-toggle")
                 },
-            ChoiceButton {
-                objectName: "notification-clear-all"
-                Layout.preferredWidth: 112
-                Layout.preferredHeight: 32
-                visible: detail.isNotifs && !(detail.showHistory && detail.historyQuery)
-                style: detail.style
-                label: detail.showHistory ? "Clear history" : "Clear all"
-                available: detail.notificationEntries.length > 0
-                onTriggered: {
-                    if (detail.showHistory) detail.notifs.clearHistory();
-                    else detail.notifs.clearCurrent();
+                ChoiceButton {
+                    objectName: "notification-clear-all"
+                    Layout.preferredWidth: detail.showHistory ? 96 : 72
+                    compact: true
+                    visible: detail.isNotifs && !(detail.showHistory && detail.historyQuery)
+                    style: detail.style
+                    label: detail.showHistory ? "Clear history" : "Clear all"
+                    available: detail.notificationEntries.length > 0
+                    onTriggered: {
+                        if (detail.showHistory) detail.notifs.clearHistory();
+                        else detail.notifs.clearCurrent();
+                    }
+                },
+                ChoiceButton {
+                    objectName: "notification-quiet"
+                    visible: detail.isNotifs
+                    compact: true
+                    tone: "toggle"
+                    iconKind: selected ? "bell-off" : "bell"
+                    Accessible.checkable: true
+                    Accessible.checked: selected
+                    style: detail.style
+                    label: ""
+                    selected: detail.notifs.doNotDisturb
+                    available: detail.notifs.quietReady
+                    tooltip: detail.notifs.quietError || (detail.notifs.doNotDisturb
+                        ? "Resume banners · paused until " + Qt.formatTime(new Date(detail.notifs.quietUntil), "hh:mm")
+                            + " · Critical alerts still appear"
+                        : "Pause banners for one hour · Critical alerts still appear")
+                    onTriggered: detail.actions.execute(detail.notifs.doNotDisturb ? "notifications-resume" : "notifications-pause")
+                },
+                ChoiceButton {
+                    objectName: "detach-page"
+                    visible: !detail.detached && detail.section !== "session"
+                    compact: true
+                    style: detail.style
+                    label: ""
+                    iconKind: "window"
+                    tooltip: "Detach into a window (Ctrl+Shift+D)"
+                    onTriggered: detail.detachRequested()
                 }
-            }
             ]
         }
         RowLayout {
@@ -141,7 +158,6 @@ Rectangle {
             ChoiceButton {
                 Layout.fillWidth: true
                 Layout.preferredWidth: 1
-                Layout.preferredHeight: 36
                 filled: true
                 style: detail.style
                 label: "Pending · " + detail.notifs.current.length
@@ -151,7 +167,6 @@ Rectangle {
             ChoiceButton {
                 Layout.fillWidth: true
                 Layout.preferredWidth: 1
-                Layout.preferredHeight: 36
                 filled: true
                 style: detail.style
                 objectName: "notification-history"
@@ -159,23 +174,6 @@ Rectangle {
                 selected: detail.showHistory
                 onTriggered: { detail.showHistory = true; viewport.contentY = 0; }
             }
-            ChoiceButton {
-                objectName: "notification-quiet"
-                Layout.fillWidth: true
-                Layout.preferredWidth: 1
-                Layout.preferredHeight: 36
-                filled: true
-                style: detail.style
-                label: detail.notifs.doNotDisturb ? "Resume" : "Quiet · 1h"
-                selected: detail.notifs.doNotDisturb
-                available: detail.notifs.quietReady
-                tooltip: detail.notifs.quietError || (detail.notifs.doNotDisturb
-                    ? "Banners paused until " + Qt.formatTime(new Date(detail.notifs.quietUntil), "hh:mm")
-                        + " · Critical alerts still appear"
-                    : "Pause banners for one hour · Critical alerts still appear")
-                onTriggered: detail.actions.execute(detail.notifs.doNotDisturb ? "notifications-resume" : "notifications-pause")
-            }
-
         }
         Rectangle {
             Layout.fillWidth: true

@@ -9,13 +9,16 @@ Rectangle {
     required property Theme style
     required property string title
     property string subtitle: ""
+    property bool selectionOnly: false
     property bool selected: false
     property bool available: true
     property bool expanded: false
     property string iconKind: ""
     signal triggered()
     activeFocusOnTab: visible && available
-    Accessible.role: Accessible.Button
+    Accessible.role: selectionOnly ? Accessible.RadioButton : Accessible.Button
+    Accessible.checkable: selectionOnly
+    Accessible.checked: selectionOnly && selected
     Accessible.name: title + (subtitle ? ", " + subtitle : "")
     Accessible.onPressAction: { if (available) triggered(); }
     Keys.onReturnPressed: { if (available) triggered(); }
@@ -23,7 +26,8 @@ Rectangle {
     implicitHeight: subtitle ? 60 : 44
     radius: style.radiusControl
     color: mouse.containsMouse && available ? style.surfaceHover
-        : expanded ? style.surfaceRaised : "transparent"
+        : selectionOnly && selected ? style.surfaceSelected
+        : selectionOnly || expanded ? style.surfaceRaised : "transparent"
     opacity: available ? 1 : 0.5
     border.width: activeFocus ? 1 : 0
     border.color: style.accent
@@ -64,6 +68,7 @@ Rectangle {
             }
         }
         StatusIcon {
+            visible: !row.selectionOnly || row.selected
             kind: row.selected ? "check" : "chevron"
             Layout.preferredWidth: 20
             Layout.preferredHeight: 20

@@ -61,11 +61,14 @@ Canvas {
             }
             c.closePath(); c.stroke();
             c.beginPath(); c.arc(10, 10, 2.5, 0, Math.PI * 2); c.stroke();
-        } else if (kind === "bell") {
+        } else if (kind === "bell" || kind === "bell-off") {
             c.beginPath(); c.moveTo(3, 14); c.lineTo(5, 11); c.lineTo(5, 8);
             c.arc(10, 8, 5, Math.PI, 0); c.lineTo(15, 11); c.lineTo(17, 14);
             c.closePath(); c.stroke();
             c.beginPath(); c.arc(10, 16, 2, 0, Math.PI); c.stroke();
+            if (kind === "bell-off") {
+                c.beginPath(); c.moveTo(3, 3); c.lineTo(17, 17); c.stroke();
+            }
         } else if (kind === "lock") {
             c.beginPath();
             c.moveTo(6, 9); c.lineTo(14, 9);

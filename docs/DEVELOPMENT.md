@@ -255,8 +255,9 @@ enter a submenu and Left/Escape to leave it. Disabled entries and separators are
 skipped. Preview checks exercise focus visibility and synthetic tray activation;
 native DBusMenu population still needs integration acceptance.
 
-The notification detail's Quiet/Resume control and corresponding searchable
+The notification header's bell button and corresponding searchable
 commands pause ordinary banners for one hour without adding homepage content.
+The slashed bell indicates paused banners. Pending and History switch views.
 Critical alerts remain visible. Search aliases and disk-history policy are
 documented in [CONFIGURATION.md](CONFIGURATION.md).
 
@@ -272,8 +273,10 @@ Avoid adding the same edge inset at both levels. Detail content uses the full
 header width, with its scrollbar inside the outer panel inset. Detached detail
 windows use the same `panelPadding` as embedded pages.
 
-Use equal explicit heights for adjacent controls serving the same role (including
-native ComboBoxes beside custom buttons). `Layout.fillWidth` alone does not make
+Detail pages use the implicit heights of their shared controls: 32 px for
+compact header buttons, 36 px for standard actions and 40 px for text fields.
+Match the height of native controls placed alongside them. Use a check mark
+for an active player and a chevron for navigation. `Layout.fillWidth` alone does not make
 buttons equal-width: use equal preferred widths for paired actions. In vertical
 command lists, align icon and text columns independently of label length; retain
 centered content for standalone and paired buttons.

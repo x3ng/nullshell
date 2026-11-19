@@ -9,9 +9,10 @@ TextField {
     required property Theme style
     property bool secret: false
     property bool revealed: false
-    implicitHeight: 40
-    padding: 10
-    rightPadding: secret ? 64 : 10
+    implicitHeight: style.fieldHeight
+    padding: style.spaceSm
+    leftPadding: style.spaceMd
+    rightPadding: secret ? 64 : style.spaceMd
     selectByMouse: true
     echoMode: secret && !revealed ? TextInput.Password : TextInput.Normal
     color: style.textPrimary

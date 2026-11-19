@@ -23,6 +23,9 @@ Scope {
     readonly property int spaceSm: 8
     readonly property int spaceMd: 12
     readonly property int spaceLg: 16
+    readonly property int compactControlHeight: 32
+    readonly property int controlHeight: 36
+    readonly property int fieldHeight: 40
     readonly property int maximumPanelHeight: 700
     // Stable width for tabs, search and details; height adapts to content.
     readonly property int maximumPanelWidth: 740

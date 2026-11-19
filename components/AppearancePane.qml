@@ -1,7 +1,6 @@
 pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Layouts
-import QtQuick.Controls
 import ".."
 
 ColumnLayout {
@@ -11,7 +10,7 @@ ColumnLayout {
     property bool editingFixed: false
     property string inputError: ""
     readonly property bool fixed: editingFixed || appearance.effectiveSettings.location === "fixed"
-    spacing: pane.style.spaceMd
+    spacing: pane.style.spaceSm
     function nextTime(timestamp) {
         return timestamp ? new Date(timestamp * 1000).toLocaleString(Qt.locale(), "ddd hh:mm") : "";
     }
@@ -26,7 +25,6 @@ ColumnLayout {
                 objectName: "appearance-mode-" + modelData.key
                 Layout.fillWidth: true
                 Layout.preferredWidth: 1
-                Layout.preferredHeight: 40
                 style: pane.style
                 label: modelData.label
                 iconKind: modelData.icon
@@ -50,7 +48,7 @@ ColumnLayout {
     ColumnLayout {
         Layout.fillWidth: true
         visible: pane.appearance.automatic
-        spacing: 12
+        spacing: pane.style.spaceMd
         Text {
             Layout.fillWidth: true
             text: pane.appearance.overrideUntil > 0
@@ -67,7 +65,6 @@ ColumnLayout {
         ChoiceButton {
             objectName: "appearance-resume"
             Layout.fillWidth: true
-            Layout.preferredHeight: 34
             visible: pane.appearance.overrideUntil > 0
             style: pane.style
             label: "Resume automatic"
@@ -75,7 +72,7 @@ ColumnLayout {
             onTriggered: pane.appearance.resumeAutomatic()
         }
         Text {
-            Layout.topMargin: pane.style.spaceSm
+            Layout.topMargin: pane.style.spaceXs
             text: "Location"
             color: pane.style.textPrimary
             font.family: pane.style.fontFamily
@@ -89,7 +86,6 @@ ColumnLayout {
                 objectName: "appearance-device-location"
                 Layout.fillWidth: true
                 Layout.preferredWidth: 1
-                Layout.preferredHeight: 36
                 style: pane.style
                 label: "Device location"
                 filled: true
@@ -100,7 +96,6 @@ ColumnLayout {
                 objectName: "appearance-fixed-location"
                 Layout.fillWidth: true
                 Layout.preferredWidth: 1
-                Layout.preferredHeight: 36
                 style: pane.style
                 label: "Fixed coordinates"
                 filled: true
@@ -111,48 +106,33 @@ ColumnLayout {
         ColumnLayout {
             Layout.fillWidth: true
             visible: pane.fixed
-            spacing: 8
+            spacing: pane.style.spaceSm
             RowLayout {
                 Layout.fillWidth: true
-                spacing: 8
+                spacing: pane.style.spaceSm
                 Repeater {
                     model: ["latitude", "longitude"]
                     ColumnLayout {
                         required property string modelData
                         Layout.fillWidth: true
                         Layout.preferredWidth: 1
-                        spacing: 5
+                        spacing: pane.style.spaceXs
                         Text {
                             text: parent.modelData === "latitude" ? "Latitude (−90 to 90)" : "Longitude (−180 to 180)"
                             font.family: pane.style.fontFamily
                             font.pixelSize: pane.style.fontSizeLabel
                             color: pane.style.textSecondary
                         }
-                        TextField {
-                            id: field
+                        ConnectionField {
+                            style: pane.style
                             objectName: "appearance-" + parent.modelData
                             Layout.fillWidth: true
-                            Layout.preferredHeight: 36
                             property string coordinate: parent.modelData
                             text: pane.appearance.effectiveSettings[coordinate] === null ? "" : String(pane.appearance.effectiveSettings[coordinate])
                             placeholderText: coordinate === "latitude" ? "e.g. 51.5" : "e.g. -0.1"
-                            color: pane.style.textPrimary
-                            placeholderTextColor: pane.style.textMuted
-                            selectionColor: pane.style.surfaceSelected
-                            font.family: pane.style.fontFamily
-                            font.pixelSize: pane.style.fontSizeBody
-                            leftPadding: pane.style.spaceMd
-                            rightPadding: pane.style.spaceMd
-                            selectByMouse: true
                             Accessible.name: coordinate
                             onTextEdited: { pane.inputError = ""; pane.coordinateDraft[coordinate] = text; }
                             onTextChanged: pane.coordinateDraft[coordinate] = text
-                            background: Rectangle {
-                                color: pane.style.inputSurface
-                                radius: pane.style.radiusControl
-                                border.width: 1
-                                border.color: field.activeFocus ? pane.style.accent : pane.style.outline
-                            }
                         }
                     }
                 }
@@ -160,7 +140,6 @@ ColumnLayout {
             ChoiceButton {
                 objectName: "appearance-apply-location"
                 Layout.fillWidth: true
-                Layout.preferredHeight: 34
                 style: pane.style
                 label: "Apply coordinates"
                 filled: true
@@ -187,7 +166,6 @@ ColumnLayout {
         ChoiceButton {
             objectName: "appearance-retry-location"
             Layout.fillWidth: true
-            Layout.preferredHeight: 34
             visible: !pane.fixed && pane.appearance.locationStatus !== "locating"
             style: pane.style
             label: "Refresh location"
@@ -208,7 +186,6 @@ ColumnLayout {
         objectName: "appearance-reset"
         Layout.topMargin: pane.style.spaceSm
         Layout.fillWidth: true
-        Layout.preferredHeight: 34
         visible: pane.appearance.preferencesOverridden
         style: pane.style
         label: "Use configuration defaults"
