@@ -72,11 +72,6 @@ ShellRoot {
         panelVisible: launcher.visible
         onHidePanel: launcher.dismiss()
         onFailed: reason => notifications.notifyLocal("screenshot-error", {summary: "Screenshot failed", body: reason})
-        onSaved: path => {
-            const url = "file://" + path.split("/").map(encodeURIComponent).join("/");
-            notifications.notifyLocal("screenshot", {summary: "Screenshot saved", body: path,
-                actions: [{identifier: "open", text: "Open image", invoke: () => Qt.openUrlExternally(url)}]});
-        }
     }
     ShellActions {
         id: shellActions

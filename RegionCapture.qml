@@ -8,7 +8,6 @@ Scope {
     property bool pending: false
     signal hidePanel()
     signal failed(string reason)
-    signal saved(string path)
 
     function request() {
         if (pending) return false;
@@ -18,17 +17,24 @@ Scope {
         return true;
     }
     function startWhenHidden() {
-        if (pending && !panelVisible && !picker.running) picker.running = true;
+        if (!pending || panelVisible || picker.running) return;
+        picker.stdinEnabled = true;
+        picker.running = true;
     }
     onPanelVisibleChanged: if (!panelVisible && pending) Qt.callLater(startWhenHidden)
 
     Process {
         id: picker
         property bool hasStarted: false
-        command: ["nullshell", "capture-region"]
+        command: ["slurp"]
+        environment: ({LC_ALL: "C"})
         stdout: StdioCollector { id: output }
         stderr: StdioCollector { id: errors }
-        onStarted: hasStarted = true
+        onStarted: {
+            hasStarted = true;
+            // The region picker takes input from the compositor. Send EOF on its pipe.
+            stdinEnabled = false;
+        }
         onRunningChanged: if (!running && !hasStarted && capture.pending) {
             capture.pending = false;
             capture.failed("Could not start the screenshot tool.");
@@ -36,10 +42,29 @@ Scope {
         onExited: (code, status) => {
             capture.pending = false;
             hasStarted = false;
-            if (code === 2 && status === 0) return;
-            const path = output.text.replace(/\n$/, "");
-            if (code === 0 && status === 0 && path.startsWith("/")) capture.saved(path);
-            else capture.failed(errors.text.trim() || "The screenshot tool did not save an image.");
+            const reason = errors.text.trim();
+            if (status === 0 && code !== 0 && reason === "selection cancelled") return;
+            const geometry = output.text.trim();
+            if (code !== 0 || status !== 0 || !geometry) {
+                capture.failed(reason || "Could not select a screenshot region.");
+                return;
+            }
+            editorProcess.createObject(capture, {geometry: geometry});
+        }
+    }
+
+    Component {
+        id: editorProcess
+        Process {
+            required property string geometry
+            command: ["bash", Quickshell.shellPath("adapters/edit-region.sh"), geometry]
+            stderr: StdioCollector { id: diagnostics }
+            running: true
+            onExited: (code, status) => {
+                if (code !== 0 || status !== 0)
+                    capture.failed(diagnostics.text.trim() || "Could not edit the screenshot.");
+                destroy();
+            }
         }
     }
 }

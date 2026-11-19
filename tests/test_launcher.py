@@ -43,21 +43,18 @@ with tempfile.TemporaryDirectory(prefix='nullshell-routing-') as tmp:
             assert value['args'] == ['-c', name]
         value = run('ipc', mode, 'call', 'probe', 'status')
         assert value['args'] == ['ipc', '-c', name, 'call', 'probe', 'status']
-    # Region picker and encoder use fixed argv. Escape and encoder failures leave no partial captures.
-    (probe / 'xdg-user-dir').write_text('#!/bin/sh\nprintf "%s\\n" "$HOME/Pictures with spaces"\n')
-    (probe / 'slurp').write_text('#!/bin/sh\ncase "$PICK" in cancel) echo "selection cancelled" >&2; exit 1;; esac\necho "10,20 40x30"\n')
-    (probe / 'grim').write_text('#!/bin/sh\n[ "$1" = -t ] && [ "$2" = png ] && [ "$3" = -g ] && [ "$4" = "10,20 40x30" ] || exit 1\nprintf payload > "$5"\n[ "$PICK" != fail ]\n')
-    for tool in ['xdg-user-dir', 'slurp', 'grim']:
-        (probe / tool).chmod(0o755)
-    for mode, code in [('cancel', 2), ('fail', 1), ('ok', 0)]:
-        captured = subprocess.run([str(install / 'bin/nullshell'), 'capture-region'], env=env | {'PICK': mode},
-                                  capture_output=True, text=True, timeout=3)
-        assert captured.returncode == code, captured
-        files = list((root / 'home/Pictures with spaces/Screenshots').glob('*'))
-        if mode == 'ok':
-            assert files == [Path(captured.stdout.rstrip('\n'))] and files[0].read_text() == 'payload'
-        else:
-            assert not files and not captured.stdout
+    assert run('capture-region')['args'] == ['ipc', '-c', 'nullshell', 'call', 'capture', 'region']
+    # Satty owns persistence. A capture that is only viewed/copied never creates a PNG.
+    for name, body in {
+        'xdg-user-dir': 'printf "%s/Pictures with spaces\\n" "$HOME"',
+        'grim': 'test "$5" = - && printf fixture',
+        'satty': 'test "$1" = --filename && test "$2" = - && test "$(cat)" = fixture',
+    }.items():
+        tool = probe / name
+        tool.write_text('#!/bin/sh\n' + body + '\n')
+        tool.chmod(0o755)
+    subprocess.run(['bash', str(source / 'adapters/edit-region.sh'), '10,20 40x30'], env=env, check=True)
+    assert not list((root / 'home').rglob('*.png'))
     # Native startup/IPC must not import legacy settings or write user state.
     assert not (root / 'state').exists()
     assert not (root / 'config/nullshell').exists()

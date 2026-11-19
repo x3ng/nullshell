@@ -12,27 +12,7 @@ case "$mode" in
         config=nullshell
         case "$mode" in locker) config=nullshell/lock ;; polkit) config=nullshell/polkit ;; esac
         exec quickshell -c "$config" "$@" ;;
-    capture-region)
-        # slurp exits nonzero on both Escape and compositor errors.
-        umask 077
-        diagnostics=$(mktemp)
-        temp=
-        trap 'rm -f -- "$diagnostics"; if [ -n "$temp" ]; then rm -f -- "$temp"; fi' 0
-        trap 'exit 1' HUP INT TERM
-        if ! region=$(LC_ALL=C slurp 2>"$diagnostics"); then
-            if grep -Fxq 'selection cancelled' "$diagnostics"; then exit 2; fi
-            cat "$diagnostics" >&2
-            exit 1
-        fi
-        pictures=$(xdg-user-dir PICTURES 2>/dev/null) || pictures=
-        directory=${pictures:-"$HOME/Pictures"}/Screenshots
-        mkdir -p -- "$directory"
-        temp=$(mktemp -- "$directory/.capture.XXXXXXXX")
-        grim -t png -g "$region" "$temp" || exit 1
-        path="$directory/Screenshot-$(date +%Y%m%d-%H%M%S)-${temp##*.}.png"
-        ln -- "$temp" "$path" || exit 1
-        printf '%s\n' "$path"
-        exit 0 ;;
+    capture-region) exec quickshell ipc -c nullshell call capture region ;;
     lock) exec sh "$helpers/nullshell-lock" "$@" ;;
     migrate-state) exec sh "$helpers/nullshell-migrate-state" "$@" ;;
     ipc)

@@ -8,7 +8,7 @@ must provide equivalent service registration and permissions.
 ## Runtime tools
 
 The current Nix runtime includes upstream Quickshell, nullshell-helper, Bash,
-coreutils, systemd tools, util-linux, brightnessctl, Hyprland (for hyprctl), wvkbd, grim, slurp and xdg-user-dirs. These are executable dependencies, not instructions to enable their
+coreutils, systemd tools, util-linux, brightnessctl, Hyprland (for hyprctl), wvkbd, grim, slurp, satty, wl-clipboard and xdg-user-dirs. These are executable dependencies, not instructions to enable their
 services. QML and the Rust helper remain independently packaged.
 
 | Tool | Consumer |
@@ -20,6 +20,7 @@ services. QML and the Rust helper remain independently packaged.
 | brightnessctl | Backlight slider and idle dim/restore |
 | hyprctl | Current Hyprland desktop adapter, display power and keyboard placement |
 | slurp, grim, xdg-user-dir | Region selection, PNG capture and the XDG Pictures directory |
+| satty, wl-copy (wl-clipboard) | Annotate a captured region and copy the edited PNG |
 | wvkbd-mobintl | On-screen keyboard; optional feature, included in the Nix runtime |
 
 UWSM is detected at runtime for session logout; it is a consumer session choice,

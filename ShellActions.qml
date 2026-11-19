@@ -18,7 +18,7 @@ Scope {
     signal navigateRequested(string section)
     readonly property var panelActions: ["overview", "desktop", "wifi", "bluetooth", "audio", "media", "notifications", "appearance", "session", "wallpaper", "brightness"]
     readonly property var entries: [
-        {id: "capture-region", title: "Capture a region", description: "Select an area and save a screenshot", keywords: "screenshot snip 截图 区域 截屏", icon: "window", enabled: !captureBusy},
+        {id: "capture-region", title: "Capture a region", description: "Select an area, then annotate or copy it in Satty", keywords: "screenshot snip 截图 区域 截屏", icon: "window", enabled: !captureBusy},
         {id: "session", description: "Lock, sleep, log out, restart or shut down", title: "Power and session", keywords: "power shutdown reboot logout suspend 电源 关机 重启 注销 休眠 锁屏", icon: "power", enabled: true},
         {id: "appearance", description: "Light, dark, automatic and location settings", title: "Appearance settings", keywords: "theme auto solar 深色 浅色 自动 定位 主题 外观", icon: "brightness", enabled: true},
         {id: "auto", description: "Follow local sunrise and sunset", title: "Use automatic appearance", keywords: "theme solar 自动 主题 日出 日落", icon: "clock", enabled: appearance.appearanceAvailable},

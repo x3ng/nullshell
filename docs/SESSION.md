@@ -31,8 +31,10 @@ are read-only. Hyprland may supply only a dispatcher name for a Lua binding.
 
 Search for **Capture a region** or bind `nullshell ipc call capture region` in
 your compositor. The desktop closes its panel before selection. Escape cancels.
-The image is saved to the XDG Pictures directory under `Screenshots/`, with
-`~/Pictures` as fallback. The notification offers **Open image**.
+The selected image is streamed into Satty for annotation. Copy puts the edited
+image on the clipboard. Save writes a PNG under the XDG Pictures directory’s
+`Screenshots/` folder, and Save As lets you choose another destination.
+Closing the editor discards unsaved edits.
 
 In **Power and session**, enter a duration in minutes and choose **Start**.
 The expiry survives shell restarts. **End timer** preserves any permanent setting. Clicking an active Keep

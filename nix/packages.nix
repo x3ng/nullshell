@@ -51,6 +51,8 @@ let
     brightnessctl
     slurp
     grim
+    satty
+    wl-clipboard
     xdg-user-dirs
     hyprland
     wvkbd
