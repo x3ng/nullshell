@@ -15,6 +15,7 @@ ShellRoot {
         const invalid = ["null", "[]", "{}", '{"version":2}',
             '{"version":1,"appearance":{"mode":"unknown"}}',
             '{"version":1,"appearance":{"location":"unknown"}}',
+            '{"version":1,"displays":{"mode":"unknown"}}',
             '{"version":1,"appearance":{"latitude":91}}',
             '{"version":1,"appearance":{"longitude":"0"}}',
             '{"version":1,"appearance":{"extra":true}}',
@@ -37,6 +38,9 @@ ShellRoot {
         const legacy = Rules.parse('{"version":1,"appearance":{"mode":"solar","location":"geoclue"}}').appearance;
         if (legacy.location !== "timezone")
             throw new Error("Legacy GeoClue settings must fall back to offline time zone");
+        if (Rules.parse('{"version":1}').displays.mode !== "off"
+            || Rules.parse('{"version":1,"displays":{"mode":"auto"}}').displays.mode !== "auto")
+            throw new Error("Display profile handling must be opt-in");
         console.log("CONFIG_RULES_PASSED");
     }
 }

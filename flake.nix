@@ -33,6 +33,7 @@
           sleep = import ./nix/tests/sleep.nix { inherit pkgs packages; };
           session = import ./nix/tests/session.nix { inherit pkgs; };
           appearance = import ./nix/tests/appearance.nix { inherit pkgs packages; };
+          displays = import ./nix/tests/displays.nix { inherit pkgs packages; };
           migration = import ./nix/tests/migration.nix { inherit pkgs; };
           bluetooth = import ./nix/tests/bluetooth.nix {
             inherit pkgs;

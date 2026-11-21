@@ -30,6 +30,7 @@ ShellRoot {
         onFeedback: (key, summary, body, critical) =>
             notifications.notifyLocal(key, {summary: summary, body: body, critical: critical})
     }
+    DisplayProfiles { id: displayProfiles; mode: config.ready ? config.values.displays.mode : "off" }
     WallpaperState { id: wallpaperState }
     WallpaperExport { id: wallpaperExport; wallpaper: wallpaperState }
     WallpaperWindows { wallpaper: wallpaperState }
@@ -128,6 +129,14 @@ ShellRoot {
             return JSON.stringify({ready: desktop.keepAwakeReady, keepAwake: desktop.keepAwake,
                 until: desktop.keepAwakeUntil, permanent: desktop.keepAwakeRequested, inhibitorActive: desktop.keepAwakeInhibitorActive});
         }
+    }
+
+    IpcHandler {
+        target: "displays"
+        function status(): string { return displayProfiles.status(); }
+        function apply(name: string): bool { return displayProfiles.activate(name); }
+        function confirm(): bool { return displayProfiles.confirm(); }
+        function revert(): bool { return displayProfiles.revert(); }
     }
 
     IpcHandler {

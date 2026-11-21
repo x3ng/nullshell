@@ -1,6 +1,7 @@
 //! Dispatch the independent system-integration commands.
 mod appearance;
 mod bluetooth;
+mod displays;
 mod location;
 mod settings_portal;
 mod sleep;
@@ -20,6 +21,8 @@ Commands:
   solar                            Read a versioned solar request from stdin
   location                         Request coarse IP coordinates from BeaconDB
   timezone                         Resolve a timezone to representative coordinates offline
+  displays outputs                 List connected Hyprland outputs and profile keys
+  displays plan FILE [NAME]        Inspect connected Hyprland outputs and plan a profile
   settings-portal                  Serve the read-only D-Bus Settings backend";
 
 #[tokio::main(flavor = "current_thread")]
@@ -64,6 +67,9 @@ async fn main() -> ExitCode {
         ("timezone", []) => {
             timezone::run().map_err(|_| "timezone: no representative location".to_owned())
         }
+        ("displays", args) => displays::run(args)
+            .await
+            .map_err(|e| format!("displays: {e}")),
         ("settings-portal", []) => settings_portal::run()
             .await
             .map_err(|_| "settings-portal: operation unavailable or invalid input".to_owned()),

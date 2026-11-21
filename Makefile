@@ -5,7 +5,7 @@ CARGO_TARGET_DIR ?= backend/target
 
 .DEFAULT_GOAL := help
 
-.PHONY: check-command check-session check-sleep check-settings help build helper install check check-backend check-pairing check-preview check-material check-appearance install-greeter install-assets
+.PHONY: check-command check-session check-sleep check-settings help build helper install check check-backend check-pairing check-preview check-material check-appearance check-displays install-greeter install-assets
 
 help:
 	@printf '%s\n' \
@@ -23,6 +23,7 @@ help:
 	  '  check-material    Check surface capabilities (Wayland session required)' \
 	  '  check-preview     Check panel previews (Wayland session required)' \
 	  '  check-appearance  Build helper and check appearance/wallpaper export' \
+	  '  check-displays    Check display profiles with isolated compositor fixtures' \
 	  '  check-settings    Check Settings portal on a private bus'
 
 build: helper
@@ -77,6 +78,10 @@ check-appearance: helper
 	python3 tests/test_wallpaper.py "$(CARGO_TARGET_DIR)/release/nullshell-helper"
 	python3 tests/test_solar_appearance.py "$(CARGO_TARGET_DIR)/release/nullshell-helper"
 	python3 tests/test_appearance.py "$(CARGO_TARGET_DIR)/release/nullshell-helper"
+
+check-displays: helper
+	luajit tests/test_display_trial.lua adapters/DisplayTrial.lua
+	python3 tests/test_displays.py "$(CARGO_TARGET_DIR)/release/nullshell-helper"
 
 # Use the installed, system-configured installer. sudo only wraps this file operation.
 install-greeter:

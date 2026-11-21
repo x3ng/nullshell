@@ -4,6 +4,9 @@ The desktop reads `$XDG_CONFIG_HOME/nullshell/config.json`, falling back to
 `~/.config/nullshell/config.json`. It never writes this file. Maintain it by hand
 or from dotfiles; Nix is not required. Greeter does not load this user config.
 
+Optional Hyprland display profiles use a separate local file. See
+[Display profiles](DISPLAYS.md) for output discovery, the schema and IPC.
+
 ```json
 {
   "version": 1,

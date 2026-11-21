@@ -4,6 +4,7 @@ function defaults() {
         search: {aliases: {}},
         notifications: {persistHistory: true, historyDays: 7, recordTransient: false, excludedApplications: []},
         appearance: {mode: "manual", location: "timezone", latitude: null, longitude: null},
+        displays: {mode: "off"},
         idle: {dimSeconds: 150, lockSeconds: 300, displayOffSeconds: 600}};
 }
 
@@ -16,9 +17,15 @@ function object(value, name, keys) {
 
 function parse(text) {
     const input = JSON.parse(text);
-    object(input, "config", ["version", "terminal", "idle", "appearance", "search", "notifications"]);
+    object(input, "config", ["version", "terminal", "idle", "appearance", "displays", "search", "notifications"]);
     if (input.version !== 1) throw new Error("Unsupported config version");
     const result = defaults();
+    if (input.displays !== undefined) {
+        object(input.displays, "displays", ["mode"]);
+        if (input.displays.mode !== undefined) result.displays.mode = input.displays.mode;
+        if (!["off", "manual", "auto"].includes(result.displays.mode))
+            throw new Error("Invalid display profile mode");
+    }
     if (input.search !== undefined) {
         object(input.search, "search", ["aliases"]);
         const aliases = input.search.aliases;
