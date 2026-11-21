@@ -1,72 +1,21 @@
-"""Protocol tests on a fresh session bus, also used as a synthetic system bus."""
+"""Settings protocol tests on a fresh session bus."""
 import asyncio
 import json
-import logging
 from html import escape
 import os
 from pathlib import Path
 import subprocess
 import sys
 import tempfile
-from dbus_next import Message, MessageType, MessageFlag, DBusError, PropertyAccess
+from dbus_next import Message, MessageType, MessageFlag
 from dbus_next.aio import MessageBus
-from dbus_next.service import ServiceInterface, method, dbus_property
 
 NAME = 'org.freedesktop.impl.portal.desktop.nullshell'
 PATH = '/org/freedesktop/portal/desktop'
 IFACE = 'org.freedesktop.impl.portal.Settings'
 NS = 'org.freedesktop.appearance'
-GEO = '/org/freedesktop/GeoClue2'
-
-class Manager(ServiceInterface):
-    def __init__(self):
-        super().__init__('org.freedesktop.GeoClue2.Manager')
-        self.deleted = 0
-    @method()
-    def GetClient(self) -> 'o':
-        return GEO + '/Client/1'
-    @method()
-    def DeleteClient(self, path: 'o'):
-        assert path == GEO + '/Client/1'
-        self.deleted += 1
-
-class Client(ServiceInterface):
-    def __init__(self):
-        super().__init__('org.freedesktop.GeoClue2.Client')
-        self.desktop = ''
-        self.accuracy = 0
-        self.deny = False
-        self.started = False
-        self.hang = False
-    @dbus_property(access=PropertyAccess.READWRITE)
-    def DesktopId(self) -> 's': return self.desktop
-    @DesktopId.setter
-    def DesktopId(self, value: 's'): self.desktop = value
-    @dbus_property(access=PropertyAccess.READWRITE)
-    def RequestedAccuracyLevel(self) -> 'u': return self.accuracy
-    @RequestedAccuracyLevel.setter
-    def RequestedAccuracyLevel(self, value: 'u'): self.accuracy = value
-    @dbus_property(access=PropertyAccess.READ)
-    def Location(self) -> 'o': return GEO + '/Location/1' if self.started else '/'
-    @method()
-    def Start(self):
-        if self.deny: raise DBusError('org.freedesktop.DBus.Error.AccessDenied', 'Synthetic denial')
-        assert self.desktop == 'org.nullshell.desktop' and self.accuracy == 4
-        self.started = not self.hang
-
-class Location(ServiceInterface):
-    def __init__(self):
-        super().__init__('org.freedesktop.GeoClue2.Location')
-        self.latitude = 12.3456
-    @dbus_property(access=PropertyAccess.READ)
-    def Latitude(self) -> 'd': return self.latitude
-    @dbus_property(access=PropertyAccess.READ)
-    def Longitude(self) -> 'd': return -67.8912
 
 async def main(helper, base):
-    # dbus-next logs deliberate mock D-Bus errors as exceptions; assertions below
-    # verify their actual wire replies and cleanup.
-    logging.getLogger().setLevel(logging.CRITICAL)
     bus = await MessageBus().connect()
     state = base / 'state/nullshell/appearance-mode'
     state.parent.mkdir(parents=True)
@@ -125,25 +74,6 @@ async def main(helper, base):
         process.terminate()
         await process.wait()
 
-    manager, client = Manager(), Client()
-    bus.export(GEO + '/Manager', manager)
-    bus.export(GEO + '/Client/1', client)
-    location = Location()
-    bus.export(GEO + '/Location/1', location)
-    await bus.request_name('org.freedesktop.GeoClue2')
-    for action in ('success', 'denied', 'invalid', 'timeout'):
-        client.deny = action == 'denied'
-        client.hang = action == 'timeout'
-        location.latitude = float('nan') if action == 'invalid' else 12.3456
-        child = await asyncio.create_subprocess_exec(helper, 'location', stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE)
-        out, err = await asyncio.wait_for(child.communicate(), 25)
-        if action != 'success':
-            assert child.returncode != 0 and not out
-            assert b'12.3456' not in err
-        else:
-            assert child.returncode == 0 and not err
-            assert json.loads(out) == {'version': 1, 'latitude': 12.3, 'longitude': -67.9}
-    assert manager.deleted == 4
     if os.environ.get('NULLSHELL_TEST_PORTAL'):
         frontend = await asyncio.create_subprocess_exec(os.environ['NULLSHELL_TEST_PORTAL'],
             stdout=asyncio.subprocess.DEVNULL, stderr=asyncio.subprocess.PIPE)
@@ -184,16 +114,16 @@ async def main(helper, base):
             frontend.terminate()
             await frontend.wait()
     bus.disconnect()
-    print('Settings Read/ReadAll/signals/recovery/name ownership and GeoClue coarse request/denial/invalid data/timeout/cleanup passed')
+    print('Settings Read/ReadAll/signals/recovery/name ownership passed')
 
 if __name__ == '__main__':
     if len(sys.argv) == 3 and sys.argv[2] == '--private':
-        os.environ['DBUS_SYSTEM_BUS_ADDRESS'] = os.environ['DBUS_SESSION_BUS_ADDRESS']
         asyncio.run(main(sys.argv[1], Path(os.environ['HOME'])))
     else:
         with tempfile.TemporaryDirectory(prefix='nullshell-settings-') as directory:
             env = dict(os.environ, HOME=directory, XDG_STATE_HOME=directory + '/state',
-                       XDG_CONFIG_HOME=directory + '/config', XDG_DATA_HOME=directory + '/data')
+                       XDG_CONFIG_HOME=directory + '/config', XDG_DATA_HOME=directory + '/data',
+                       DBUS_SYSTEM_BUS_ADDRESS='unix:path=' + directory + '/no-system')
             if env.get('NULLSHELL_TEST_PORTAL'):
                 data = Path(directory) / 'data'
                 services = data / 'dbus-1/services'; services.mkdir(parents=True)
@@ -206,7 +136,7 @@ if __name__ == '__main__':
                 (config / 'portals.conf').write_text('[preferred]\ndefault=nullshell;\norg.freedesktop.impl.portal.Settings=nullshell;\n')
                 runtime = Path(directory) / 'runtime'; runtime.mkdir(mode=0o700)
                 env.update(XDG_CURRENT_DESKTOP='nullshell', XDG_DESKTOP_PORTAL_DIR=str(portals),
-                    XDG_RUNTIME_DIR=str(runtime), DBUS_SYSTEM_BUS_ADDRESS='unix:path=' + directory + '/no-system')
+                     XDG_RUNTIME_DIR=str(runtime))
             # Explicit service directory: never discover host activation services.
             bus_config = Path(directory) / 'bus.conf'
             services = Path(directory) / 'data/dbus-1/services'

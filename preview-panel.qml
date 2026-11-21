@@ -175,8 +175,9 @@ ShellRoot {
             fixture.appearanceError = "";
             fixture.nextTransition = 1794736800;
             if (name === "fixed") fixture.useFixedLocation(51.5, -0.1);
+            else if (name === "timezone") fixture.useTimezoneLocation();
             else {
-                fixture.useDeviceLocation();
+                fixture.useIpLocation();
                 if (name === "unavailable") {
                     fixture.locationStatus = "unavailable";
                     fixture.nextTransition = null;

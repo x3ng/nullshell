@@ -7,18 +7,22 @@ import Quickshell.Io
 Scope {
     id: root
     property bool enabled: false
-    property var settings: ({location: "fixed", latitude: null, longitude: null})
+    property var settings: ({location: "timezone", latitude: null, longitude: null})
     property var coordinates: null
     property var schedule: null
-    property string error: ""
+    property string solarError: ""
+    property string locationError: ""
+    readonly property string error: solarError || locationError
     property double lastCalculation: 0
     property double nextLocation: 0
     property double lastClock: 0
     property bool solarPending: false
     property bool locationPending: false
+    readonly property bool fixedConfigured: Number.isFinite(settings.latitude) && Number.isFinite(settings.longitude)
     readonly property string locationStatus: !enabled ? "inactive"
-        : settings.location === "fixed" ? "fixed"
-        : locationPending ? "locating" : coordinates ? "ready" : error ? "unavailable" : "locating"
+        : settings.location === "fixed" ? (fixedConfigured ? "fixed" : "unset")
+        : locationPending ? "locating" : coordinates ? "ready" : locationError ? "unavailable" : "locating"
+    property string locationSource: "timezone"
     property string solarRequest: ""
     property int generation: 0
     property int solarGeneration: 0
@@ -35,7 +39,8 @@ Scope {
         }
         coordinates = null;
         schedule = null;
-        error = "";
+        solarError = "";
+        locationError = "";
         lastCalculation = 0;
         nextLocation = 0;
         Qt.callLater(refresh);
@@ -52,16 +57,13 @@ Scope {
         }
         lastClock = now;
         if (settings.location === "fixed") {
-            coordinates = {latitude: settings.latitude, longitude: settings.longitude};
+            coordinates = fixedConfigured ? {latitude: settings.latitude, longitude: settings.longitude} : null;
         } else if (!locationPending && now >= nextLocation) {
-            // A refresh invalidates older calculations; a late solar reply must
-            // not override a failed or still-pending location request.
-            generation++;
-            coordinates = null;
-            schedule = null;
+            // Keep the existing schedule while refreshing or if lookup fails.
+            locationSource = settings.location;
             locationPending = true;
             locationGeneration = generation;
-            nextLocation = now + 300;
+            nextLocation = now + (locationSource === "timezone" ? 60 : 300);
             locationDeadline.restart();
             locationStartup.restart();
             location.running = true;
@@ -87,7 +89,7 @@ Scope {
                 return;
             }
             root.schedule = null;
-            root.error = "Solar helper unavailable; keeping current appearance";
+            root.solarError = "Solar helper unavailable; keeping current appearance";
         }
     }
     function locationFailed() {
@@ -97,15 +99,15 @@ Scope {
             Qt.callLater(refresh);
             return;
         }
-        coordinates = null;
-        schedule = null;
-        error = "Location unavailable; keeping current appearance";
+        locationError = coordinates ? "Location refresh failed; using the last estimate"
+            : locationSource === "timezone" ? "No location for this time zone; choose fixed coordinates or IP location"
+            : "IP location unavailable; keeping current appearance";
     }
-    Timer { id: locationDeadline; interval: 35000; onTriggered: root.locationFailed() }
+    Timer { id: locationDeadline; interval: 12000; onTriggered: root.locationFailed() }
     Timer { id: locationStartup; interval: 1000; onTriggered: if (!location.running) root.locationFailed() }
     Process {
         id: location
-        command: ["nullshell-helper", "location"]
+        command: ["nullshell-helper", root.locationSource === "timezone" ? "timezone" : "location"]
         stdout: StdioCollector { id: locationOutput }
         onExited: (code, status) => {
             root.locationPending = false;
@@ -120,15 +122,17 @@ Scope {
                 if (code !== 0 || status !== 0 || value.version !== 1
                     || !Number.isFinite(value.latitude) || Math.abs(value.latitude) > 90
                     || !Number.isFinite(value.longitude) || Math.abs(value.longitude) > 180) throw new Error();
-                root.coordinates = {latitude: value.latitude, longitude: value.longitude};
-                root.nextLocation = Date.now() / 1000 + 1800;
-                root.lastCalculation = 0;
-                root.error = "";
+                if (!root.coordinates || root.coordinates.latitude !== value.latitude
+                    || root.coordinates.longitude !== value.longitude) {
+                    root.generation++;
+                    root.coordinates = {latitude: value.latitude, longitude: value.longitude};
+                    root.lastCalculation = 0;
+                }
+                root.nextLocation = Date.now() / 1000 + (root.locationSource === "timezone" ? 60 : 1800);
+                root.locationError = "";
                 Qt.callLater(root.refresh);
             } catch (_) {
-                root.coordinates = null;
-                root.schedule = null;
-                root.error = "Location unavailable; keeping current appearance";
+                root.locationFailed();
             }
         }
     }
@@ -154,11 +158,11 @@ Scope {
                 if (code !== 0 || status !== 0 || value.version !== 1 || typeof value.dark !== "boolean"
                     || !(value.next_transition === null || Number.isFinite(value.next_transition))) throw new Error();
                 root.schedule = value;
-                root.error = "";
+                root.solarError = "";
                 root.updated();
             } catch (_) {
                 root.schedule = null;
-                root.error = "Solar calculation unavailable; keeping current appearance";
+                root.solarError = "Solar calculation unavailable; keeping current appearance";
             }
         }
     }

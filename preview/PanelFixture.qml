@@ -41,7 +41,7 @@ Scope {
     property string locationStatus: "inactive"
     property double overrideUntil: 0
     property var nextTransition: 1794736800
-    property var effectiveSettings: ({mode: "manual", location: "geoclue", latitude: null, longitude: null})
+    property var effectiveSettings: ({mode: "manual", location: "ip", latitude: null, longitude: null})
     readonly property string selectedMode: automatic ? "auto" : darkMode ? "dark" : "light"
     function selectMode(mode) {
         automatic = mode === "auto";
@@ -52,8 +52,14 @@ Scope {
         lastAction = "appearance:" + mode;
         return true;
     }
-    function useDeviceLocation() {
-        effectiveSettings = {mode: "solar", location: "geoclue", latitude: null, longitude: null};
+    function useIpLocation() {
+        effectiveSettings = {mode: "solar", location: "ip", latitude: null, longitude: null};
+        preferencesOverridden = true;
+        locationStatus = "ready";
+        return true;
+    }
+    function useTimezoneLocation() {
+        effectiveSettings = {mode: "solar", location: "timezone", latitude: null, longitude: null};
         preferencesOverridden = true;
         locationStatus = "ready";
         return true;
@@ -70,7 +76,7 @@ Scope {
     function resetPreferences() {
         automatic = false; preferencesOverridden = false; appearanceError = "";
         locationStatus = "inactive"; overrideUntil = 0;
-        effectiveSettings = {mode: "manual", location: "geoclue", latitude: null, longitude: null};
+        effectiveSettings = {mode: "manual", location: "ip", latitude: null, longitude: null};
     }
     property QtObject shortcuts: QtObject {
         readonly property string status: ""

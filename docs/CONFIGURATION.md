@@ -264,12 +264,14 @@ are an example, not package defaults):
 ```
 
 `appearance.mode` defaults to `manual`; `solar` enables automatic decisions.
-`location` defaults to `fixed`, requiring numeric latitude (-90..90) and longitude
-(-180..180) for solar mode. Alternatively use `"location":"geoclue"`; the
-optional system GeoClue service supplies city-level coordinates, rounded to 0.1°,
-kept only in memory. Requests run on entry and every 30 minutes; failures retry
-after five minutes and retain the current mode. No IP lookup endpoint is built in.
-GeoClue availability/authorization/provider coverage depends on the host.
+`location` defaults to `timezone`, which estimates position from the named system
+time zone and local `tzdata`. For `fixed`, supply numeric latitude (-90..90) and
+longitude (-180..180). Without a usable location the current theme is retained.
+Use `"location":"ip"` to opt in to looking up your public IP via BeaconDB.
+Coordinates are rounded to 0.1° and kept only in memory. Requests run on entry
+and every 30 minutes; failed refreshes retry after five minutes and retain the
+last available coordinates. VPNs and proxies can affect accuracy. An old
+`"location":"geoclue"` value is treated as `"timezone"`, not consent to an IP lookup.
 
 The helper calculates solar altitude locally using NOAA equations and a -0.833°
 horizon. This is an approximate sunrise/sunset schedule (not a weather or terrain

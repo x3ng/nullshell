@@ -8,7 +8,7 @@ import Quickshell.Io
 Scope {
     id: theme
     property bool darkMode: true
-    property var settings: ({mode: "manual", location: "fixed", latitude: null, longitude: null})
+    property var settings: ({mode: "manual", location: "timezone", latitude: null, longitude: null})
     readonly property var effectiveSettings: preferences.values
     readonly property bool preferencesOverridden: preferences.overridden
     readonly property string locationStatus: schedule.locationStatus
@@ -33,14 +33,17 @@ Scope {
         if (!appearanceAvailable || !["light", "dark", "auto"].includes(mode)) return false;
         const next = Object.assign({}, effectiveSettings, {mode: mode === "auto" ? "solar" : "manual"});
         if (mode === "auto" && next.location === "fixed" && (next.latitude === null || next.longitude === null))
-            next.location = "geoclue";
+            next.location = "timezone";
         if (!preferences.store(next)) return false;
         schedule.resume();
         if (mode !== "auto") persistMode(mode === "dark");
         return true;
     }
-    function useDeviceLocation() {
-        return preferences.store(Object.assign({}, effectiveSettings, {location: "geoclue"}));
+    function useIpLocation() {
+        return preferences.store(Object.assign({}, effectiveSettings, {location: "ip"}));
+    }
+    function useTimezoneLocation() {
+        return preferences.store(Object.assign({}, effectiveSettings, {location: "timezone"}));
     }
     function useFixedLocation(latitude, longitude) {
         if (typeof latitude !== "number" || !Number.isFinite(latitude) || Math.abs(latitude) > 90

@@ -21,6 +21,7 @@ def main():
     parser.add_argument("--qml", type=Path, default=Path(__file__).resolve().parents[1] / "preview-panel.qml")
     parser.add_argument("--screenshots", type=Path)
     parser.add_argument("--keyboard", action="store_true")
+    parser.add_argument("--appearance-only", action="store_true", help="Check only the appearance page")
     args = parser.parse_args()
     if not os.environ.get("WAYLAND_DISPLAY"):
         parser.error("A Wayland session is required; no Nix environment is required")
@@ -72,6 +73,55 @@ def main():
                 colors = body.getcolors(body.width * body.height)
                 assert max(count for count, _ in colors) < body.width * body.height * .99, "Appearance content was not rendered"
 
+    def check_appearance():
+        # Enter appearance through the brightness row's production button.
+        call("page", "overview")
+        settle()
+        assert call("activateControl", "brightness-details") == "true"
+        assert settle()["page"] == "detail:appearance"
+        for mode in ["light", "dark", "auto"]:
+            assert call("activateControl", "appearance-mode-" + mode) == "true"
+            assert settle()["appearanceMode"] == mode
+        assert call("activateControl", "appearance-timezone-location") == "true"
+        assert settle()["appearanceSettings"]["location"] == "timezone"
+        assert call("activateControl", "appearance-ip-location") == "true"
+        assert settle()["appearanceSettings"]["location"] == "ip"
+        assert call("activateControl", "appearance-fixed-location") == "true"
+        settle()
+        call("coordinate", "latitude", "91")
+        call("coordinate", "longitude", "0")
+        call("activateControl", "appearance-apply-location")
+        assert state()["appearanceSettings"]["location"] != "fixed"
+        call("coordinate", "latitude", "51.5")
+        call("coordinate", "longitude", "-0.1")
+        call("activateControl", "appearance-apply-location")
+        assert state()["appearanceSettings"]["latitude"] == 51.5
+        for width in ["740", "440"]:
+            call("width", width)
+            for light in ["false", "true"]:
+                call("light", light)
+                for scenario in ["timezone", "fixed", "locating", "unavailable", "override"]:
+                    call("appearanceState", scenario)
+                    current = settle()
+                    geometry = json.loads(call("detailGeometry", "appearance"))
+                    # Short pages must not create a spurious scroll range or scrollbar.
+                    assert current["card"]["height"] < 700, current
+                    assert geometry["contentHeight"] <= geometry["viewportHeight"] + 1, geometry
+                    screenshot("appearance-" + width + "-" + light + "-" + scenario)
+        call("appearanceState", "override")
+        settle()
+        assert call("activateControl", "appearance-resume") == "true", state()
+        assert state()["overrideUntil"] == 0
+        call("activateControl", "appearance-reset")
+        assert not state()["preferencesOverridden"]
+
+    def finish(process, log):
+        call("quit")
+        process.wait(timeout=5)
+        assert process.returncode == 0
+        errors = re.findall(r"^.*(?:TypeError|ReferenceError|SyntaxError|Cannot assign|not a function|failed to load|Binding loop).*$", log.read_text(), re.MULTILINE | re.IGNORECASE)
+        assert not errors, "\n".join(errors)
+
     with tempfile.TemporaryDirectory(prefix="nullshell-preview-test-") as temporary:
         # Synthetic solid-color image; no personal wallpaper enters the fixture.
         def png_chunk(kind, data):
@@ -94,6 +144,11 @@ def main():
                 time.sleep(0.1)
             else:
                 raise AssertionError("Preview IPC did not become ready")
+            if args.appearance_only:
+                check_appearance()
+                finish(process, log)
+                print("Appearance preview: modes, location controls, layout and cleanup passed")
+                return
             settle()
             screenshot("normal")
             # With only the tools remaining, resizing must still recenter them.
@@ -281,43 +336,7 @@ def main():
             settle()
             screenshot("quick-error")
             call("quickState", "normal")
-            # Enter appearance through the brightness row's production button.
-            call("page", "overview")
-            settle()
-            assert call("activateControl", "brightness-details") == "true"
-            assert settle()["page"] == "detail:appearance"
-            for mode in ["light", "dark", "auto"]:
-                assert call("activateControl", "appearance-mode-" + mode) == "true"
-                assert settle()["appearanceMode"] == mode
-            assert call("activateControl", "appearance-fixed-location") == "true"
-            settle()
-            call("coordinate", "latitude", "91")
-            call("coordinate", "longitude", "0")
-            call("activateControl", "appearance-apply-location")
-            assert state()["appearanceSettings"]["location"] != "fixed"
-            call("coordinate", "latitude", "51.5")
-            call("coordinate", "longitude", "-0.1")
-            call("activateControl", "appearance-apply-location")
-            assert state()["appearanceSettings"]["latitude"] == 51.5
-            for width in ["740", "440"]:
-                call("width", width)
-                for light in ["false", "true"]:
-                    call("light", light)
-                    for scenario in ["fixed", "locating", "unavailable", "override"]:
-                        call("appearanceState", scenario)
-                        current = settle()
-                        geometry = json.loads(call("detailGeometry", "appearance"))
-                        # These short pages fit below the height cap; header sizing
-                        # must not create a spurious scroll range or scrollbar.
-                        assert current["card"]["height"] < 700, current
-                        assert geometry["contentHeight"] <= geometry["viewportHeight"] + 1, geometry
-                        screenshot("appearance-" + width + "-" + light + "-" + scenario)
-            call("appearanceState", "override")
-            settle()
-            assert call("activateControl", "appearance-resume") == "true", state()
-            assert state()["overrideUntil"] == 0
-            call("activateControl", "appearance-reset")
-            assert not state()["preferencesOverridden"]
+            check_appearance()
             # Opening the power menu and selecting destructive actions never
             # executes them until the explicit confirmation button is pressed.
             call("page", "overview")
@@ -505,11 +524,7 @@ def main():
             assert state()["open"] and state()["wallpaperDraft"] == ""
             call("page", "session")
             assert call("activateControl", "detach-page") == "false"
-            call("quit")
-            process.wait(timeout=5)
-            assert process.returncode == 0
-            errors = re.findall(r"^.*(?:TypeError|ReferenceError|SyntaxError|Cannot assign|not a function|failed to load|Binding loop).*$", log.read_text(), re.MULTILINE | re.IGNORECASE)
-            assert not errors, "\n".join(errors)
+            finish(process, log)
             print("Panel preview: scenarios, routes, resizing, selection and cleanup passed")
         except BaseException:
             print(log.read_text())

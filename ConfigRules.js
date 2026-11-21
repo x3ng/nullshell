@@ -3,7 +3,7 @@ function defaults() {
     return {version: 1, terminal: ["kitty", "--"],
         search: {aliases: {}},
         notifications: {persistHistory: true, historyDays: 7, recordTransient: false, excludedApplications: []},
-        appearance: {mode: "manual", location: "fixed", latitude: null, longitude: null},
+        appearance: {mode: "manual", location: "timezone", latitude: null, longitude: null},
         idle: {dimSeconds: 150, lockSeconds: 300, displayOffSeconds: 600}};
 }
 
@@ -68,15 +68,15 @@ function parse(text) {
         object(input.appearance, "appearance", Object.keys(result.appearance));
         Object.assign(result.appearance, input.appearance);
         const a = result.appearance;
-        if (!["manual", "solar"].includes(a.mode) || !["fixed", "geoclue"].includes(a.location))
+        // A previous GeoClue choice is not consent to send an IP lookup.
+        if (a.location === "geoclue") a.location = "timezone";
+        if (!["manual", "solar"].includes(a.mode) || !["timezone", "fixed", "ip"].includes(a.location))
             throw new Error("Invalid appearance mode or location source");
         for (const key of ["latitude", "longitude"]) {
             const limit = key === "latitude" ? 90 : 180;
             if (a[key] !== null && (typeof a[key] !== "number" || !Number.isFinite(a[key]) || Math.abs(a[key]) > limit))
                 throw new Error("Invalid appearance coordinate");
         }
-        if (a.mode === "solar" && a.location === "fixed" && (a.latitude === null || a.longitude === null))
-            throw new Error("Fixed solar appearance requires latitude and longitude");
     }
     return result;
 }

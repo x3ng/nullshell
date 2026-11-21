@@ -11,6 +11,7 @@ make check-backend
 cargo clippy --locked --manifest-path backend/Cargo.toml -- -D warnings
 # Inside a Wayland compositor (starts and closes only its fixture preview):
 make check-preview
+python3 tests/test_panel_preview.py --appearance-only
 python3 tests/test_panel_preview.py --screenshots /tmp/nullshell-preview
 ```
 
@@ -184,5 +185,7 @@ or guarantee authentication for arbitrary custom QML.
 
 Automatic appearance and the native Settings backend have private-bus and
 offscreen checks: `make check-settings` and `make check-appearance` (see
-[APPEARANCE.md](APPEARANCE.md)). `checks.<system>.settings` tests a synthetic
-GeoClue service; the desktop VM verifies real portal routing with the native backend.
+[APPEARANCE.md](APPEARANCE.md)). `checks.<system>.settings` starts a private
+session bus and the real portal frontend. Appearance tests use an offline
+time-zone fixture and a fake HTTPS response; the desktop VM also verifies
+portal routing with the native backend in a compositor session.

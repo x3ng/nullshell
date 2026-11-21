@@ -35,10 +35,7 @@ in
 {
   options.programs.nullshell = {
     enable = lib.mkEnableOption "nullshell runtime and desktop system integration";
-    appearance = {
-      portal.enable = lib.mkEnableOption "nullshell Settings portal backend for the Hyprland session";
-      geoclue.enable = lib.mkEnableOption "optional GeoClue city-level location for nullshell";
-    };
+    appearance.portal.enable = lib.mkEnableOption "nullshell Settings portal backend for the Hyprland session";
     greeter = {
       enable = lib.mkEnableOption "the nullshell greetd interface";
       interfaceDirectory = lib.mkOption {
@@ -80,15 +77,6 @@ in
       ];
       services.dbus.packages = [ packages.settingsPortal ];
       environment.systemPackages = [ packages.settingsPortal ];
-    })
-    (lib.mkIf (cfg.enable && cfg.appearance.geoclue.enable) {
-      environment.systemPackages = [ packages.settingsPortal ];
-      services.geoclue2.enable = true;
-      services.geoclue2.appConfig."org.nullshell.desktop" = {
-        isAllowed = true;
-        isSystem = false;
-        users = [ ];
-      };
     })
     (lib.mkIf syncAppearance {
       assertions = [

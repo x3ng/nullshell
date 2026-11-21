@@ -13,8 +13,8 @@ ShellRoot {
     }
     Component.onCompleted: {
         const invalid = ["null", "[]", "{}", '{"version":2}',
-            '{"version":1,"appearance":{"mode":"solar"}}',
             '{"version":1,"appearance":{"mode":"unknown"}}',
+            '{"version":1,"appearance":{"location":"unknown"}}',
             '{"version":1,"appearance":{"latitude":91}}',
             '{"version":1,"appearance":{"longitude":"0"}}',
             '{"version":1,"appearance":{"extra":true}}',
@@ -31,6 +31,12 @@ ShellRoot {
         }
         if (Rules.parse('{"version":1,"terminal":[]}').terminal.length !== 0)
             throw new Error("Empty terminal must disable terminal launches");
+        const auto = Rules.parse('{"version":1,"appearance":{"mode":"solar"}}').appearance;
+        if (auto.mode !== "solar" || auto.location !== "timezone")
+            throw new Error("Automatic appearance must default to offline time zone");
+        const legacy = Rules.parse('{"version":1,"appearance":{"mode":"solar","location":"geoclue"}}').appearance;
+        if (legacy.location !== "timezone")
+            throw new Error("Legacy GeoClue settings must fall back to offline time zone");
         console.log("CONFIG_RULES_PASSED");
     }
 }

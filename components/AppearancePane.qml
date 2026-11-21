@@ -54,6 +54,7 @@ ColumnLayout {
             text: pane.appearance.overrideUntil > 0
                 ? "Temporary override until " + pane.nextTime(pane.appearance.overrideUntil)
                 : pane.appearance.nextTransition ? "Next change · " + pane.nextTime(pane.appearance.nextTransition)
+                : pane.appearance.locationStatus === "unset" ? "Choose a location source to calculate sunrise and sunset."
                 : pane.appearance.locationStatus === "locating" ? "Finding approximate location…"
                 : pane.appearance.locationStatus === "unavailable" ? "Location unavailable · keeping current appearance"
                 : "No sunrise or sunset expected in the next two days"
@@ -83,21 +84,31 @@ ColumnLayout {
             Layout.fillWidth: true
             spacing: pane.style.spaceSm
             ChoiceButton {
-                objectName: "appearance-device-location"
+                objectName: "appearance-timezone-location"
                 Layout.fillWidth: true
                 Layout.preferredWidth: 1
                 style: pane.style
-                label: "Device location"
+                label: "Time zone"
                 filled: true
-                selected: !pane.fixed
-                onTriggered: { pane.editingFixed = false; pane.inputError = ""; pane.appearance.useDeviceLocation(); }
+                selected: !pane.fixed && pane.appearance.effectiveSettings.location === "timezone"
+                onTriggered: { pane.editingFixed = false; pane.inputError = ""; pane.appearance.useTimezoneLocation(); }
+            }
+            ChoiceButton {
+                objectName: "appearance-ip-location"
+                Layout.fillWidth: true
+                Layout.preferredWidth: 1
+                style: pane.style
+                label: "IP location"
+                filled: true
+                selected: !pane.fixed && pane.appearance.effectiveSettings.location === "ip"
+                onTriggered: { pane.editingFixed = false; pane.inputError = ""; pane.appearance.useIpLocation(); }
             }
             ChoiceButton {
                 objectName: "appearance-fixed-location"
                 Layout.fillWidth: true
                 Layout.preferredWidth: 1
                 style: pane.style
-                label: "Fixed coordinates"
+                label: "Coordinates"
                 filled: true
                 selected: pane.fixed
                 onTriggered: { pane.editingFixed = true; pane.inputError = ""; }
@@ -154,8 +165,17 @@ ColumnLayout {
         }
         Text {
             Layout.fillWidth: true
+            text: "Time zone works offline. IP location contacts BeaconDB, which sees your public IP."
+            wrapMode: Text.Wrap
+            color: pane.style.textSecondary
+            font.family: pane.style.fontFamily
+            font.pixelSize: pane.style.fontSizeSmall
+        }
+        Text {
+            Layout.fillWidth: true
             visible: !pane.fixed
-            text: pane.appearance.locationStatus === "ready" ? "Approximate location available"
+            text: pane.appearance.locationStatus === "ready"
+                ? (pane.appearance.effectiveSettings.location === "timezone" ? "Using an approximate location for your time zone" : "Approximate IP location available")
                 : pane.appearance.locationStatus === "locating" ? "Requesting an approximate location…"
                 : "No location available. Try again or use fixed coordinates."
             wrapMode: Text.Wrap
@@ -166,7 +186,7 @@ ColumnLayout {
         ChoiceButton {
             objectName: "appearance-retry-location"
             Layout.fillWidth: true
-            visible: !pane.fixed && pane.appearance.locationStatus !== "locating"
+            visible: !pane.fixed && pane.appearance.effectiveSettings.location === "ip" && pane.appearance.locationStatus !== "locating"
             style: pane.style
             label: "Refresh location"
             filled: true

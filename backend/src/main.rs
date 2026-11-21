@@ -5,6 +5,7 @@ mod location;
 mod settings_portal;
 mod sleep;
 mod solar;
+mod timezone;
 mod wallpaper;
 
 use std::process::ExitCode;
@@ -17,7 +18,8 @@ Commands:
   appearance-export SHARED_FILE    Publish a validated greeter colour snapshot
   wallpaper-export SHARED_FILE     Publish a validated greeter wallpaper
   solar                            Read a versioned solar request from stdin
-  location                         Request coarse GeoClue coordinates
+  location                         Request coarse IP coordinates from BeaconDB
+  timezone                         Resolve a timezone to representative coordinates offline
   settings-portal                  Serve the read-only D-Bus Settings backend";
 
 #[tokio::main(flavor = "current_thread")]
@@ -59,6 +61,9 @@ async fn main() -> ExitCode {
         ("location", []) => location::run()
             .await
             .map_err(|_| "location: operation unavailable or invalid input".to_owned()),
+        ("timezone", []) => {
+            timezone::run().map_err(|_| "timezone: no representative location".to_owned())
+        }
         ("settings-portal", []) => settings_portal::run()
             .await
             .map_err(|_| "settings-portal: operation unavailable or invalid input".to_owned()),

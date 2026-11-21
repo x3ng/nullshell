@@ -38,7 +38,7 @@ for networking. No nmcli, nmtui or bluetoothctl subprocess is used.
 | Power profiles | Compatible power-profiles-daemon D-Bus API | Quickshell native service; panel probes availability |
 | Lock/sleep/session actions | Wayland session-lock, logind, PAM and Polkit | Independent locker and sleep bridge; host supplies authorization policy |
 | Application appearance | xdg-desktop-portal and explicit Settings backend routing | nullshell publishes preferences only |
-| Automatic location | GeoClue, only when selected | Fixed coordinates require no GeoClue |
+| Automatic appearance location | IANA `tzdata` for offline time-zone estimates; `curl` and BeaconDB HTTPS for opt-in IP lookup | Fixed coordinates need neither |
 | Greeter | greetd, dedicated account, Cage, PAM and installed greeter resources | Explicit system integration, separate from user QML |
 
 Wi-Fi currently targets NetworkManager, not a generic network backend. An
@@ -69,7 +69,7 @@ wtype are not runtime requirements.
 
 The Nix runtime exposes tools on PATH so native `quickshell -c nullshell` works
 without hidden launcher setup. `programs.nullshell.enable` additionally configures
-PAM, Polkit and UPower. Portal, GeoClue and greetd integration have separate opt-ins.
+PAM, Polkit and UPower. Portal and greetd integration have separate opt-ins.
 It does not enable NetworkManager, BlueZ, PipeWire or a power-profile daemon;
 consumers select these in their host configuration. Personal lid/power-key policy,
 session startup and QML/configuration ownership remain with the consumer.

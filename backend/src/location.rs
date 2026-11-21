@@ -1,65 +1,111 @@
-//! A bounded coarse GeoClue request, with explicit client deletion on completion.
-use std::time::Duration;
-use zbus::{zvariant::OwnedObjectPath, Connection, Proxy};
-async fn query(connection: &Connection, path: &OwnedObjectPath) -> zbus::Result<(f64, f64)> {
-    let client = Proxy::new(
-        connection,
-        "org.freedesktop.GeoClue2",
-        path.as_str(),
-        "org.freedesktop.GeoClue2.Client",
-    )
-    .await?;
-    client
-        .set_property("DesktopId", "org.nullshell.desktop")
-        .await?;
-    client.set_property("RequestedAccuracyLevel", 4u32).await?; // city
-    client.call::<_, _, ()>("Start", &()).await?;
-    loop {
-        let location: OwnedObjectPath = client.get_property("Location").await?;
-        if location.as_str() != "/" {
-            let location = Proxy::new(
-                connection,
-                "org.freedesktop.GeoClue2",
-                location.as_str(),
-                "org.freedesktop.GeoClue2.Location",
-            )
-            .await?;
-            let lat: f64 = location.get_property("Latitude").await?;
-            let lon: f64 = location.get_property("Longitude").await?;
-            if lat.is_finite()
-                && lon.is_finite()
-                && (-90.0..=90.0).contains(&lat)
-                && (-180.0..=180.0).contains(&lon)
-            {
-                // Scheduling needs city precision, never persist precise coordinates.
-                return Ok(((lat * 10.0).round() / 10.0, (lon * 10.0).round() / 10.0));
-            }
-            return Err(zbus::Error::Failure("Invalid location".into()));
-        }
-        tokio::time::sleep(Duration::from_millis(250)).await;
-    }
+//! Opt-in IP geolocation. The only data retained is a rounded coordinate pair.
+use tokio::process::Command;
+
+const GEO_URL: &str = "https://api.beacondb.net/v1/geolocate";
+const MAX_BODY: usize = 8192;
+
+#[derive(serde::Deserialize)]
+struct GeoResponse {
+    location: Position,
 }
-pub async fn run() -> Result<(), Box<dyn std::error::Error>> {
-    let connection = tokio::time::timeout(Duration::from_secs(5), Connection::system()).await??;
-    let manager = Proxy::new(
-        &connection,
-        "org.freedesktop.GeoClue2",
-        "/org/freedesktop/GeoClue2/Manager",
-        "org.freedesktop.GeoClue2.Manager",
-    )
-    .await?;
-    let path: OwnedObjectPath =
-        tokio::time::timeout(Duration::from_secs(5), manager.call("GetClient", &())).await??;
-    let result = tokio::time::timeout(Duration::from_secs(20), query(&connection, &path)).await;
-    let _ = tokio::time::timeout(
-        Duration::from_secs(2),
-        manager.call::<_, _, ()>("DeleteClient", &(path,)),
-    )
-    .await;
-    let (latitude, longitude) = result??;
+
+#[derive(serde::Deserialize)]
+struct Position {
+    lat: f64,
+    lng: f64,
+}
+
+fn coordinates(output: &[u8]) -> Option<(f64, f64)> {
+    let split = output.iter().rposition(|byte| *byte == b'\n')?;
+    let (body, status) = output.split_at(split);
+    if status != b"\n200" || body.len() > MAX_BODY {
+        return None;
+    }
+    let GeoResponse {
+        location: Position {
+            lat: latitude,
+            lng: longitude,
+        },
+    } = serde_json::from_slice(body).ok()?;
+    if !(-90.0..=90.0).contains(&latitude) || !(-180.0..=180.0).contains(&longitude) {
+        return None;
+    }
+    Some((
+        (latitude * 10.0).round() / 10.0,
+        (longitude * 10.0).round() / 10.0,
+    ))
+}
+
+pub async fn run() -> Result<(), ()> {
+    let output = Command::new("curl")
+        .kill_on_drop(true)
+        .args([
+            "--disable", // Ignore ~/.curlrc; do not add headers or follow redirects.
+            "--silent",
+            "--fail",
+            "--proto",
+            "=https",
+            "--connect-timeout",
+            "4",
+            "--max-time",
+            "8",
+            "--max-filesize",
+            &MAX_BODY.to_string(),
+            "--write-out",
+            "\n%{http_code}",
+            "--header",
+            "Content-Type: application/json",
+            "--data-binary",
+            "{}", // Ichnaea's IP-only request; no access point or cell identifiers.
+            "--url",
+            GEO_URL,
+        ])
+        .stdin(std::process::Stdio::null())
+        .stderr(std::process::Stdio::null())
+        .output()
+        .await
+        .map_err(|_| ())?;
+    if !output.status.success() {
+        return Err(());
+    }
+    let (latitude, longitude) = coordinates(&output.stdout).ok_or(())?;
+    print_coordinates(latitude, longitude);
+    Ok(())
+}
+
+pub(crate) fn print_coordinates(latitude: f64, longitude: f64) {
     println!(
         "{}",
         serde_json::json!({"version":1,"latitude":latitude,"longitude":longitude})
     );
-    Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn parses_ichnaea_and_discards_other_fields() {
+        assert_eq!(
+            coordinates(
+                b"{\"location\":{\"lat\":12.3456,\"lng\":-67.8912},\"accuracy\":25000,\"fallback\":\"ipf\"}\n200"
+            ),
+            Some((12.3, -67.9))
+        );
+    }
+
+    #[test]
+    fn rejects_missing_invalid_and_unsafe_values() {
+        for input in [
+            "{}\n200",
+            "not json\n200",
+            "{\"location\":{\"lat\":\"NaN\",\"lng\":0}}\n200",
+            "{\"location\":{\"lat\":0,\"lng\":181}}\n200",
+            "{\"location\":{\"lat\":0,\"lng\":0}}\n302",
+        ] {
+            assert_eq!(coordinates(input.as_bytes()), None, "{input}");
+        }
+        let oversized = format!("{}\n200", " ".repeat(MAX_BODY + 1));
+        assert_eq!(coordinates(oversized.as_bytes()), None);
+    }
 }

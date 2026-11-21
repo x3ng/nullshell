@@ -39,8 +39,10 @@ the bridge or starting a new session. See BACKEND.md for the portable CLI.
 Appearance is owned and persisted by the shell, with optional solar scheduling.
 The nullshell Settings portal backend publishes the effective colour preference.
 There is no parallel GSettings writer. Applications that bypass the Settings
-portal are outside this publication contract. Fixed coordinates need no location
-service; GeoClue is optional. See [APPEARANCE.md](APPEARANCE.md).
+portal are outside this publication contract. Automatic mode uses local `tzdata`
+by default; fixed coordinates also work offline. Opt-in IP location requires
+`curl`. None of these modes requires a system location service.
+See [APPEARANCE.md](APPEARANCE.md).
 
 ## State
 
@@ -55,8 +57,8 @@ on the first migration. The legacy state file takes precedence over that cache. 
 ## Nix
 
 Import `nixosModules.default` and enable `programs.nullshell.enable` to install
-one complete runtime plus PAM/Polkit/UPower environment. Enable portal, GeoClue
-and greeter integration explicitly when needed. There is currently no dedicated
+one complete runtime plus PAM/Polkit/UPower environment. Portal and greeter
+integration are explicit opt-ins. There is currently no dedicated
 Home Manager module. Consumers may manage their QML/configuration through Home
 Manager explicitly; installation does not select or require a configuration manager.
 The default package is the runtime; it contains no desktop QML snapshot and does

@@ -1,7 +1,0 @@
-[Desktop Entry]
-Type=Application
-Name=nullshell location
-Comment=Optional city-level location for automatic appearance
-Exec=nullshell-helper location
-NoDisplay=true
-X-Geoclue-Reason=Calculate local sunrise and sunset for automatic appearance

@@ -23,7 +23,7 @@ help:
 	  '  check-material    Check surface capabilities (Wayland session required)' \
 	  '  check-preview     Check panel previews (Wayland session required)' \
 	  '  check-appearance  Build helper and check appearance/wallpaper export' \
-	  '  check-settings    Check Settings portal and synthetic GeoClue on a private bus'
+	  '  check-settings    Check Settings portal on a private bus'
 
 build: helper
 
@@ -38,7 +38,6 @@ install: helper
 	install -Dm755 bin/nullshell-lock "$(DESTDIR)$(PREFIX)/bin/nullshell-lock"
 	install -Dm755 bin/nullshell-migrate-state "$(DESTDIR)$(PREFIX)/bin/nullshell-migrate-state"
 	install -Dm644 integration/nullshell.portal "$(DESTDIR)$(PREFIX)/share/xdg-desktop-portal/portals/nullshell.portal"
-	install -Dm644 integration/org.nullshell.desktop.desktop "$(DESTDIR)$(PREFIX)/share/applications/org.nullshell.desktop.desktop"
 	install -d "$(DESTDIR)$(PREFIX)/share/dbus-1/services"
 	sed 's|@HELPER@|$(PREFIX)/bin/nullshell-helper|g' integration/org.freedesktop.impl.portal.desktop.nullshell.service.in > "$(DESTDIR)$(PREFIX)/share/dbus-1/services/org.freedesktop.impl.portal.desktop.nullshell.service"
 
@@ -83,7 +82,7 @@ check-appearance: helper
 install-greeter:
 	sudo nullshell-install-greeter --source "$(CURDIR)"
 
-# Uses a fresh bus and synthetic location service; never connects to host services.
+# Uses a fresh bus; never connects to host services.
 check-settings: helper
 	python3 tests/test_settings_portal.py "$(CARGO_TARGET_DIR)/release/nullshell-helper"
 

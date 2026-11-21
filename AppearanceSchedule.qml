@@ -8,7 +8,7 @@ import "adapters"
 Scope {
     id: root
     property bool ready: false
-    property var settings: ({mode: "manual", location: "fixed", latitude: null, longitude: null})
+    property var settings: ({mode: "manual", location: "timezone", latitude: null, longitude: null})
     property bool overrideLoaded: false
     property double overrideUntil: 0
     property string persistenceError: ""
