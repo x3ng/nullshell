@@ -11,6 +11,8 @@ Rectangle {
     id: detail
     required property Theme style
     required property var appearance
+    property var displays: null
+    property var idlePreferences: null
     required property var services
     required property var actions
     required property var notifs
@@ -38,12 +40,16 @@ Rectangle {
     signal closePanelRequested()
     readonly property bool isNotifs: section === "notifications"
     readonly property string title: section === "session" ? "Power and session" : section === "appearance" ? "Appearance"
+        : section === "displays" ? "Displays"
+        : section === "idle" ? "Idle and sleep"
         : section === "wallpaper" ? "Wallpaper" : section === "wifi" ? "Wi-Fi"
         : section === "bluetooth" ? "Bluetooth"
         : section === "media" ? "Media player"
         : detail.isNotifs ? "Notifications"
         : "Audio devices"
     readonly property string subtitle: section === "session" ? "Lock your screen or leave this session" : section === "appearance" ? "Light, dark and sunrise-to-sunset scheduling"
+        : section === "displays" ? "Arrangement, resolution and scale"
+        : section === "idle" ? "Automatic dimming, locking and display off"
         : section === "wallpaper" ? "Desktop and lock-screen background" : section === "wifi" ? "Nearby networks · connect & manage"
         : section === "bluetooth" ? "Devices · discover, pair & connect"
         : section === "media" ? "Players in this session"
@@ -293,6 +299,18 @@ Rectangle {
                         sourceComponent: Component {
                             AppearancePane { style: detail.style; appearance: detail.appearance }
                         }
+                    }
+                    Loader {
+                        Layout.fillWidth: true
+                        active: detail.renderContent && detail.section === "displays" && !!detail.displays
+                        visible: active
+                        sourceComponent: DisplaysPane { style: detail.style; service: detail.displays }
+                    }
+                    Loader {
+                        Layout.fillWidth: true
+                        active: detail.renderContent && detail.section === "idle" && !!detail.idlePreferences
+                        visible: active
+                        sourceComponent: IdlePane { style: detail.style; preferences: detail.idlePreferences; services: detail.services }
                     }
                     Loader {
                         Layout.fillWidth: true

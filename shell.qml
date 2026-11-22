@@ -30,14 +30,24 @@ ShellRoot {
         onFeedback: (key, summary, body, critical) =>
             notifications.notifyLocal(key, {summary: summary, body: body, critical: critical})
     }
-    DisplayProfiles { id: displayProfiles; mode: config.ready ? config.values.displays.mode : "off" }
+    DisplayProfiles {
+        id: displayProfiles
+        mode: config.ready ? config.values.displays.mode : "off"
+        onEditorTrialReady: {
+            if (!launcher.detailPages.isDetached("displays")) {
+                launcher.openOnScreen(launcher.preferredScreen);
+                launcher.navigate("displays");
+            }
+        }
+    }
     WallpaperState { id: wallpaperState }
     WallpaperExport { id: wallpaperExport; wallpaper: wallpaperState }
     WallpaperWindows { wallpaper: wallpaperState }
+    IdlePreferences { id: idlePreferences; configured: config.values.idle }
     IdlePolicy {
         keepAwake: desktop.keepAwake
-        ready: desktop.keepAwakeReady && config.ready
-        deadlines: config.values.idle
+        ready: desktop.keepAwakeReady && config.ready && idlePreferences.ready
+        deadlines: idlePreferences.values
         onLockRequested: shellActions.session.lock()
     }
     DesktopSearch {
@@ -78,6 +88,7 @@ ShellRoot {
         id: shellActions
         services: desktop
         appearance: appearance
+        displaysAvailable: !!Quickshell.env("HYPRLAND_INSTANCE_SIGNATURE")
         keyboard: keyboard
         notifs: notifications
         captureBusy: capture.pending
@@ -110,6 +121,8 @@ ShellRoot {
         services: desktop
         style: theme
         appearance: appearance
+        displays: displayProfiles
+        idlePreferences: idlePreferences
         searchModel: desktopSearch
         notifs: notifications
         keyboard: keyboard
@@ -127,7 +140,8 @@ ShellRoot {
         function setKeepAwake(enabled: bool): bool { return desktop.setKeepAwake(enabled); }
         function status(): string {
             return JSON.stringify({ready: desktop.keepAwakeReady, keepAwake: desktop.keepAwake,
-                until: desktop.keepAwakeUntil, permanent: desktop.keepAwakeRequested, inhibitorActive: desktop.keepAwakeInhibitorActive});
+                until: desktop.keepAwakeUntil, permanent: desktop.keepAwakeRequested, inhibitorActive: desktop.keepAwakeInhibitorActive,
+                deadlines: idlePreferences.values, overridden: idlePreferences.overridden, error: idlePreferences.error});
         }
     }
 

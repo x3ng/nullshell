@@ -9,6 +9,7 @@ Scope {
     id: root
     required property var services
     required property var appearance
+    property bool displaysAvailable: false
     required property var keyboard
     required property var notifs
     readonly property var session: sessionActions
@@ -16,11 +17,13 @@ Scope {
     property bool captureBusy: false
     signal captureRequested()
     signal navigateRequested(string section)
-    readonly property var panelActions: ["overview", "desktop", "wifi", "bluetooth", "audio", "media", "notifications", "appearance", "session", "wallpaper", "brightness"]
+    readonly property var panelActions: ["overview", "desktop", "wifi", "bluetooth", "audio", "media", "notifications", "appearance", "displays", "idle", "session", "wallpaper", "brightness"]
     readonly property var entries: [
         {id: "capture-region", title: "Capture a region", description: "Select an area, then annotate or copy it in Satty", keywords: "screenshot snip 截图 区域 截屏", icon: "window", enabled: !captureBusy},
         {id: "session", description: "Lock, sleep, log out, restart or shut down", title: "Power and session", keywords: "power shutdown reboot logout suspend 电源 关机 重启 注销 休眠 锁屏", icon: "power", enabled: true},
         {id: "appearance", description: "Light, dark, automatic and location settings", title: "Appearance settings", keywords: "theme auto solar 深色 浅色 自动 定位 主题 外观", icon: "brightness", enabled: true},
+        {id: "displays", description: "Arrange displays and test resolution, refresh rate and scale", title: "Display settings", keywords: "monitor display resolution layout mirror scale 显示器 屏幕 布局 分辨率 缩放", icon: "window", enabled: displaysAvailable},
+        {id: "idle", description: "Adjust automatic dimming, locking and display-off timing", title: "Idle and sleep settings", keywords: "idle sleep timeout dim lock screen off 空闲 睡眠 自动锁屏 息屏 调暗 时间", icon: "clock", enabled: true},
         {id: "auto", description: "Follow local sunrise and sunset", title: "Use automatic appearance", keywords: "theme solar 自动 主题 日出 日落", icon: "clock", enabled: appearance.appearanceAvailable},
         {id: "appearance-resume", description: "Clear the temporary appearance override", title: "Resume automatic appearance", keywords: "theme solar 恢复 自动 主题", icon: "clock", enabled: appearance.appearanceAvailable && appearance.automatic && appearance.overrideUntil > 0},
         {id: "desktop", description: "Browse windows, workspaces and layouts", title: "Manage windows and workspaces", keywords: "desktop layout float fullscreen move close 桌面 窗口 工作区 布局 平铺 浮动 全屏 移动 关闭", icon: "window", enabled: true},

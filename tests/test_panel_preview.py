@@ -21,7 +21,10 @@ def main():
     parser.add_argument("--qml", type=Path, default=Path(__file__).resolve().parents[1] / "preview-panel.qml")
     parser.add_argument("--screenshots", type=Path)
     parser.add_argument("--keyboard", action="store_true")
-    parser.add_argument("--appearance-only", action="store_true", help="Check only the appearance page")
+    only = parser.add_mutually_exclusive_group()
+    only.add_argument("--appearance-only", action="store_true", help="Check only the appearance page")
+    only.add_argument("--displays-only", action="store_true", help="Check only the display layout page")
+    only.add_argument("--idle-only", action="store_true", help="Check only the idle settings page")
     args = parser.parse_args()
     if not os.environ.get("WAYLAND_DISPLAY"):
         parser.error("A Wayland session is required; no Nix environment is required")
@@ -122,6 +125,61 @@ def main():
         errors = re.findall(r"^.*(?:TypeError|ReferenceError|SyntaxError|Cannot assign|not a function|failed to load|Binding loop).*$", log.read_text(), re.MULTILINE | re.IGNORECASE)
         assert not errors, "\n".join(errors)
 
+    def check_displays():
+        call("page", "displays")
+        assert settle()["page"] == "detail:displays"
+        for width, light in [("740", "true"), ("440", "false")]:
+            call("width", width)
+            call("light", light)
+            settle()
+            screenshot("displays-editor-" + width)
+        assert call("activateControl", "displays-enabled") == "true"
+        assert call("displaySelect", "1") == "true"
+        assert call("activateControl", "displays-enabled") == "true"
+        assert call("activateControl", "displays-test") == "false", "Cannot disable all displays"
+        assert call("activateControl", "displays-enabled") == "true"
+        assert call("displaySelect", "0") == "true"
+        assert call("activateControl", "displays-enabled") == "true"
+        assert call("displayValue", "mode", "1280x720@60Hz") == "true"
+        assert call("displayValue", "scale", "1.25") == "true"
+        assert call("displayValue", "x", "-80") == "true"
+        assert call("activateControl", "displays-test") == "true"
+        s = settle()
+        assert s["displayPhase"] == "preview"
+        assert (s["displayDraft"][0]["width"], s["displayDraft"][0]["scale"], s["displayDraft"][0]["x"]) == (1280, 1.25, -80), s
+        screenshot("displays-confirmation")
+        assert call("activateControl", "displays-confirm") == "true"
+        assert settle()["lastAction"] == "display-confirm"
+        assert call("activateControl", "displays-test") == "true"
+        settle()
+        assert call("activateControl", "displays-revert") == "true"
+        assert settle()["lastAction"] == "display-revert"
+
+    def check_idle():
+        call("page", "session")
+        settle()
+        assert call("activateControl", "power-idle-settings") == "true"
+        assert settle()["page"] == "detail:idle"
+        for width, light in [("740", "true"), ("440", "false")]:
+            call("width", width)
+            call("light", light)
+            settle()
+            screenshot("idle-" + width)
+        assert call("idleValue", "lockSeconds", "100") == "true"
+        assert call("activateControl", "idle-save") == "false"
+        assert call("idleValue", "dimSeconds", "60") == "true"
+        assert call("activateControl", "idle-save") == "true"
+        s = settle()
+        assert s["idleOverridden"] and s["idleTimers"]["lockSeconds"] == 100
+        assert call("activateControl", "idle-reset") == "true"
+        s = settle()
+        assert not s["idleOverridden"] and s["idleTimers"]["lockSeconds"] == 300
+        before = s["keepAwake"]
+        assert call("activateControl", "idle-keep-awake") == "true"
+        assert settle()["keepAwake"] != before
+        assert call("activateControl", "idle-keep-awake") == "true"
+        assert settle()["keepAwake"] == before
+
     with tempfile.TemporaryDirectory(prefix="nullshell-preview-test-") as temporary:
         # Synthetic solid-color image; no personal wallpaper enters the fixture.
         def png_chunk(kind, data):
@@ -148,6 +206,16 @@ def main():
                 check_appearance()
                 finish(process, log)
                 print("Appearance preview: modes, location controls, layout and cleanup passed")
+                return
+            if args.displays_only:
+                check_displays()
+                finish(process, log)
+                print("Display editor preview: draft, test, confirmation, revert and cleanup passed")
+                return
+            if args.idle_only:
+                check_idle()
+                finish(process, log)
+                print("Idle settings preview: input validation, save, reset, Keep awake and cleanup passed")
                 return
             settle()
             screenshot("normal")
@@ -337,6 +405,8 @@ def main():
             screenshot("quick-error")
             call("quickState", "normal")
             check_appearance()
+            check_displays()
+            check_idle()
             # Opening the power menu and selecting destructive actions never
             # executes them until the explicit confirmation button is pressed.
             call("page", "overview")

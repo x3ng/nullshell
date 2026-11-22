@@ -5,6 +5,7 @@ let
     fileset = pkgs.lib.fileset.unions [
       ../../ShellConfig.qml
       ../../ConfigRules.js
+      ../../IdlePreferences.qml
       ../../tests
     ];
   };
@@ -28,4 +29,5 @@ pkgs.runCommand "nullshell-config-check"
     unset WAYLAND_DISPLAY DISPLAY HYPRLAND_INSTANCE_SIGNATURE
     dbus-run-session --config-file=${pkgs.dbus}/share/dbus-1/session.conf -- \
       python3 ${source}/tests/test_config.py "$out/config.log"
+    python3 ${source}/tests/test_idle_preferences.py > "$out/idle.log" 2>&1 || { cat "$out/idle.log"; exit 1; }
   ''

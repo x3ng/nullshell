@@ -100,6 +100,16 @@ ColumnLayout {
         font.family: pane.style.fontFamily
         font.pixelSize: pane.style.fontSizeSmall
     }
+    ChoiceButton {
+        objectName: "power-idle-settings"
+        Layout.fillWidth: true
+        visible: pane.pendingAction === "" && pane.actions.available("idle")
+        style: pane.style
+        label: "Idle and sleep settings"
+        iconKind: "clock"
+        contentAlignment: Qt.AlignLeft
+        onTriggered: pane.actions.execute("idle")
+    }
     RowLayout {
         Layout.fillWidth: true
         visible: pane.pendingAction === ""

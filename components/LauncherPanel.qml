@@ -13,6 +13,8 @@ PanelWindow {
     required property var services
     required property Theme style
     required property var appearance
+    property var displays: null
+    property var idlePreferences: null
     required property var searchModel
     required property var hyprControls
     required property var notifs

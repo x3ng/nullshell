@@ -55,6 +55,11 @@ ShellRoot {
         function apply(name: string): bool { return profiles.activate(name); }
         function confirm(): bool { return profiles.confirm(); }
         function mode(value: string): void { profiles.mode = value; }
+        function refreshEditor(): void { profiles.refreshEditor(); }
+        function editorReady(): bool { return profiles.editorOutputs.length > 0; }
+        function editorScale(scale: real): bool {
+            return profiles.previewEditor(profiles.editorOutputs.map(output => Object.assign({}, output.current, {scale:scale})));
+        }
     }
 }''')
     env = dict(os.environ, HOME=name, XDG_CONFIG_HOME=name+'/config', XDG_STATE_HOME=name+'/state',
@@ -141,19 +146,24 @@ ShellRoot {
             tmp.replace(path)
 
         solo = dict(name='solo', outputs=[profile_output(first, scale=preferred)])
-        abandoned = dict(name='abandoned', outputs=[profile_output(first, scale=unconfirmed)])
-        write_profiles([solo, abandoned])
         desktop = start('shell.log', 'quickshell', '--path', str(entry))
-        until(lambda: set(state().get('compatible', [])) == {'solo', 'abandoned'})
-        apply('solo')
+        until(lambda: state().get('mode') == 'manual' and state().get('phase') == 'idle')
+        # Start and confirm via the graphical service path with no profile file.
+        ipc('refreshEditor').check_returncode()
+        until(lambda: ipc('editorReady').stdout.strip() == 'true')
+        assert ipc('editorScale', str(preferred)).stdout.strip() == 'true'
+        until(lambda: state().get('pending') == 'Display changes' and state().get('verified'))
         assert not confirmed.exists() and not list(base.glob('hyprland-displays.lua.v1-*'))
         assert monitors()[0]['scale'] == preferred
-        confirm('solo')
+        confirm('Display changes')
         confirmed_solo = until(lambda: list(base.glob('hyprland-displays.lua.v1-*')))[0]
         originals = (confirmed.read_bytes(), confirmed_solo.read_bytes())
 
         # Exercise the compositor watchdog, not a timer in the desktop process.
-        apply('abandoned')
+        ipc('refreshEditor').check_returncode()
+        until(lambda: ipc('editorReady').stdout.strip() == 'true')
+        assert ipc('editorScale', str(unconfirmed)).stdout.strip() == 'true'
+        until(lambda: state().get('pending') == 'Display changes' and state().get('verified'))
         assert monitors()[0]['scale'] == unconfirmed
         assert (confirmed.read_bytes(), confirmed_solo.read_bytes()) == originals
         desktop.terminate()

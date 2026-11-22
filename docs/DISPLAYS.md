@@ -6,7 +6,17 @@ daemon is needed. This integration is **off by default**. Keep Hyprland's
 preferred/automatic mode, position and scale as the fallback, and do not run
 another profile manager or load another manager's generated rules alongside it.
 
-## Configure and inspect without changing the desktop
+## Open Display settings
+
+Once the Hyprland include and nullshell opt-in below are set, open the launcher
+and search for **Display settings**. Choose a connected output, pick a supported
+mode (resolution and refresh rate), set scale/orientation or enable mirroring.
+Drag the display cards to position them, or enter exact coordinates. Use
+**Test layout**, then **Keep changes** or **Revert**. The compositor will revert
+a trial that was not confirmed within 15 seconds. No JSON layout file is
+required for the graphical editor.
+
+## Optional named profiles and CLI
 
 Run `nullshell-helper displays outputs` to list the connector names, stable keys
 and available modes for currently connected outputs. Create a profile file at
@@ -56,7 +66,8 @@ if restore then restore() end
 
 On first use the file doesn't exist; Hyprland uses its native fallback. Reload
 Hyprland, then set `"displays":{"mode":"manual"}` in nullshell's version-1
-`config.json`. Use the desktop IPC target:
+`config.json`. Open **Display settings**, or use the desktop IPC target if you
+maintain named profiles:
 
 ```sh
 nullshell ipc call displays status

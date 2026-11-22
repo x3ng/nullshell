@@ -71,6 +71,8 @@ struct Workspace {
 struct Live {
     name: String,
     #[serde(default)]
+    id: Option<u32>,
+    #[serde(default)]
     description: String,
     #[serde(default)]
     make: String,
@@ -80,6 +82,24 @@ struct Live {
     serial: String,
     #[serde(default, rename = "availableModes")]
     modes: Vec<String>,
+    #[serde(default)]
+    disabled: bool,
+    #[serde(default)]
+    width: u32,
+    #[serde(default)]
+    height: u32,
+    #[serde(default, rename = "refreshRate")]
+    refresh: f64,
+    #[serde(default)]
+    x: i32,
+    #[serde(default)]
+    y: i32,
+    #[serde(default = "one")]
+    scale: f64,
+    #[serde(default)]
+    transform: u8,
+    #[serde(default, rename = "mirrorOf")]
+    mirror: serde_json::Value,
 }
 
 fn one() -> f64 {
@@ -427,12 +447,12 @@ fn plan(config: &Profiles, live: Vec<Live>, requested: Option<&str>) -> Result<s
     )
 }
 
-async fn read_outputs() -> Result<Vec<Live>> {
+async fn query<T: serde::de::DeserializeOwned>(args: &[&str]) -> Result<T> {
     if std::env::var_os("HYPRLAND_INSTANCE_SIGNATURE").is_none_or(|v| v.is_empty()) {
         return Err("no Hyprland instance in this session".into());
     }
     let mut cmd = tokio::process::Command::new("hyprctl");
-    cmd.args(["-j", "monitors", "all"])
+    cmd.args(args)
         .stdin(Stdio::null())
         .stderr(Stdio::null())
         .kill_on_drop(true);
@@ -446,26 +466,106 @@ async fn read_outputs() -> Result<Vec<Live>> {
     serde_json::from_slice(&output.stdout).map_err(|_| "invalid Hyprland output data".into())
 }
 
+async fn read_outputs() -> Result<Vec<Live>> {
+    query(&["-j", "monitors", "all"]).await
+}
+
+fn inventory(live: &[Live]) -> serde_json::Value {
+    let outputs = live.iter().map(|o| {
+        let mirror = live.iter().find(|other| {
+            o.mirror.as_str().is_some_and(|s| s == other.name)
+                || other.id.is_some_and(|id| o.mirror.as_u64() == Some(u64::from(id))
+                    || o.mirror.as_str().is_some_and(|s| s.parse::<u32>().ok() == Some(id)))
+        }).map(Live::identity);
+        serde_json::json!({"name":o.name,"key":o.identity(),"modes":o.modes,"description":o.description,
+            "current":{"key":o.identity(),"name":o.name,"enabled":!o.disabled,
+            "width":o.width,"height":o.height,"refresh":o.refresh,"x":o.x,"y":o.y,
+            "scale":if (0.25..=8.0).contains(&o.scale) {o.scale} else {1.0},"transform":o.transform,"mirror_of":mirror}})
+    }).collect::<Vec<_>>();
+    serde_json::json!({"version":1,"outputs":outputs})
+}
+
+async fn plan_draft(text: &str) -> Result<serde_json::Value> {
+    if text.len() > 32768 {
+        return Err("display draft too large".into());
+    }
+    let mut p: Profile = serde_json::from_str(text).map_err(|_| "invalid display draft")?;
+    let live = read_outputs().await?;
+    // A draft belongs to the connectors the editor displayed, not to a
+    // different topology that happened to appear before Test was pressed.
+    if live.len() != p.outputs.len()
+        || !p.outputs.iter().all(|o| {
+            live.iter()
+                .any(|l| l.name == o.name && l.identity() == o.key)
+        })
+    {
+        return Err("connected displays changed; refresh the editor".into());
+    }
+    // Preserve effective monitor assignments unaffected by the draft.
+    let rules: Vec<serde_json::Value> = query(&["-j", "workspacerules"]).await?;
+    let mut ids = BTreeSet::new();
+    p.workspaces = rules
+        .iter()
+        .filter_map(|r| {
+            let workspace = r.get("workspaceString")?.as_str()?;
+            let monitor = r.get("monitor")?.as_str()?;
+            let output = p
+                .outputs
+                .iter()
+                .find(|o| o.name == monitor && o.enabled && o.mirror_of.is_none())?;
+            if !valid_workspace(workspace) || !ids.insert(workspace) {
+                return None;
+            }
+            Some(Workspace {
+                workspace: workspace.into(),
+                output_key: output.key.clone(),
+                default: r
+                    .get("default")
+                    .or_else(|| r.get("isDefault"))
+                    .and_then(|x| x.as_bool())
+                    .unwrap_or(false),
+                persistent: r
+                    .get("persistent")
+                    .or_else(|| r.get("isPersistent"))
+                    .and_then(|x| x.as_bool())
+                    .unwrap_or(false),
+            })
+        })
+        .collect();
+    let config = Profiles {
+        version: 1,
+        profiles: vec![p],
+    };
+    validate(&config)?;
+    plan(&config, live, None)
+}
+
 pub async fn run(args: &[String]) -> Result<()> {
     match args {
         [action] if action == "outputs" => {
-            let outputs = read_outputs()
-                .await?
-                .into_iter()
-                .map(|o| serde_json::json!({"name":o.name,"key":o.identity(),"modes":o.modes}))
-                .collect::<Vec<_>>();
-            println!("{}", serde_json::json!({"version":1,"outputs":outputs}));
+            println!("{}", inventory(&read_outputs().await?));
         }
+        [action, draft] if action == "draft" => println!("{}", plan_draft(draft).await?),
         [action, path, rest @ ..] if action == "plan" && rest.len() <= 1 => {
-            let c: Profiles = serde_json::from_slice(&read(Path::new(path))?)
-                .map_err(|e| format!("invalid profile JSON: {e}"))?;
+            let path = Path::new(path);
+            let c: Profiles = if rest.is_empty()
+                && fs::metadata(path).is_err_and(|e| e.kind() == std::io::ErrorKind::NotFound)
+            {
+                Profiles {
+                    version: 1,
+                    profiles: Vec::new(),
+                }
+            } else {
+                serde_json::from_slice(&read(path)?)
+                    .map_err(|e| format!("invalid profile JSON: {e}"))?
+            };
             validate(&c)?;
             println!(
                 "{}",
                 plan(&c, read_outputs().await?, rest.first().map(String::as_str))?
             );
         }
-        _ => return Err("expected outputs or plan FILE [NAME]".into()),
+        _ => return Err("expected outputs, draft JSON, or plan FILE [NAME]".into()),
     }
     Ok(())
 }

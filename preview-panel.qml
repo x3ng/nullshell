@@ -23,6 +23,36 @@ ShellRoot {
         function apply(output, path, fit) { saved(); }
     }
     QtObject {
+        id: displaysFixture
+        property bool enabled: true
+        property string phase: "idle"
+        property string error: ""
+        property string editorError: ""
+        property bool editorLoading: false
+        property bool verified: false
+        signal editorTopologyChanged()
+        property double previewUntil: 0
+        property var submitted: []
+        property var editorOutputs: [
+            {name:"eDP-1",modes:["1920x1080@60Hz", "1280x720@60Hz"], current:{key:"fixture|panel",name:"eDP-1",enabled:true,width:1920,height:1080,refresh:60,x:0,y:0,scale:1,transform:0}},
+            {name:"DP-1",modes:["2560x1440@60Hz", "1920x1080@60Hz"], current:{key:"fixture|external",name:"DP-1",enabled:true,width:2560,height:1440,refresh:60,x:1920,y:0,scale:1,transform:0}}
+        ]
+        function refreshEditor() {}
+        function previewEditor(draft) { submitted = draft; previewUntil = Date.now() + 14000; verified = true; phase = "preview"; }
+        function confirm() { phase = "idle"; fixture.lastAction = "display-confirm"; }
+        function revert() { phase = "idle"; fixture.lastAction = "display-revert"; }
+    }
+    QtObject {
+        id: idleFixture
+        property bool ready: true
+        property bool saving: false
+        property bool overridden: false
+        property string error: ""
+        readonly property var defaults: ({dimSeconds:150,lockSeconds:300,displayOffSeconds:600})
+        property var values: defaults
+        function store(value) { overridden = value !== null; values = value ?? defaults; return true; }
+    }
+    QtObject {
         id: actionAdapter
         readonly property var session: fixture.session
         function available(action) {
@@ -47,6 +77,8 @@ ShellRoot {
         style: theme
         services: fixture
         appearance: fixture
+        displays: displaysFixture
+        idlePreferences: idleFixture
         searchModel: fixture
         hyprControls: fixture
         notifs: fixture
@@ -163,6 +195,26 @@ ShellRoot {
             if (field) field.text = value;
             return !!field;
         }
+        function displayValue(name: string, value: string): bool {
+            const editor = root.control("display-editor");
+            if (!editor) return false;
+            if (name === "mode") editor.setMode(value);
+            else if (["scale", "x", "y"].includes(name)) editor.number(name, value);
+            else return false;
+            return true;
+        }
+        function displaySelect(index: int): bool {
+            const picker = root.control("displays-output");
+            if (!picker || index < 0 || index >= picker.count) return false;
+            picker.activated(index);
+            return true;
+        }
+        function idleValue(key: string, value: string): bool {
+            const editor = root.control("idle-editor");
+            if (!editor || !["dimSeconds", "lockSeconds", "displayOffSeconds"].includes(key)) return false;
+            editor.edit(key, value);
+            return true;
+        }
         function shortcutCount(): int { return root.control("shortcut-list")?.matches.length ?? -1; }
         function coordinate(name: string, value: string): bool {
             const item = root.control("appearance-" + name);
@@ -223,6 +275,8 @@ ShellRoot {
                 blur: theme.backdropBlur, materialOpacity: theme.glassOpacity,
                 appearanceMode: fixture.selectedMode, location: fixture.locationStatus, overrideUntil: fixture.overrideUntil,
                 appearanceSettings: fixture.effectiveSettings, preferencesOverridden: fixture.preferencesOverridden,
+                displayPhase: displaysFixture.phase, displayDraft: displaysFixture.submitted,
+                idleTimers: idleFixture.values, idleOverridden: idleFixture.overridden,
                 dark: fixture.darkMode, keepAwake: fixture.keepAwake, lastAction: fixture.lastAction});
         }
     }

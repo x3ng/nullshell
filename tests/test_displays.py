@@ -88,6 +88,8 @@ elif args[0] == 'eval' and '.start(' in args[1]:
     print('ok')
 elif args[0] == 'eval' and '.confirm(' in args[1] and pending.exists():
     print('ok')
+elif args == ['-j', 'workspacerules']:
+    print('[{{"workspaceString":"2","monitor":"HDMI-A-3","persistent":true}}]')
 else:
     raise SystemExit('unexpected command')
 ''')
@@ -100,7 +102,8 @@ else:
     native = json.dumps(dict(version=1, profiles=profiles))
     config.write_text(native)
     discovered = json.loads(run(str(HELPER), 'displays', 'outputs').stdout)
-    assert discovered['outputs'][1] == dict(name='HDMI-A-3', key=extended['key'], modes=['2560x1440@60Hz'])
+    assert discovered['outputs'][1]['key'] == extended['key'] and discovered['outputs'][1]['modes'] == ['2560x1440@60Hz']
+    assert discovered['outputs'][1]['current']['width'] == 2560
     plan = lambda *args: json.loads(run(str(HELPER), 'displays', 'plan', str(config), *args).stdout)
     initial = plan()
     assert initial['compatible'] == ['extend', 'mirror'] and initial['layout'] is None, initial
@@ -116,6 +119,13 @@ else:
             result = run(os.environ['NULLSHELL_TEST_HYPRLAND'], '--verify-config', '--config', str(lua), check=False)
             assert result.returncode == 0, result.stdout + result.stderr
     assert all(json.loads(line) == ['-j', 'monitors', 'all'] for line in commands.read_text().splitlines())
+    draft = dict(name='Display changes', outputs=[o['current'] for o in discovered['outputs']])
+    draft['outputs'][1]['x'] = -2560
+    reply = json.loads(run(str(HELPER), 'displays', 'draft', json.dumps(draft)).stdout)
+    assert 'monitor="HDMI-A-3"' in reply['layout']['lua']
+    assert 'hl.workspace_rule' not in reply['layout']['preview']
+    changed = dict(draft, outputs=draft['outputs'][:1])
+    assert run(str(HELPER), 'displays', 'draft', json.dumps(changed), check=False).returncode != 0
     config.write_text(native.replace('"eDP-1"', '"bad\\\";exec"'))
     assert run(str(HELPER), 'displays', 'plan', str(config), check=False).returncode != 0
     config.write_text(json.dumps(dict(version=1, profiles=[dict(auto, exec=['not supported'])])))
@@ -136,6 +146,8 @@ ShellRoot {
         function confirm(): bool { return service.confirm(); }
         function revert(): bool { return service.revert(); }
         function rescan(): void { service.scheduleScan(); }
+        function draft(): bool { return service.previewEditor([{"key":"test|panel","name":"eDP-1","width":1920,"height":1080,"refresh":60,"enabled":true},
+            {"key":"test|external|test123","name":"HDMI-A-3","width":2560,"height":1440,"refresh":60,"enabled":true,"x":-2560}]); }
     }
 }''')
     log = base / 'qml.log'
@@ -170,6 +182,11 @@ ShellRoot {
             wait(lambda s: s['active'] == 'extend' and 'does not match' in s['error'])
             assert run(*ipc, 'revert').stdout.strip() == 'true'
             wait(lambda s: s['phase'] == 'idle' and not s['active'])
+
+            assert run(*ipc, 'draft').stdout.strip() == 'true'
+            wait(lambda s: s['pending'] == 'Display changes' and s['verified'])
+            assert run(*ipc, 'revert').stdout.strip() == 'true'
+            wait(lambda s: s['phase'] == 'idle')
 
             # A valid planner selection still rolls back if the actual layout differs.
             apply_enabled.unlink()

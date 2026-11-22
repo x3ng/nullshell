@@ -92,6 +92,12 @@ Scope {
         return true;
     }
     property bool keepAwakeReady: true
+    function setKeepAwake(value) {
+        keepAwakeRequested = value;
+        if (!value) keepAwakeUntil = 0;
+        keepAwake = keepAwakeRequested || keepAwakeUntil > 0;
+        return true;
+    }
     property double keepAwakeUntil: 0
     property bool keepAwakeRequested: true
     property bool keepAwake: true
@@ -284,7 +290,7 @@ Scope {
     function activateResult(result, forceTerminal) { lastAction = "activate " + result.key; return {accepted: true, closePanel: false}; }
     function execute(action) {
         lastAction = action;
-        if (["overview", "desktop", "wifi", "bluetooth", "audio", "media", "notifications", "appearance", "session"].includes(action)) navigateRequested(action);
+        if (["overview", "desktop", "wifi", "bluetooth", "audio", "media", "notifications", "appearance", "session", "idle"].includes(action)) navigateRequested(action);
         else if (action === "auto") selectMode("auto");
         else if (action === "appearance-resume") resumeAutomatic();
         else if (action === "keep-awake") keepAwake = !keepAwake;

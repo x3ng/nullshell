@@ -27,6 +27,13 @@ Scope {
     property int checks: 0
     property bool verified: false
     property bool scanAgain: false
+    property string editorDraft: ""
+    property var editorOutputs: []
+    property string editorError: ""
+    property double previewUntil: 0
+    readonly property bool editorLoading: editorQuery.running
+    signal editorTrialReady()
+    signal editorTopologyChanged()
     readonly property string luaModule: "dofile(" + Commands.luaString(Quickshell.shellPath("adapters/DisplayTrial.lua")) + ")"
 
     function status(): string {
@@ -56,25 +63,44 @@ Scope {
             verified = false;
             verifyAgain.restart();
         }
+        if (phase === "idle") editorTopologyChanged();
         scheduleScan();
     }
 
     function scan(name) {
         if (!enabled || phase !== "idle" || planner.running) return false;
         pendingName = name;
+        editorDraft = "";
         phase = "scan";
         startPlan(name);
         return true;
     }
 
     function startPlan(name) {
-        planner.command = ["nullshell-helper", "displays", "plan", file].concat(name ? [name] : []);
+        planner.command = editorDraft ? ["nullshell-helper", "displays", "draft", editorDraft]
+            : ["nullshell-helper", "displays", "plan", file].concat(name ? [name] : []);
         planner.running = true;
     }
 
     function activate(name): bool {
         if (!name || name.length > 80 || !enabled) return false;
         return scan(name);
+    }
+
+    function refreshEditor() {
+        if (enabled && phase === "idle" && !editorQuery.running) {
+            editorError = "";
+            editorQuery.running = true;
+        }
+    }
+
+    function previewEditor(outputs): bool {
+        if (!enabled || phase !== "idle" || planner.running || !Array.isArray(outputs) || !outputs.length) return false;
+        pendingName = "Display changes";
+        editorDraft = JSON.stringify({name: pendingName, outputs: outputs});
+        phase = "scan";
+        startPlan(pendingName);
+        return true;
     }
 
     function confirm(): bool {
@@ -104,6 +130,8 @@ Scope {
         phase = "idle";
         layout = null;
         verified = false;
+        previewUntil = 0;
+        editorDraft = "";
         if (scanAgain) {
             scanAgain = false;
             scheduleScan();
@@ -215,6 +243,23 @@ Scope {
     }
 
     Process {
+        id: editorQuery
+        command: ["nullshell-helper", "displays", "outputs"]
+        stdout: StdioCollector { id: editorOutput }
+        onExited: (code, status) => {
+            try {
+                if (code !== 0 || status !== 0) throw new Error("Display query failed");
+                const result = JSON.parse(editorOutput.text);
+                if (!Array.isArray(result.outputs) || result.outputs.some(output => !output.current))
+                    throw new Error("Update nullshell-helper to edit displays");
+                root.editorOutputs = result.outputs;
+            } catch (e) {
+                root.editorOutputs = [];
+                root.editorError = String(e);
+            }
+        }
+    }
+    Process {
         id: planner
         stdout: StdioCollector { id: planOutput }
         stderr: StdioCollector { id: planError }
@@ -225,7 +270,7 @@ Scope {
                 if (code !== 0 || status !== 0) throw new Error(planError.text.trim() || "Display planner unavailable");
                 const result = JSON.parse(planOutput.text);
                 if (result.version !== 1) throw new Error("Incompatible display planner");
-                root.inventory = result;
+                if (!root.editorDraft) root.inventory = result;
                 const fingerprint = JSON.stringify(result.topology);
                 if (root.phase === "recheck") {
                     if (fingerprint !== root.trialTopology || result.layout?.fingerprint !== root.fingerprint) {
@@ -244,6 +289,7 @@ Scope {
                         root.active = "";
                     }
                     root.error = explicit ? "Profile does not match the connected displays"
+                        : !result.profiles.length ? ""
                         : result.compatible.length ? "Multiple display profiles match; select one manually" : "No profile matches the connected displays";
                     root.idle();
                     return;
@@ -298,9 +344,11 @@ Scope {
             }
             if (root.phase === "apply") {
                 root.phase = "preview";
+                root.previewUntil = Date.now() + previewDeadline.interval;
                 root.checks = 0;
                 previewDeadline.restart();
                 verifyAgain.restart();
+                if (root.editorDraft) root.editorTrialReady();
             } else if (root.phase === "confirm") {
                 previewDeadline.stop();
                 root.active = root.layout.name;

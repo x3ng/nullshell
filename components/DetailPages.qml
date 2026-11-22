@@ -9,7 +9,7 @@ import ".."
 Item {
     id: host
     required property var panel
-    readonly property var sections: ["wifi", "bluetooth", "audio", "media", "notifications", "appearance", "wallpaper", "session"]
+    readonly property var sections: ["wifi", "bluetooth", "audio", "media", "notifications", "appearance", "displays", "idle", "wallpaper", "session"]
     property int revision: 0
     readonly property real naturalHeight: currentPage()?.naturalHeight ?? 0
     readonly property bool dialogOpen: currentPage()?.dialogOpen ?? false
@@ -82,6 +82,8 @@ Item {
                 sourceComponent: ControlDetails {
                     style: host.panel.style
                     appearance: host.panel.appearance
+                    displays: host.panel.displays
+                    idlePreferences: host.panel.idlePreferences
                     services: host.panel.services
                     actions: host.panel.actions
                     notifs: host.panel.notifs

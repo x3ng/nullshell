@@ -22,6 +22,7 @@ Commands:
   location                         Request coarse IP coordinates from BeaconDB
   timezone                         Resolve a timezone to representative coordinates offline
   displays outputs                 List connected Hyprland outputs and profile keys
+  displays draft JSON              Validate an unsaved display layout against current outputs
   displays plan FILE [NAME]        Inspect connected Hyprland outputs and plan a profile
   settings-portal                  Serve the read-only D-Bus Settings backend";
 
