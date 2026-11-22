@@ -33,14 +33,23 @@ ShellRoot {
         signal editorTopologyChanged()
         property double previewUntil: 0
         property var submitted: []
+        readonly property var editorPendingOutputs: phase === "preview" ? submitted : []
         property var editorOutputs: [
             {name:"eDP-1",modes:["1920x1080@60Hz", "1280x720@60Hz"], current:{key:"fixture|panel",name:"eDP-1",enabled:true,width:1920,height:1080,refresh:60,x:0,y:0,scale:1,transform:0}},
             {name:"DP-1",modes:["2560x1440@60Hz", "1920x1080@60Hz"], current:{key:"fixture|external",name:"DP-1",enabled:true,width:2560,height:1440,refresh:60,x:1920,y:0,scale:1,transform:0}}
         ]
         function refreshEditor() {}
         function previewEditor(draft) { submitted = draft; previewUntil = Date.now() + 14000; verified = true; phase = "preview"; }
-        function confirm() { phase = "idle"; fixture.lastAction = "display-confirm"; }
-        function revert() { phase = "idle"; fixture.lastAction = "display-revert"; }
+        function confirm() {
+            phase = "confirm";
+            editorOutputs = editorOutputs.map((item, i) => Object.assign({}, item, {current:submitted[i]}));
+            phase = "idle"; fixture.lastAction = "display-confirm";
+        }
+        function revert() {
+            phase = "revert";
+            editorOutputs = editorOutputs.map(item => Object.assign({}, item));
+            phase = "idle"; fixture.lastAction = "display-revert";
+        }
     }
     QtObject {
         id: idleFixture
@@ -189,6 +198,12 @@ ShellRoot {
             item.triggered();
             return true;
         }
+        function controlBounds(name: string): string {
+            const item = root.control(name);
+            if (!item || !item.visible) return "{}";
+            const point = item.mapToItem(panel.contentItem, 0, 0);
+            return JSON.stringify({x:point.x, y:point.y, width:item.width, height:item.height});
+        }
         function setToolField(name: string, value: string): bool {
             if (!["awake-duration", "shortcut-filter", "notification-filter"].includes(name)) return false;
             const field = root.control(name);
@@ -277,7 +292,9 @@ ShellRoot {
                 appearanceMode: fixture.selectedMode, location: fixture.locationStatus, overrideUntil: fixture.overrideUntil,
                 appearanceSettings: fixture.effectiveSettings, preferencesOverridden: fixture.preferencesOverridden,
                 displayPhase: displaysFixture.phase, displayDraft: displaysFixture.submitted,
+                displayTrialChanges: root.control("display-editor")?.trialChanges ?? [],
                 idleTimers: idleFixture.values, idleOverridden: idleFixture.overridden,
+                idleFields: {dim:root.control("idle-dimSeconds")?.text, lock:root.control("idle-lockSeconds")?.text},
                 dark: fixture.darkMode, keepAwake: fixture.keepAwake, lastAction: fixture.lastAction});
         }
     }

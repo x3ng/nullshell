@@ -32,8 +32,8 @@ versions are rejected to expose spelling errors and incompatible configuration.
   deadlines, not delays added together. Keep awake continues to suspend all
   automatic idle actions and is persisted separately.
 
-Open **Idle and sleep settings** from launcher search or the power panel to
-edit the three timers. **Save timers** stores a validated override in
+Open **Idle and lock settings** from launcher search or the power panel to
+edit the three timers in minutes:seconds (for example, `2:30`). **Save timers** stores a validated override in
 `$XDG_STATE_HOME/nullshell/idle-policy.json`; it never edits `config.json`.
 **Restore defaults** clears that override and follows the current configuration.
 The page can pause or resume these timers with Keep awake. It does not configure

@@ -32,6 +32,10 @@ Canvas {
         if (kind === "clock") {
             c.beginPath(); c.arc(10, 10, 7, 0, Math.PI * 2); c.stroke();
             c.beginPath(); c.moveTo(10, 5); c.lineTo(10, 10); c.lineTo(14, 12); c.stroke();
+        } else if (kind === "warning") {
+            c.beginPath(); c.moveTo(10, 2.5); c.lineTo(18, 16.5); c.lineTo(2, 16.5); c.closePath(); c.stroke();
+            c.beginPath(); c.moveTo(10, 7); c.lineTo(10, 11); c.stroke();
+            c.beginPath(); c.arc(10, 14, 0.8, 0, Math.PI * 2); c.fill();
         } else if (kind === "battery") {
             c.strokeRect(2, 5, 14, 10);
             c.fillRect(17, 8, 2, 4);

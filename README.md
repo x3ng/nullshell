@@ -33,7 +33,7 @@ helper 与 QML 只需接口兼容；用到新 helper 命令的 QML 需要一起�
 
 ## 桌面设置
 
-在命令面板搜索 **Appearance settings**、**Display settings** 或 **Idle and sleep settings**：
+在命令面板搜索 **Appearance settings**、**Display settings** 或 **Idle and lock settings**：
 
 - [外观](docs/APPEARANCE.md)：深浅色和日出日落，默认可离线按时区估算。
 - [显示器](docs/DISPLAYS.md)：排列、模式、缩放与镜像。需要显式启用 Hyprland 加载入口；确认过的布局由 Hyprland 独立恢复。

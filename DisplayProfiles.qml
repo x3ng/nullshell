@@ -29,6 +29,7 @@ Scope {
     property bool scanAgain: false
     property string editorDraft: ""
     property var editorOutputs: []
+    property var editorPendingOutputs: []
     property string editorError: ""
     property double previewUntil: 0
     readonly property bool editorLoading: editorQuery.running
@@ -97,7 +98,8 @@ Scope {
     function previewEditor(outputs): bool {
         if (!enabled || phase !== "idle" || planner.running || !Array.isArray(outputs) || !outputs.length) return false;
         pendingName = "Display changes";
-        editorDraft = JSON.stringify({name: pendingName, outputs: outputs});
+        editorPendingOutputs = outputs.map(output => Object.assign({}, output));
+        editorDraft = JSON.stringify({name: pendingName, outputs: editorPendingOutputs});
         phase = "scan";
         startPlan(pendingName);
         return true;
@@ -132,6 +134,7 @@ Scope {
         verified = false;
         previewUntil = 0;
         editorDraft = "";
+        editorPendingOutputs = [];
         if (scanAgain) {
             scanAgain = false;
             scheduleScan();

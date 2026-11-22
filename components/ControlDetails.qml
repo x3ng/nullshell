@@ -41,7 +41,7 @@ Rectangle {
     readonly property bool isNotifs: section === "notifications"
     readonly property string title: section === "session" ? "Power and session" : section === "appearance" ? "Appearance"
         : section === "displays" ? "Displays"
-        : section === "idle" ? "Idle and sleep"
+        : section === "idle" ? "Idle and lock"
         : section === "wallpaper" ? "Wallpaper" : section === "wifi" ? "Wi-Fi"
         : section === "bluetooth" ? "Bluetooth"
         : section === "media" ? "Media player"
@@ -62,6 +62,7 @@ Rectangle {
     onSectionChanged: { audioTab = "Output"; showHistory = false; viewport.contentY = 0; }
     readonly property real naturalHeight: detailHeader.Layout.preferredHeight + 1 + 2 * style.spaceMd + content.implicitHeight
         + (isNotifs ? notificationToolbar.implicitHeight + style.spaceMd : 0)
+        + (displayFooter.visible ? displayFooter.implicitHeight + style.spaceMd : 0)
     implicitWidth: 380
     color: detached ? style.panelSurface : "transparent"
     focus: visible
@@ -301,10 +302,11 @@ Rectangle {
                         }
                     }
                     Loader {
+                        id: displayLoader
                         Layout.fillWidth: true
                         active: detail.renderContent && detail.section === "displays" && !!detail.displays
                         visible: active
-                        sourceComponent: DisplaysPane { style: detail.style; service: detail.displays }
+                        sourceComponent: DisplaysPane { style: detail.style; service: detail.displays; footerHost: displayFooter }
                     }
                     Loader {
                         Layout.fillWidth: true
@@ -379,6 +381,14 @@ Rectangle {
 
                 }
             }
+        }
+        // Confirm and revert must stay reachable even if the display form scrolls.
+        Item {
+            id: displayFooter
+            objectName: "displays-footer"
+            Layout.fillWidth: true
+            visible: displayLoader.item?.footerVisible ?? false
+            implicitHeight: displayLoader.item?.footerHeight ?? 0
         }
     }
 }

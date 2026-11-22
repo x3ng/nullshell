@@ -12,7 +12,8 @@ Once the Hyprland include and nullshell opt-in below are set, open the launcher
 and search for **Display settings**. Choose a connected output, pick a supported
 mode (resolution and refresh rate), set scale/orientation or enable mirroring.
 Drag the display cards to position them, or enter exact coordinates. Use
-**Test layout**, then **Keep changes** or **Revert**. The compositor will revert
+**Test layout**, review the changes shown for each affected display, then choose
+**Keep changes** or **Revert**. The compositor will revert
 a trial that was not confirmed within 15 seconds. No JSON layout file is
 required for the graphical editor.
 

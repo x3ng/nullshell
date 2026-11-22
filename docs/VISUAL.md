@@ -12,6 +12,12 @@ without becoming a permanent bar. The panel width is a shared theme token and
 all routes use the same card width. Dense lists retain scrolling instead of
 stretching the whole window.
 
+Settings pages should show the current state before editable fields and use one
+accent action for save or confirmation. Display trial controls stay outside
+the scrolling form; the confirmation shows the affected output and the fields
+that changed. Idle deadlines use `min:sec` in the editor while the stored
+configuration retains integer seconds.
+
 The desktop panel, notifications, OSD, Polkit prompt and tray menu use a muted
 translucent tint over a rounded `BackgroundEffect.blurRegion`. Hyprland 0.57 and
 Quickshell 0.3.2 expose `ext_background_effect_manager_v1`; the compositor samples

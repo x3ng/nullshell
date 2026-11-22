@@ -122,17 +122,22 @@ def main():
         call("quit")
         process.wait(timeout=5)
         assert process.returncode == 0
-        errors = re.findall(r"^.*(?:TypeError|ReferenceError|SyntaxError|Cannot assign|not a function|failed to load|Binding loop).*$", log.read_text(), re.MULTILINE | re.IGNORECASE)
+        errors = re.findall(r"^.*(?:TypeError|ReferenceError|SyntaxError|Cannot assign|not a function|failed to load|Binding loop|Cannot anchor).*$", log.read_text(), re.MULTILINE | re.IGNORECASE)
         assert not errors, "\n".join(errors)
 
     def check_displays():
         call("page", "displays")
         assert settle()["page"] == "detail:displays"
-        for width, light in [("740", "true"), ("440", "false")]:
+        assert call("activateControl", "displays-test") == "false", "A clean layout needs no trial"
+        for width, light in [("740", "true"), ("740", "false"), ("440", "true"), ("440", "false")]:
             call("width", width)
             call("light", light)
-            settle()
-            screenshot("displays-editor-" + width)
+            s = settle()
+            button = json.loads(call("controlBounds", "displays-test"))
+            assert button["height"] >= 32 and button["y"] + button["height"] <= s["card"]["bottom"] - 8, (s, button)
+            geometry = json.loads(call("detailGeometry", "displays"))
+            assert geometry["contentHeight"] <= geometry["viewportHeight"] + 1, geometry
+            screenshot("displays-editor-" + width + ("-light" if light == "true" else "-dark"))
         assert call("activateControl", "displays-enabled") == "true"
         assert call("displaySelect", "1") == "true"
         assert call("activateControl", "displays-enabled") == "true"
@@ -141,34 +146,62 @@ def main():
         assert call("displaySelect", "0") == "true"
         assert call("activateControl", "displays-enabled") == "true"
         assert call("displayValue", "mode", "1280x720@60Hz") == "true"
-        assert call("displayValue", "scale", "1.25") == "true"
         assert call("displayValue", "x", "-80") == "true"
+        if args.keyboard:
+            assert call("focusControl", "displays", "displays-scale") == "true"
+            subprocess.run(["wtype", "-M", "ctrl", "-k", "a", "-m", "ctrl", "1.25"], check=True, timeout=5)
+        else:
+            assert call("displayValue", "scale", "1.25") == "true"
+        screenshot("displays-unsaved")
         assert call("activateControl", "displays-test") == "true"
         s = settle()
         assert s["displayPhase"] == "preview"
         assert (s["displayDraft"][0]["width"], s["displayDraft"][0]["scale"], s["displayDraft"][0]["x"]) == (1280, 1.25, -80), s
+        assert s["displayTrialChanges"][0]["name"] == "eDP-1"
+        changes = {row["label"]: row["value"] for row in s["displayTrialChanges"][0]["rows"]}
+        assert changes == {"Resolution": "1920 × 1080 → 1280 × 720", "Scale": "1× → 1.25×", "Position": "-80, 0"}, changes
+        for control in ("displays-confirm", "displays-revert"):
+            button = json.loads(call("controlBounds", control))
+            assert button["width"] >= 90 and button["y"] + button["height"] <= s["card"]["bottom"] - 8, button
         screenshot("displays-confirmation")
-        assert call("activateControl", "displays-confirm") == "true"
+        if args.keyboard:
+            assert call("focusControl", "displays", "displays-confirm") == "true"
+            assert state()["focusedItem"] == "displays-confirm"
+            screenshot("displays-confirmation-focus")
+            subprocess.run(["wtype", "-k", "Return"], check=True, timeout=5)
+        else:
+            assert call("activateControl", "displays-confirm") == "true"
         assert settle()["lastAction"] == "display-confirm"
+        assert call("activateControl", "displays-test") == "false"
+        assert call("displayValue", "scale", "1.5") == "true"
         assert call("activateControl", "displays-test") == "true"
         settle()
         assert call("activateControl", "displays-revert") == "true"
         assert settle()["lastAction"] == "display-revert"
+        screenshot("displays-reverted")
 
     def check_idle():
         call("page", "session")
         settle()
         assert call("activateControl", "power-idle-settings") == "true"
-        assert settle()["page"] == "detail:idle"
-        for width, light in [("740", "true"), ("440", "false")]:
+        s = settle()
+        assert s["page"] == "detail:idle" and s["idleFields"] == {"dim":"2:30", "lock":"5:00"}
+        for width, light in [("740", "true"), ("740", "false"), ("440", "true"), ("440", "false")]:
             call("width", width)
             call("light", light)
             settle()
-            screenshot("idle-" + width)
-        assert call("idleValue", "lockSeconds", "100") == "true"
+            screenshot("idle-" + width + ("-light" if light == "true" else "-dark"))
+        assert call("idleValue", "lockSeconds", "1:61") == "true"
+        assert call("activateControl", "idle-save") == "false"
+        if args.keyboard:
+            assert call("focusControl", "idle", "idle-lockSeconds") == "true"
+            subprocess.run(["wtype", "-M", "ctrl", "-k", "a", "-m", "ctrl", "1:40"], check=True, timeout=5)
+        else:
+            assert call("idleValue", "lockSeconds", "1:40") == "true"
         call("idleReloadUnchanged")
         assert call("activateControl", "idle-save") == "false"
         assert call("idleValue", "dimSeconds", "60") == "true"
+        screenshot("idle-unsaved")
         assert call("activateControl", "idle-save") == "true"
         s = settle()
         assert s["idleOverridden"] and s["idleTimers"]["lockSeconds"] == 100
@@ -178,6 +211,7 @@ def main():
         before = s["keepAwake"]
         assert call("activateControl", "idle-keep-awake") == "true"
         assert settle()["keepAwake"] != before
+        screenshot("idle-active")
         assert call("activateControl", "idle-keep-awake") == "true"
         assert settle()["keepAwake"] == before
 

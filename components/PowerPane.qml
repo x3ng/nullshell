@@ -105,7 +105,7 @@ ColumnLayout {
         Layout.fillWidth: true
         visible: pane.pendingAction === "" && pane.actions.available("idle")
         style: pane.style
-        label: "Idle and sleep settings"
+        label: "Idle and lock settings"
         iconKind: "clock"
         contentAlignment: Qt.AlignLeft
         onTriggered: pane.actions.execute("idle")
