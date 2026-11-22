@@ -1,10 +1,10 @@
 # Hyprland display profiles
 
-Nullshell can match saved display profiles to connected Hyprland outputs and
-apply them from the existing desktop process. It does not start another daemon.
-This integration is **off by default** and uses Hyprland's Lua IPC API; retain a
-working static monitor rule as the fallback. Do not enable it alongside another
-monitor profile manager or include a file that the other manager still owns.
+Nullshell discovers and previews display profiles. Hyprland loads confirmed
+layouts itself, even when the desktop shell is stopped. No separate monitor
+daemon is needed. This integration is **off by default**. Keep Hyprland's
+preferred/automatic mode, position and scale as the fallback, and do not run
+another profile manager or load another manager's generated rules alongside it.
 
 ## Configure and inspect without changing the desktop
 
@@ -38,14 +38,25 @@ nullshell-helper displays plan "${XDG_CONFIG_HOME:-$HOME/.config}/nullshell/disp
 
 Plans require an exact connected output set and a supported mode on each display
 that advertises modes. Matching uses monitor make/model/serial when available,
-not just the connector; saved connectors break a tie. If several plans still
-tie, nullshell leaves the static layout in place until one is chosen manually.
+not just the connector; saved connectors break a tie. Planning never changes
+the running layout or automatically confirms a candidate.
 
 ## Opt in
 
-Set `"displays":{"mode":"manual"}` in the existing version-1 nullshell
-`config.json`. Once the old manager is stopped and its generated include is
-removed, use the desktop IPC target:
+After stopping the old manager and removing its generated include, add this
+explicit include after the static monitor rules in `hyprland.lua`:
+
+```lua
+local config = os.getenv("XDG_CONFIG_HOME")
+if not config or config == "" then config = os.getenv("HOME") .. "/.config" end
+_G.nullshellDisplayStore = config .. "/nullshell/hyprland-displays.lua"
+local restore = loadfile(_G.nullshellDisplayStore)
+if restore then restore() end
+```
+
+On first use the file doesn't exist; Hyprland uses its native fallback. Reload
+Hyprland, then set `"displays":{"mode":"manual"}` in nullshell's version-1
+`config.json`. Use the desktop IPC target:
 
 ```sh
 nullshell ipc call displays status
@@ -54,22 +65,23 @@ nullshell ipc call displays confirm
 nullshell ipc call displays revert
 ```
 
-`apply` starts a 15-second trial. Run `confirm` after `status` reports
-`verified: true` **and** the physical display looks usable. Otherwise the
-compositor's own timer restores the static Hyprland configuration even if the
-nullshell process exits. `revert` also returns to that baseline, not to a prior
-runtime override. Confirmed rules live in Hyprland, so restarting nullshell alone
-does not erase them. A Hyprland configuration reload resets manual overrides.
+`apply` starts a 15-second output-only trial and leaves disk untouched. Run
+`confirm` after `status` reports `verified: true` **and** the physical display
+looks usable. Confirmation installs the loader on first use and atomically
+updates the layout record for the connected topology. Hyprland reloads to apply
+the confirmed layout and its workspace rules. Timeout, explicit `revert`, or
+shell exit during the trial restores the previous confirmed layout, or the
+native fallback when this topology has not been confirmed.
 
-Set `"displays":{"mode":"auto"}` only after testing the profiles. In this
-mode, startup, compositor reloads and output changes trigger reconciliation;
-a uniquely matched layout is confirmed only if compositor readback agrees.
-Restarting nullshell with a confirmed, unchanged layout adopts it without
-reloading Hyprland.
-Connecting a new or ambiguous set restores the static layout. Set mode to `off`
-to stop desktop management. There is no separate lid-position policy here; a
-lid or resume event only triggers matching when the compositor reports an
-output change. This does not change logind's suspend or lock policy.
+On startup, reload and monitor changes, Hyprland checks the exact connector set,
+monitor descriptions, serials and advertised modes before applying a saved
+record. When no confirmed record matches, the native fallback stays active.
+The legacy `auto` value is treated as `manual`: only a user confirmation saves
+a profile, and Hyprland automatically selects previously confirmed layouts.
+Setting mode to `off` disables editing in nullshell, not the explicit Hyprland
+include. Remove that include to stop all confirmed-layout loading. Saved files
+can contain serial numbers, just like the profile file; keep them private.
+There is no separate lid policy, and this does not change logind's behaviour.
 
 ## Tests
 
@@ -77,7 +89,7 @@ output change. This does not change logind's suspend or lock policy.
 Rust helper and actual QML policy against synthetic output events, plus a Lua
 watchdog test. It never changes the host desktop. On a machine with a render
 node and the listed compositor tools, `python3 tests/test_displays_nested.py
-backend/target/debug/nullshell-helper` additionally uses real nested Hyprland
-and virtual outputs, without touching the host compositor. Before retiring a working
-manager, test manual confirmation and fallback on each actual connector,
+backend/target/debug/nullshell-helper` additionally verifies restoration without
+the shell, rollback after shell exit, and virtual hotplug in real nested Hyprland.
+Before retiring a working manager, test each actual connector,
 including mirrors and any workstation/dock or clamshell use.

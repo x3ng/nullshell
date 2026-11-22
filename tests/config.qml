@@ -39,7 +39,7 @@ ShellRoot {
         if (legacy.location !== "timezone")
             throw new Error("Legacy GeoClue settings must fall back to offline time zone");
         if (Rules.parse('{"version":1}').displays.mode !== "off"
-            || Rules.parse('{"version":1,"displays":{"mode":"auto"}}').displays.mode !== "auto")
+            || Rules.parse('{"version":1,"displays":{"mode":"auto"}}').displays.mode !== "manual")
             throw new Error("Display profile handling must be opt-in");
         console.log("CONFIG_RULES_PASSED");
     }

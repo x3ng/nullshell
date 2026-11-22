@@ -6,8 +6,8 @@ import Quickshell.Hyprland
 import Quickshell.Io
 import "components/HyprlandControlCommands.js" as Commands
 
-// Single writer, opt-in only. Hyprland's own configuration remains the safe
-// layout and can be restored even if the desktop stops during a trial.
+// Single writer, opt-in only. Hyprland loads the last confirmed layout and
+// owns rollback even if the desktop stops during a trial.
 Scope {
     id: root
     property string mode: "off"
@@ -18,11 +18,10 @@ Scope {
     property string error: ""
     property string active: ""
     property var inventory: null
-    property string lastAutoTopology: ""
+    property string lastScannedTopology: ""
     property string pendingName: ""
     property string trialTopology: ""
     property string fingerprint: ""
-    property bool automaticTrial: false
     property var layout: null
     property string token: ""
     property int checks: 0
@@ -39,11 +38,11 @@ Scope {
 
     onEnabledChanged: {
         if (enabled) scheduleScan();
-        else if (active || ["baseline", "recheck", "apply", "preview", "confirm"].includes(phase)) queueRevert();
+        else if (["apply", "preview", "confirm"].includes(phase)) queueRevert();
         else if (["scan", "adopt", "adopt-check"].includes(phase)) idle();
     }
     onModeChanged: {
-        lastAutoTopology = "";
+        lastScannedTopology = "";
         Qt.callLater(scheduleScan);
     }
     Component.onCompleted: if (enabled) debounce.restart()
@@ -121,14 +120,14 @@ Scope {
         token = String(Date.now()) + "-" + Math.floor(Math.random() * 1000000);
         phase = "apply";
         execute(["eval", luaModule + ".start(" + Commands.luaString(token) + ", "
-            + Commands.luaString(fingerprint) + ", function()\n" + layout.lua + "\nend)"]);
+            + Commands.luaString(fingerprint) + ", " + Commands.luaString(layout.topologyKey)
+            + ", " + Commands.luaString(layout.loader) + ", " + Commands.luaString(layout.restore)
+            + ", function()\n" + layout.preview + "\nend)"]);
     }
 
-    function startBaseline() {
-        // Clear old overrides first, including workspace assignments and mirrors.
-        active = "";
-        phase = "baseline";
-        execute(["reload"]);
+    function prepareTrial() {
+        phase = "recheck";
+        startPlan(layout.name);
     }
 
     function liveMatches(items) {
@@ -160,11 +159,7 @@ Scope {
         target: Hyprland
         enabled: root.enabled
         function onRawEvent(event) {
-            if (event.name === "configreloaded" && root.phase === "idle" && root.active) {
-                root.active = "";
-                root.lastAutoTopology = "";
-                if (root.mode === "manual") return;
-            }
+            if (event.name === "configreloaded") root.lastScannedTopology = "";
             if (event.name.startsWith("monitoradded") || event.name.startsWith("monitorremoved")) root.outputsChanged();
             else if (event.name === "configreloaded") root.scheduleScan();
         }
@@ -183,7 +178,7 @@ Scope {
         printErrors: false
         onFileChanged: {
             reload();
-            root.lastAutoTopology = "";
+            root.lastScannedTopology = "";
             root.scheduleScan();
         }
     }
@@ -214,7 +209,7 @@ Scope {
         interval: 14000
         onTriggered: {
             if (root.phase !== "preview") return;
-            root.error = "Display trial was not confirmed; reverting to Hyprland configuration";
+            root.error = "Display trial was not confirmed; restoring the last confirmed layout";
             root.queueRevert();
         }
     }
@@ -233,30 +228,34 @@ Scope {
                 root.inventory = result;
                 const fingerprint = JSON.stringify(result.topology);
                 if (root.phase === "recheck") {
-                    if (fingerprint !== root.trialTopology || result.layout?.lua !== root.layout.lua) {
+                    if (fingerprint !== root.trialTopology || result.layout?.fingerprint !== root.fingerprint) {
                         root.error = "Display outputs or profile changed while preparing the layout";
-                        root.idle(); // the known Hyprland baseline is already loaded
+                        root.idle();
                         root.scheduleScan();
                     } else root.startTrial();
                     return;
                 }
                 const explicit = root.pendingName !== "";
-                if (!explicit && (root.mode !== "auto" || root.lastAutoTopology === fingerprint)) { root.idle(); return; }
+                if (!explicit && root.lastScannedTopology === fingerprint) { root.idle(); return; }
                 if (!result.layout) {
-                    if (!explicit) root.lastAutoTopology = fingerprint;
+                    if (!explicit) {
+                        root.lastScannedTopology = fingerprint;
+                        if (result.compatible.includes(root.active)) { root.error = ""; root.idle(); return; }
+                        root.active = "";
+                    }
                     root.error = explicit ? "Profile does not match the connected displays"
                         : result.compatible.length ? "Multiple display profiles match; select one manually" : "No profile matches the connected displays";
-                    if (root.active && !explicit) root.queueRevert();
-                    else root.idle();
+                    root.idle();
                     return;
                 }
+                if (typeof result.layout.fingerprint !== "string" || typeof result.layout.loader !== "string")
+                    throw new Error("Update nullshell-helper to use confirmed display profiles");
                 root.error = "";
-                root.lastAutoTopology = fingerprint;
-                root.automaticTrial = !explicit;
+                root.lastScannedTopology = fingerprint;
                 root.layout = result.layout;
                 root.trialTopology = fingerprint;
-                root.fingerprint = Qt.md5(JSON.stringify([fingerprint, result.layout.name, result.layout.lua]));
-                if (explicit) root.startBaseline();
+                root.fingerprint = result.layout.fingerprint;
+                if (explicit) root.prepareTrial();
                 else {
                     root.phase = "adopt";
                     root.execute(["eval", root.luaModule + ".is_active(" + Commands.luaString(root.fingerprint) + ")"]);
@@ -278,7 +277,10 @@ Scope {
                 if (ok && !readback.running) {
                     root.phase = "adopt-check";
                     readback.running = true;
-                } else root.startBaseline();
+                } else {
+                    root.active = "";
+                    root.idle(); // an unconfirmed suggestion never changes the layout
+                }
                 return;
             }
             if (root.phase === "revert") {
@@ -290,13 +292,11 @@ Scope {
             }
             if (!ok) {
                 root.error = "Hyprland rejected the display operation: " + executeOutput.text.trim().slice(0, 400);
-                root.queueRevert();
+                if (root.phase === "apply" && executeOutput.text.includes("Configure Hyprland's nullshell display include")) root.idle();
+                else root.queueRevert();
                 return;
             }
-            if (root.phase === "baseline") {
-                root.phase = "recheck";
-                root.startPlan(root.layout.name);
-            } else if (root.phase === "apply") {
+            if (root.phase === "apply") {
                 root.phase = "preview";
                 root.checks = 0;
                 previewDeadline.restart();
@@ -322,16 +322,16 @@ Scope {
                 if (matches) {
                     root.active = root.layout.name;
                     root.idle();
-                } else root.startBaseline();
+                } else {
+                    root.active = "";
+                    root.idle();
+                }
                 return;
             }
             if (matches) {
                 root.verified = true;
-                if (root.automaticTrial) root.confirm();
-                else {
-                    root.checks = 0;
-                    verifyAgain.restart();
-                }
+                root.checks = 0;
+                verifyAgain.restart();
             } else if (++root.checks >= 8) {
                 root.error = "Hyprland did not apply the requested display layout";
                 root.queueRevert();

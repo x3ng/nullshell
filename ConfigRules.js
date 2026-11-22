@@ -25,6 +25,9 @@ function parse(text) {
         if (input.displays.mode !== undefined) result.displays.mode = input.displays.mode;
         if (!["off", "manual", "auto"].includes(result.displays.mode))
             throw new Error("Invalid display profile mode");
+        // Confirmed topologies now restore in Hyprland; do not auto-commit
+        // profiles that were never tested and confirmed by the user.
+        if (result.displays.mode === "auto") result.displays.mode = "manual";
     }
     if (input.search !== undefined) {
         object(input.search, "search", ["aliases"]);

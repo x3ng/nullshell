@@ -178,12 +178,15 @@ ShellRoot {
             assert not (base / 'pending').exists()
             apply_enabled.touch()
 
-            run(*ipc, 'mode', 'auto')
+            run(*ipc, 'mode', 'off')
+            run(*ipc, 'mode', 'manual')
             wait(lambda s: 'Multiple display profiles' in s['error'])
             connect(first)
             remember([first])
+            before = len(commands.read_text().splitlines())
             run(*ipc, 'rescan')  # inject a synthetic monitor removal notification
-            wait(lambda s: s['active'] == 'laptop' and not s['error'])
+            wait(lambda s: s['phase'] == 'idle' and s['suggested'] == 'laptop' and not s['active'])
+            assert not any('.start(' in cmd for cmd in commands.read_text().splitlines()[before:])
             connect(first, external)
             run(*ipc, 'rescan')
             wait(lambda s: s['phase'] == 'idle' and not s['active'] and 'Multiple display profiles' in s['error'])
@@ -193,4 +196,4 @@ ShellRoot {
             child.wait(timeout=5)
     assert not any(x in log.read_text() for x in ('TypeError', 'ReferenceError', 'SyntaxError', 'Cannot assign')), log.read_text()
 
-print('Display discovery, topology matching, mirrors, workspace rules, opt-in, apply/confirm/revert and automatic reconciliation passed')
+print('Display discovery, topology matching, mirrors, workspace rules, opt-in, apply/confirm/revert and read-only suggestions passed')
