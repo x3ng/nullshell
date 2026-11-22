@@ -29,6 +29,9 @@ let
     ${lib.optionalString syncAppearance "export NULLSHELL_APPEARANCE_FILE=${lib.escapeShellArg appearanceFile}"}
     ${lib.optionalString syncAppearance "export NULLSHELL_WALLPAPER_FILE=${lib.escapeShellArg wallpaperFile}"}
     export NULLSHELL_GREETER_STATE_FILE=/var/lib/nullshell-greeter/last-login.json
+    # greetd starts outside the user's session environment. Add the NixOS
+    # system profile here, not in the portable session catalog.
+    export XDG_DATA_DIRS="''${XDG_DATA_DIRS:-/usr/local/share:/usr/share}:/run/current-system/sw/share"
     exec ${pkgs.dbus}/bin/dbus-run-session -- ${pkgs.cage}/bin/cage -s -d -- ${cfg.greeter.package}/bin/nullshell-greeter
   '';
 in

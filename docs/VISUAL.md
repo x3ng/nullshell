@@ -12,6 +12,11 @@ without becoming a permanent bar. The panel width is a shared theme token and
 all routes use the same card width. Dense lists retain scrolling instead of
 stretching the whole window.
 
+Parents own spacing between sections; controls own their internal padding. Use
+the same height constraints for content-fit calculations and actual layout, or
+an otherwise-fitting page can acquire a false scroll range. Scroll focused
+controls into view rather than shrinking interactive controls to fit.
+
 Settings pages should show the current state before editable fields and use one
 accent action for save or confirmation. Display trial controls stay outside
 the scrolling form; the confirmation shows the affected output and the fields

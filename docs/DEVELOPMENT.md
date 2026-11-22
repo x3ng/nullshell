@@ -122,9 +122,8 @@ The locker and Polkit agent disable watching and must not be restarted to previe
 an edit. Inspect their dedicated previews; apply accepted changes on next login.
 The system greeter uses the independently deployed package snapshot.
 
-Personal Hyprland and application configuration remains in the separate dotfiles
-repository, deployed with its own tools. No Home Manager ownership or
-out-of-store symlink is required for the nullshell checkout.
+The consumer manages compositor and application configuration independently.
+No Home Manager ownership or out-of-store symlink is required.
 
 ## Read-only login information preview
 
@@ -225,116 +224,6 @@ input or capture host windows. This complements the Hyprland VM and permits
 interaction/visual checks without KVM. The screenshot helper captures the actual
 panel card; inspect both palettes and narrow/wide appearance states before release.
 
-### Quick controls interaction contract
-
-The empty-query home page is Quick controls. Radio icons perform
-one immediate action; their separate labelled rows and arrows open detail pages.
-Radio icons use the same neutral treatment as the other home controls. Connection
-names and secondary status share one compact row; off/busy/error states replace
-the connection text. Toggle accessibility reports whether the radio is enabled.
-A busy or unavailable control cannot toggle, while its details remain reachable. Volume's icon toggles mute;
-its arrow opens audio devices. Brightness's arrow opens appearance settings;
-the slider continues to adjust backlight. Search keeps explicit action names separate from
-settings-page names.
-
-Appearance settings and explicit light/dark/resume actions remain searchable;
-appearance does not occupy a home-page row. Power opens a menu containing lock,
-and destructive session actions retain confirmation. The footer packs workspace,
-tray and awake/power controls into centered rows, with consistent gaps within and
-between groups. Each wrapped row is centered independently. Keyboard focus exposes the
-same tooltips as hover. Escape returns from details/search to home before closing.
-
-The headless preview regression covers split targets, appearance settings,
-disabled/busy actions, both palettes and narrow/wide home layouts, in addition to
-the existing detail, search and session-menu checks. Preview actions remain fake.
-
-The overview scrolls keyboard-focused controls into view, including wrapped tray
-and session controls. Tray items support Enter/Space to activate and Menu or
-Shift+F10 to open their menu. Native menus support Up/Down, Enter/Space, Right to
-enter a submenu and Left/Escape to leave it. Disabled entries and separators are
-skipped. Preview checks exercise focus visibility and synthetic tray activation;
-native DBusMenu population still needs integration acceptance.
-
-The notification header's bell button and corresponding searchable
-commands pause ordinary banners for one hour without adding homepage content.
-The slashed bell indicates paused banners. Pending and History switch views.
-Critical alerts remain visible. Search aliases and disk-history policy are
-documented in [CONFIGURATION.md](CONFIGURATION.md).
-
-### Visual geometry conventions
-
-Evaluate the complete visible region, including parent gaps, child padding and
-control height. Equal outer margins alone do not produce equal visual bands.
-The home/search header and single-row footer use `Theme.stripHeight`; workspace
-wrapping adds rows without changing the edge insets or horizontal centering.
-
-The parent owns spacing between sections; children own spacing inside a control.
-Avoid adding the same edge inset at both levels. Detail content uses the full
-header width, with its scrollbar inside the outer panel inset. Detached detail
-windows use the same `panelPadding` as embedded pages.
-
-Detail pages use the implicit heights of their shared controls: 32 px for
-compact header buttons, 36 px for standard actions and 40 px for text fields.
-Match the height of native controls placed alongside them. Use a check mark
-for an active player and a chevron for navigation. `Layout.fillWidth` alone does not make
-buttons equal-width: use equal preferred widths for paired actions. In vertical
-command lists, align icon and text columns independently of label length; retain
-centered content for standalone and paired buttons.
-
-Qt layouts can compute `implicitHeight` from their children even when a larger
-preferred/minimum height is specified. Content-fit calculations must use the same
-height constraint as the layout, or otherwise-fitting pages gain a scroll range.
-Check actual rendered light/dark, narrow/wide, short/long and wrapped states;
-font metrics and icon optical weight still need visual judgment. Authentication
-views are reviewed through their previews, never by restarting live agents.
-
-### Detachable settings
-
-Wi-Fi, Bluetooth, audio, media, notifications, appearance and wallpaper open inside
-the command panel by default. Their header's window button moves the existing
-page into an ordinary resizable window and dismisses the launcher. Ctrl+Shift+D
-also detaches the current detail page;
-the shortcut is disabled in detached windows, power confirmation and file dialogs.
-Input drafts and selections survive this move. Clicking outside the ordinary window does not
-close it. Opening the same feature again focuses its existing window; closing it
-discards unsubmitted drafts and the next invocation opens inside the panel again.
-Escape or the header's close button closes a detached window. Power/session
-confirmation, home and search remain inside the panel. Windows are not restored
-across process restarts.
-
-Wallpaper uses the same detail header and stays open after applying an image.
-Its preview keeps a 16:9 frame as the page width changes. The panel fits the
-content up to the shared screen/height cap, then scrolls the detail body instead
-of compressing controls or the image. Detail pages expose a scrollbar and scroll
-keyboard-focused controls into view. Detached windows initially fit their content
-under the same height cap; subsequent user resizing keeps the body scrollable.
-Its standard file chooser temporarily releases the launcher's layer/focus so
-the dialog can be used, then restores the panel on acceptance or cancellation.
-Service activity follows both the launcher and detached pages; closing the
-launcher alone must not stop discovery in a detached Wi-Fi page. Bluetooth page
-cleanup must not be triggered by another page closing.
-
-The panel preview exposes `closeDetached SECTION`, `resizeDetached SECTION WIDTH
-HEIGHT`, and `captureDetached SECTION PATH`; `status` includes detached sections.
-The headless regression checks preserved drafts, multiple independent windows,
-repeat navigation, close/reopen behavior, and palette/width screenshots. Its
-device operations remain synthetic, not hardware integration certification.
-The private compositor keeps a virtual keyboard attached for focus/shortcut
-checks. Full-desktop captures are enabled only by that isolated runner; ordinary
-preview captures remain limited to their own view.
-
-### Command browsing
-
-A bare `>` lists the command catalog. `>?` browses panels and `>!` selects actions;
-keywords follow the prefix, with or without a space. The search field shows the
-other command scopes as clickable hints on its right. Clicking a hint replaces
-only the prefix, preserves keywords and returns typing focus to search. There is
-no separate filter row or hidden filter state: deleting `?` or `!` returns to all
-commands, and reopening the panel starts with the usual empty query.
-
-Each command carries an explicit panel/operation classification from ShellActions.
-Search rows show Panel or Action, with Open or Run hints on the selected result;
-unavailable results cannot execute. The power/session command opens its menu,
-where destructive actions retain confirmation. No new direct power action is
-introduced by filtering. Preview command entries are synthetic and execute no
-system operations.
+Review interaction invariants in [SPEC.md](SPEC.md), shared layout conventions in
+[VISUAL.md](VISUAL.md), and concrete regression scenarios in
+[`tests/test_panel_preview.py`](../tests/test_panel_preview.py).

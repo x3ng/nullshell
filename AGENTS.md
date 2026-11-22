@@ -23,9 +23,8 @@
   user QML/configuration, create configuration symlinks, migrate existing settings,
   or update a checkout implicitly during installation or application startup.
 - Consumers may explicitly choose Home Manager to manage their configuration.
-  This is optional consumer policy, never an installation prerequisite. The
-  current personal nix-config uses installation/environment only and external
-  configuration; do not change that policy through this project.
+  This is optional consumer policy, never an installation prerequisite. Do not
+  prescribe a consumer repository, checkout path or deployment workflow.
 - Preserve native Quickshell binaries and named configuration discovery. The
   same ownership rules apply to companion programs such as hypridle.
 - Session startup belongs to the consumer. Convenience launchers must remain

@@ -1,7 +1,7 @@
 # Deployment contract
 
 Installation does not start processes or install Quickshell user services.
-The compositor starts each process once, directly. For Hyprland 0.57 Lua:
+Configure the session to start each process once. For example, in Hyprland 0.57 Lua:
 
 ```lua
 hl.on("hyprland.start", function()
@@ -80,6 +80,8 @@ Maintain QML separately under Quickshell's standard configuration directories.
 `nullshell/lock` and `nullshell/polkit`. No custom directory inference or fallback
 is used. The greeter consumes only its separate system-owned resource snapshot.
 Preview commands alone accept `NULLSHELL_DATA_DIR` for an explicit source tree.
+The system greeter takes its Wayland session entries from `XDG_DATA_DIRS`, not
+user data directories. The NixOS module adds the system profile to that search.
 
 Build/evaluation never authorizes activation. Install accepted runtime changes,
 then use a fresh login for the updated session startup. Never restart active

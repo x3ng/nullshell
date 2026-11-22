@@ -102,10 +102,10 @@ Item {
         }
     }
 
-    // Honor XDG paths on other distributions, with the NixOS system profile fallback.
+    // The host supplies system session roots through XDG_DATA_DIRS. Do not read
+    // XDG_DATA_HOME: these entries can be executed by the login session.
     readonly property var sessionDirectories: Array.from(new Set(
         (Quickshell.env("XDG_DATA_DIRS") || "/usr/local/share:/usr/share").split(":")
-            .concat(["/run/current-system/sw/share"])
             .filter(path => path.startsWith("/"))
             .map(path => path + "/wayland-sessions")
     ))
