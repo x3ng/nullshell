@@ -51,6 +51,7 @@ Item {
             anchors.fill: parent
             property bool detached: false
             readonly property bool selected: host.panel.open && host.panel.controlSection === modelData
+            readonly property bool displayEditor: modelData === "displays"
             property alias loader: contentLoader
             property alias window: floating
             onDetachedChanged: host.revision++
@@ -92,15 +93,21 @@ Item {
                     detached: entry.detached
                     panelOpen: entry.detached || entry.selected
                     onDetachRequested: {
+                        if (entry.displayEditor) {
+                            const screen = host.panel.screen ?? floating.screen;
+                            floating.width = Math.max(floating.minimumWidth, Math.min(960, screen.width - 64));
+                            floating.height = Math.max(floating.minimumHeight, Math.min(640, screen.height - 64));
+                        }
                         entry.detached = true;
                         host.panel.dismiss();
                         host.panel.returnToHome();
                         Qt.callLater(() => {
                             if (!entry.detached) return;
-                            floating.height = Math.max(floating.minimumHeight, Math.min(
-                                host.panel.style.maximumPanelHeight,
-                                floating.screen.height - 64,
-                                contentLoader.item.naturalHeight + 2 * host.panel.style.panelPadding));
+                            if (!entry.displayEditor)
+                                floating.height = Math.max(floating.minimumHeight, Math.min(
+                                    host.panel.style.maximumPanelHeight,
+                                    floating.screen.height - 64,
+                                    contentLoader.item.naturalHeight + 2 * host.panel.style.panelPadding));
                             floating.raise(); floating.requestActivate();
                             contentLoader.item?.forceActiveFocus();
                         });

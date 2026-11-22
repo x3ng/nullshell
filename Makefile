@@ -5,7 +5,7 @@ CARGO_TARGET_DIR ?= backend/target
 
 .DEFAULT_GOAL := help
 
-.PHONY: check-command check-session check-sleep check-settings help build helper install check check-backend check-pairing check-preview check-material check-appearance check-displays check-idle install-greeter install-assets
+.PHONY: check-command check-session check-sleep check-settings help build helper install check check-backend check-pairing check-preview check-material check-appearance check-displays check-display-drag check-idle install-greeter install-assets
 
 help:
 	@printf '%s\n' \
@@ -24,6 +24,7 @@ help:
 	  '  check-preview     Check panel previews (Wayland session required)' \
 	  '  check-appearance  Build helper and check appearance/wallpaper export' \
 	  '  check-displays    Check display profiles with isolated compositor fixtures' \
+	  '  check-display-drag  Check arrangement pointer gestures with Qt Quick Test' \
 	  '  check-idle        Check idle preference validation and persistence offscreen' \
 	  '  check-settings    Check Settings portal on a private bus'
 
@@ -83,6 +84,9 @@ check-appearance: helper
 check-displays: helper
 	luajit tests/test_display_trial.lua adapters/DisplayTrial.lua
 	python3 tests/test_displays.py "$(CARGO_TARGET_DIR)/release/nullshell-helper"
+
+check-display-drag:
+	QT_QPA_PLATFORM=offscreen QT_QUICK_BACKEND=software qmltestrunner -input tests/tst_display_drag.qml
 
 check-idle:
 	python3 tests/test_idle_preferences.py

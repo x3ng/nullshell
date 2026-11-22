@@ -3,7 +3,6 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Layouts
 import QtQuick.Controls
-import QtQuick.Window
 import Quickshell.Widgets
 import ".."
 
@@ -62,27 +61,11 @@ Rectangle {
     onSectionChanged: { audioTab = "Output"; showHistory = false; viewport.contentY = 0; }
     readonly property real naturalHeight: detailHeader.Layout.preferredHeight + 1 + 2 * style.spaceMd + content.implicitHeight
         + (isNotifs ? notificationToolbar.implicitHeight + style.spaceMd : 0)
-        + (displayFooter.visible ? displayFooter.implicitHeight + style.spaceMd : 0)
+        + (settingsFooter.visible ? settingsFooter.implicitHeight + style.spaceMd : 0)
     implicitWidth: 380
     color: detached ? style.panelSurface : "transparent"
     focus: visible
     Keys.onEscapePressed: dismissRequested()
-    function revealFocus() {
-        const item = detail.Window.window?.activeFocusItem;
-        if (!item) return;
-        let ancestor = item;
-        while (ancestor && ancestor !== content) ancestor = ancestor.parent;
-        if (!ancestor) return;
-        const point = item.mapToItem(viewport, 0, 0);
-        if (point.y < 0) viewport.contentY += point.y;
-        else if (point.y + item.height > viewport.height)
-            viewport.contentY += point.y + item.height - viewport.height;
-        viewport.contentY = Math.max(0, Math.min(viewport.contentY, viewport.contentHeight - viewport.height));
-    }
-    Connections {
-        target: detail.Window.window
-        function onActiveFocusItemChanged() { Qt.callLater(detail.revealFocus); }
-    }
     Shortcut {
         sequence: "Ctrl+Shift+D"
         context: Qt.WindowShortcut
@@ -99,6 +82,7 @@ Rectangle {
             style: detail.style
             title: detail.title
             subtitle: detail.subtitle
+            showSubtitle: ["appearance", "displays", "idle", "wallpaper"].includes(detail.section)
             backTooltip: detail.detached ? "Close window" : "Back to overview"
             backIcon: detail.detached ? "close" : "back"
             onBackRequested: detail.dismissRequested()
@@ -195,14 +179,13 @@ Rectangle {
             implicitHeight: content.implicitHeight
             radius: detail.style.radiusCard
             color: "transparent"
-            Flickable {
+            FocusFlickable {
                 id: viewport
                 objectName: "detail-scroll"
                 anchors.fill: parent
                 contentWidth: width
                 contentHeight: content.implicitHeight
-                clip: true
-                boundsBehavior: Flickable.StopAtBounds
+                followFocus: detail.panelOpen
                 ScrollBar.vertical: ScrollBar {
                     id: scrollBar
                     // Keep the content aligned with the header. The scroll track
@@ -291,7 +274,7 @@ Rectangle {
                         Layout.fillWidth: true
                         active: detail.renderContent && detail.section === "wallpaper"
                         visible: active
-                        sourceComponent: WallpaperPicker { style: detail.style; wallpaper: detail.wallpaper }
+                        sourceComponent: WallpaperPicker { style: detail.style; wallpaper: detail.wallpaper; detached: detail.detached }
                     }
                     Loader {
                         Layout.fillWidth: true
@@ -306,13 +289,19 @@ Rectangle {
                         Layout.fillWidth: true
                         active: detail.renderContent && detail.section === "displays" && !!detail.displays
                         visible: active
-                        sourceComponent: DisplaysPane { style: detail.style; service: detail.displays; footerHost: displayFooter }
+                        sourceComponent: DisplaysPane {
+                            style: detail.style
+                            service: detail.displays
+                            footerHost: settingsFooter
+                            detachedBodyHeight: detail.detached ? viewport.height : 0
+                        }
                     }
                     Loader {
+                        id: idleLoader
                         Layout.fillWidth: true
                         active: detail.renderContent && detail.section === "idle" && !!detail.idlePreferences
                         visible: active
-                        sourceComponent: IdlePane { style: detail.style; preferences: detail.idlePreferences; services: detail.services }
+                        sourceComponent: IdlePane { style: detail.style; preferences: detail.idlePreferences; services: detail.services; footerHost: settingsFooter }
                     }
                     Loader {
                         Layout.fillWidth: true
@@ -384,11 +373,11 @@ Rectangle {
         }
         // Confirm and revert must stay reachable even if the display form scrolls.
         Item {
-            id: displayFooter
-            objectName: "displays-footer"
+            id: settingsFooter
             Layout.fillWidth: true
-            visible: displayLoader.item?.footerVisible ?? false
-            implicitHeight: displayLoader.item?.footerHeight ?? 0
+            readonly property var page: displayLoader.item ?? idleLoader.item
+            visible: page?.footerVisible ?? false
+            implicitHeight: page?.footerHeight ?? 0
         }
     }
 }

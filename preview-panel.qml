@@ -11,7 +11,7 @@ import "preview"
 ShellRoot {
     id: root
     PanelFixture { id: fixture; mixerVisible: panel.mixerVisible; query: panel.query; onNavigateRequested: section => panel.navigate(section) }
-    Theme { id: theme; darkMode: fixture.darkMode }
+    DesktopTheme { id: theme; darkMode: fixture.darkMode }
     QtObject {
         id: wallpaperFixture
         property bool loaded: true
@@ -34,10 +34,18 @@ ShellRoot {
         property double previewUntil: 0
         property var submitted: []
         readonly property var editorPendingOutputs: phase === "preview" ? submitted : []
-        property var editorOutputs: [
+        readonly property var twoDisplays: [
             {name:"eDP-1",modes:["1920x1080@60Hz", "1280x720@60Hz"], current:{key:"fixture|panel",name:"eDP-1",enabled:true,width:1920,height:1080,refresh:60,x:0,y:0,scale:1,transform:0}},
             {name:"DP-1",modes:["2560x1440@60Hz", "1920x1080@60Hz"], current:{key:"fixture|external",name:"DP-1",enabled:true,width:2560,height:1440,refresh:60,x:1920,y:0,scale:1,transform:0}}
         ]
+        property var editorOutputs: twoDisplays
+        function setDisplayCount(count) {
+            if (phase !== "idle" || ![2, 3].includes(count)) return false;
+            editorOutputs = count === 2 ? twoDisplays.slice() : twoDisplays.concat([
+                {name:"HDMI-A-1",modes:["1920x1080@60Hz", "1280x720@60Hz"], current:{key:"fixture|portrait",name:"HDMI-A-1",enabled:true,width:1920,height:1080,refresh:60,x:-1080,y:-280,scale:1,transform:1}}
+            ]);
+            return true;
+        }
         function refreshEditor() {}
         function previewEditor(draft) { submitted = draft; previewUntil = Date.now() + 14000; verified = true; phase = "preview"; }
         function confirm() {
@@ -120,6 +128,7 @@ ShellRoot {
         function close(): void { panel.dismiss(); }
         function quit(): void { Qt.quit(); }
         function page(name: string): void { panel.openOnScreen(panel.preferredScreen); panel.navigate(name); }
+        function displayTopology(count: int): bool { return displaysFixture.setDisplayCount(count); }
         function closeDetached(name: string): void { panel.detailPages.closeDetached(name); }
         function resizeDetached(name: string, width: int, height: int): void {
             const window = panel.detailPages.slot(name)?.window;
@@ -134,9 +143,11 @@ ShellRoot {
             const page = panel.detailPages.pageItem(name);
             const view = page ? root.findItem(page, "detail-scroll") : null;
             const image = page ? root.findItem(page, "wallpaper-preview") : null;
+            const arrangement = page ? root.findItem(page, "display-arrangement") : null;
             return JSON.stringify({naturalHeight: page?.naturalHeight ?? 0,
                 viewportHeight: view?.height ?? 0, contentHeight: view?.contentHeight ?? 0,
-                scroll: view?.contentY ?? 0, imageWidth: image?.width ?? 0, imageHeight: image?.height ?? 0});
+                scroll: view?.contentY ?? 0, imageWidth: image?.width ?? 0, imageHeight: image?.height ?? 0,
+                pageWidth: page?.width ?? 0, arrangementWidth: arrangement?.width ?? 0, arrangementHeight: arrangement?.height ?? 0});
         }
         function focusControl(name: string, control: string): bool {
             const page = name === "overview" ? panel.contentItem : panel.detailPages.pageItem(name);
@@ -288,7 +299,7 @@ ShellRoot {
                 query: panel.query, results: panel.results.length, card: panel.cardGeometry,
                 commandFilter: panel.commandFilter, resultTypes: panel.results.map(row => row.actionType || row.kind),
                 selectedKey: panel.selectedKey, selectedIndex: panel.selectedIndex,
-                blur: theme.backdropBlur, materialOpacity: theme.glassOpacity,
+                blur: theme.backdropBlur, materialOpacity: panel.surfaceOpacity,
                 appearanceMode: fixture.selectedMode, location: fixture.locationStatus, overrideUntil: fixture.overrideUntil,
                 appearanceSettings: fixture.effectiveSettings, preferencesOverridden: fixture.preferencesOverridden,
                 displayPhase: displaysFixture.phase, displayDraft: displaysFixture.submitted,

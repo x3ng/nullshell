@@ -1,6 +1,5 @@
 import QtQuick
 import QtQuick.Window
-import QtQuick.Controls
 import QtQuick.Layouts
 import QtQuick.Dialogs
 import QtCore
@@ -11,7 +10,8 @@ ColumnLayout {
     id: root
     objectName: "wallpaper-picker"
     required property var wallpaper
-    required property var style
+    required property Theme style
+    property bool detached: false
     property string pendingPath: ""
     property bool applied: false
     readonly property bool dialogOpen: fileDialog.visible
@@ -19,7 +19,7 @@ ColumnLayout {
     onPendingPathChanged: applied = false
     readonly property var outputs: ["All displays"].concat(Quickshell.screens.map(screen => screen.name))
     readonly property string outputName: outputChoice.currentIndex > 0 ? outputs[outputChoice.currentIndex] || "" : ""
-    spacing: 12
+    spacing: style.spaceMd
 
     function loadSelection() {
         applied = false;
@@ -37,19 +37,6 @@ ColumnLayout {
         fileDialog.open();
     }
 
-    component Choice: ComboBox {
-        implicitHeight: 40
-        font.family: root.style.fontFamily
-        font.pixelSize: 14
-        palette.text: root.style.textPrimary
-        palette.buttonText: root.style.textPrimary
-        palette.base: root.style.surfaceRaised
-        palette.button: root.style.surfaceRaised
-        palette.window: root.style.surfaceRaised
-        palette.highlight: root.style.surfaceSelected
-        palette.highlightedText: root.style.textPrimary
-        background: Rectangle { color: root.style.surfaceRaised; radius: root.style.radiusControl }
-    }
     RowLayout {
         Layout.fillWidth: true
         spacing: root.style.spaceSm
@@ -60,9 +47,11 @@ ColumnLayout {
             font.pixelSize: 14
         }
         Item { Layout.fillWidth: true }
-        Choice {
+        SettingsSelect {
             id: outputChoice
+            style: root.style
             Layout.preferredWidth: 170
+            Accessible.name: "Display"
             model: root.outputs
             enabled: !root.wallpaper.saving
             onActivated: root.loadSelection()
@@ -72,6 +61,8 @@ ColumnLayout {
         id: preview
         objectName: "wallpaper-preview"
         Layout.fillWidth: true
+        Layout.alignment: Qt.AlignHCenter
+        Layout.maximumWidth: root.detached ? Number.POSITIVE_INFINITY : 540
         implicitHeight: width * 9 / 16
         Layout.minimumHeight: implicitHeight
         Layout.maximumHeight: implicitHeight
@@ -96,9 +87,8 @@ ColumnLayout {
         font.family: root.style.fontFamily
         font.pixelSize: 13
     }
-    RowLayout {
-        Layout.fillWidth: true
-        spacing: root.style.spaceSm
+    SettingsActions {
+        style: root.style
         ChoiceButton {
             objectName: "wallpaper-choose"
             Layout.fillWidth: true
@@ -110,13 +100,13 @@ ColumnLayout {
             available: !root.wallpaper.saving
             onTriggered: root.chooseImage()
         }
-        Choice { id: fitChoice; model: ["Fill", "Fit", "Stretch"]; Layout.preferredWidth: 105; enabled: !root.wallpaper.saving; onActivated: root.applied = false }
+        SettingsSelect { id: fitChoice; style: root.style; Accessible.name: "Image fit"; model: ["Fill", "Fit", "Stretch"]; Layout.preferredWidth: 105; enabled: !root.wallpaper.saving; onActivated: root.applied = false }
         ChoiceButton {
             objectName: "wallpaper-apply"
             Layout.preferredWidth: 80
             Layout.preferredHeight: 40
             style: root.style
-            filled: true
+            tone: "primary"
             label: root.wallpaper.saving ? "Saving…" : "Apply"
             available: preview.ready && root.wallpaper.loaded && !root.wallpaper.saving
             onTriggered: { root.applied = false; root.wallpaper.apply(root.outputName, root.pendingPath, preview.fit); }

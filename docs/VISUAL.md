@@ -12,16 +12,22 @@ without becoming a permanent bar. The panel width is a shared theme token and
 all routes use the same card width. Dense lists retain scrolling instead of
 stretching the whole window.
 
+Keep search visibly a text field; any inline status is read-only and gives way
+to input and search controls when typing. The overview
+groups quick operations by domain and gives persistent preferences labelled
+entry points; search reaches those same pages. Reuse the existing group surface
+and navigation row instead of giving each preference its own tile style. Do not
+add headings that simply repeat what the labels and icons already communicate.
+
 Parents own spacing between sections; controls own their internal padding. Use
 the same height constraints for content-fit calculations and actual layout, or
 an otherwise-fitting page can acquire a false scroll range. Scroll focused
 controls into view rather than shrinking interactive controls to fit.
 
-Settings pages should show the current state before editable fields and use one
-accent action for save or confirmation. Display trial controls stay outside
-the scrolling form; the confirmation shows the affected output and the fields
-that changed. Idle deadlines use `min:sec` in the editor while the stored
-configuration retains integer seconds.
+Settings pages use a title and short description, shared section surfaces, and
+one accent action for save or confirmation. Keep actions that must remain
+reachable outside the scrolling form. Display confirmation shows the affected
+outputs and changed fields separately from the action bar.
 
 The desktop panel, notifications, OSD, Polkit prompt and tray menu use a muted
 translucent tint over a rounded `BackgroundEffect.blurRegion`. Hyprland 0.57 and

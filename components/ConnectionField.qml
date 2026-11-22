@@ -23,7 +23,7 @@ TextField {
     font.pixelSize: style.fontSizeBody
     background: Rectangle {
         radius: field.style.radiusControl
-        color: field.style.panelSurface
+        color: field.style.inputSurface
         border.width: 1
         border.color: field.activeFocus ? field.style.accent : field.style.separator
     }

@@ -22,6 +22,7 @@ Rectangle {
     Accessible.name: title + (subtitle ? ", " + subtitle : "")
     Accessible.onPressAction: { if (available) triggered(); }
     Keys.onReturnPressed: { if (available) triggered(); }
+    Keys.onEnterPressed: { if (available) triggered(); }
     Keys.onSpacePressed: { if (available) triggered(); }
     implicitHeight: subtitle ? 60 : 44
     radius: style.radiusControl
@@ -45,6 +46,7 @@ Rectangle {
         }
         ColumnLayout {
             Layout.fillWidth: true
+            Layout.minimumWidth: 0
             spacing: 2
             Text {
                 Layout.fillWidth: true

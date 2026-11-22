@@ -16,7 +16,7 @@ ShellRoot {
         })
     }
     AppearanceState { id: appearance; settings: config.values.appearance }
-    Theme { id: theme; darkMode: appearance.darkMode }
+    DesktopTheme { id: theme; darkMode: appearance.darkMode }
     AppearanceExport {
         id: appearanceExport
         theme: theme

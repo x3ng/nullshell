@@ -1,8 +1,6 @@
 pragma ComponentBehavior: Bound
 
 import QtQuick
-import QtQuick.Controls
-import QtQuick.Controls.Basic as Basic
 import QtQuick.Layouts
 import ".."
 
@@ -12,6 +10,7 @@ ColumnLayout {
     required property Theme style
     required property var service
     property Item footerHost: null
+    property real detachedBodyHeight: 0
     readonly property bool footerVisible: service.enabled || testing
     readonly property real footerHeight: footerActions.implicitHeight
     property var draft: []
@@ -119,9 +118,6 @@ ColumnLayout {
         numericEdits = next;
         update(index, {x:x, y:y});
     }
-    function layoutWidth(o) { return (o.transform % 2 ? o.height : o.width) / Math.max(0.25, o.scale); }
-    function layoutHeight(o) { return (o.transform % 2 ? o.width : o.height) / Math.max(0.25, o.scale); }
-
     Component.onCompleted: { reset(); service.refreshEditor(); }
     Connections {
         target: pane.service
@@ -153,73 +149,10 @@ ColumnLayout {
     component FieldLabel: LabelText {
         font.pixelSize: pane.style.fontSizeLabel
     }
-    component Heading: LabelText {
-        color: pane.style.textPrimary
-        font.pixelSize: pane.style.fontSizeBody
-        font.weight: Font.DemiBold
-    }
-    component Picker: Basic.ComboBox {
-        id: picker
+    component Picker: SettingsSelect {
+        style: pane.style
         Layout.fillWidth: true
-        implicitHeight: pane.style.fieldHeight
-        leftPadding: pane.style.spaceMd
-        rightPadding: 2 * pane.style.spaceMd
-        font.family: pane.style.fontFamily
-        font.pixelSize: pane.style.fontSizeBody
-        contentItem: Text {
-            text: picker.displayText
-            font: picker.font
-            color: pane.style.textPrimary
-            verticalAlignment: Text.AlignVCenter
-            elide: Text.ElideRight
-        }
-        indicator: Text {
-            x: picker.width - width - pane.style.spaceMd
-            y: (picker.height - height) / 2
-            text: "▾"
-            color: pane.style.textSecondary
-            font.pixelSize: pane.style.fontSizeSmall
-        }
-        background: Rectangle {
-            radius: pane.style.radiusControl
-            color: pane.style.panelSurface
-            border.color: picker.activeFocus ? pane.style.accent : pane.style.separator
-            border.width: 1
-        }
-        delegate: Basic.ItemDelegate {
-            id: option
-            required property string modelData
-            required property int index
-            width: picker.width - 2
-            highlighted: picker.highlightedIndex === index
-            contentItem: Text {
-                text: option.modelData
-                font: picker.font
-                color: pane.style.textPrimary
-                elide: Text.ElideRight
-            }
-            background: Rectangle {
-                color: option.highlighted || option.hovered ? pane.style.surfaceSelected : pane.style.panelSurface
-            }
-        }
-        popup: Basic.Popup {
-            y: picker.height
-            width: picker.width
-            padding: 1
-            implicitHeight: Math.min(240, contentItem.implicitHeight + 2)
-            contentItem: ListView {
-                clip: true
-                implicitHeight: contentHeight
-                model: picker.delegateModel
-                currentIndex: picker.highlightedIndex
-            }
-            background: Rectangle {
-                color: pane.style.panelSurface
-                border.color: pane.style.separator
-                border.width: 1
-                radius: pane.style.radiusControl
-            }
-        }
+        Layout.minimumWidth: 0
     }
 
     SettingsNotice {
@@ -249,16 +182,17 @@ ColumnLayout {
             iconKind: "clock"
             ink: pane.style.accentWarm
             title: pane.service.verified ? "Keep this layout?" : "Checking the new layout…"
-            detail: pane.service.verified ? "Reverts in " + pane.seconds + " s unless you keep it." : "Waiting for Hyprland to verify the display mode."
+            detail: pane.service.verified ? "The previous layout returns automatically if you do nothing." : "Waiting for Hyprland to verify the display mode."
         }
         Repeater {
             model: pane.trialChanges
-            ColumnLayout {
+            GroupCard {
                 id: summary
                 required property var modelData
                 Layout.fillWidth: true
-                spacing: pane.style.spaceXs
-                Heading { text: summary.modelData.name }
+                style: pane.style
+                title: summary.modelData.name
+                iconKind: "window"
                 Repeater {
                     model: summary.modelData.rows
                     RowLayout {
@@ -278,184 +212,159 @@ ColumnLayout {
         }
     }
 
-    ColumnLayout {
+    GridLayout {
+        id: editor
+        readonly property bool roomy: width >= 600
+        readonly property bool wide: roomy && pane.detachedBodyHeight <= width * 0.83
         Layout.fillWidth: true
         visible: pane.service.enabled && !!pane.output && !pane.testing
         enabled: !pane.busy
-        spacing: pane.style.spaceSm
+        columns: wide ? 2 : 1
+        columnSpacing: pane.style.spaceMd
+        rowSpacing: pane.style.spaceMd
 
-        RowLayout {
+        GroupCard {
+            objectName: "display-arrangement-card"
             Layout.fillWidth: true
-            Heading { text: "Arrangement" }
-            FieldLabel { Layout.fillWidth: false; text: pane.draft.length + (pane.draft.length === 1 ? " display" : " displays") }
-        }
-        Rectangle {
-            id: canvas
-            Layout.fillWidth: true
-            Layout.preferredHeight: 104
-            radius: pane.style.radiusControl
-            color: pane.style.backgroundSurface
-            border.color: pane.style.separator
-            border.width: 1
-            clip: true
-            readonly property var screens: pane.independent.filter(o => o.width > 0 && o.height > 0)
-            readonly property real leftEdge: screens.length ? Math.min(...screens.map(o => o.x)) : 0
-            readonly property real topEdge: screens.length ? Math.min(...screens.map(o => o.y)) : 0
-            readonly property real spanX: screens.length ? Math.max(1, Math.max(...screens.map(o => o.x + pane.layoutWidth(o))) - leftEdge) : 1
-            readonly property real spanY: screens.length ? Math.max(1, Math.max(...screens.map(o => o.y + pane.layoutHeight(o))) - topEdge) : 1
-            readonly property real factor: Math.max(0.0001, Math.min((width - 24) / spanX, (height - 24) / spanY))
-            Repeater {
-                model: pane.draft
-                Rectangle {
-                    id: screenRect
-                    required property var modelData
-                    required property int index
-                    property point offset: Qt.point(0, 0)
-                    visible: modelData.enabled && !modelData.mirror_of
-                    x: (canvas.width - canvas.spanX * canvas.factor) / 2 + (modelData.x - canvas.leftEdge) * canvas.factor + offset.x
-                    y: (canvas.height - canvas.spanY * canvas.factor) / 2 + (modelData.y - canvas.topEdge) * canvas.factor + offset.y
-                    width: Math.max(8, pane.layoutWidth(modelData) * canvas.factor)
-                    height: Math.max(8, pane.layoutHeight(modelData) * canvas.factor)
-                    radius: pane.style.radiusCard
-                    color: pane.selected === index ? pane.style.surfaceSelected : pane.style.surfaceRaised
-                    border.color: pane.selected === index ? pane.style.accent : pane.style.outline
-                    z: pane.selected === index ? 1 : 0
-                    border.width: 1
-                    Text {
-                        anchors.fill: parent
-                        anchors.margins: 3
-                        text: screenRect.modelData.name
-                        color: pane.style.textPrimary
-                        horizontalAlignment: Text.AlignHCenter
-                        verticalAlignment: Text.AlignVCenter
-                        elide: Text.ElideRight
-                        font.family: pane.style.fontFamily
-                        font.pixelSize: pane.style.fontSizeSmall
-                        font.weight: pane.selected === screenRect.index ? Font.DemiBold : Font.Normal
-                    }
-                    MouseArea {
-                        id: dragScreen
-                        anchors.fill: parent
-                        property point origin
-                        cursorShape: pressed ? Qt.ClosedHandCursor : Qt.OpenHandCursor
-                        onPressed: mouse => {
-                            pane.selected = screenRect.index;
-                            origin = mapToItem(canvas, mouse.x, mouse.y);
-                        }
-                        onPositionChanged: mouse => {
-                            if (!pressed) return;
-                            const point = mapToItem(canvas, mouse.x, mouse.y);
-                            screenRect.offset = Qt.point(point.x - origin.x, point.y - origin.y);
-                        }
-                        onCanceled: screenRect.offset = Qt.point(0, 0)
-                        onReleased: {
-                            const delta = screenRect.offset;
-                            screenRect.offset = Qt.point(0, 0);
-                            if (Math.abs(delta.x) + Math.abs(delta.y) < 3) return;
-                            pane.place(screenRect.index,
-                                Math.max(-65536, Math.min(65536, Math.round(screenRect.modelData.x + delta.x / canvas.factor))),
-                                Math.max(-65536, Math.min(65536, Math.round(screenRect.modelData.y + delta.y / canvas.factor))));
-                        }
-                    }
-                }
-            }
-        }
-        FieldLabel { text: "Drag a display to move it. X and Y set its exact position." }
-        RowLayout {
-            Layout.fillWidth: true
-            Heading {
-                Layout.fillWidth: false
-                text: "Editing"
-            }
-            Picker {
-                objectName: "displays-output"
-                Accessible.name: "Display"
-                model: pane.draft.map(item => item.name + (item.enabled ? item.mirror_of ? "  ·  Mirrored" : "" : "  ·  Disabled"))
-                currentIndex: pane.selected
-                onActivated: index => pane.selected = index
-            }
-            ChoiceButton {
-                objectName: "displays-enabled"
-                Layout.preferredWidth: 96
+            Layout.fillHeight: editor.wide
+            Layout.minimumWidth: 0
+            Layout.preferredWidth: pane.detachedBodyHeight > 0 && editor.width >= 800 ? 6 : 5
+            style: pane.style
+            stretchContent: editor.wide
+            pad: editor.wide ? pane.style.spaceMd : pane.style.spaceSm
+            title: "Arrangement"
+            iconKind: "window"
+            caption: editor.wide ? pane.draft.length + (pane.draft.length === 1 ? " display" : " displays") : "Drag to arrange"
+            DisplayArrangement {
+                objectName: "display-arrangement"
+                Layout.fillWidth: true
+                Layout.fillHeight: editor.wide
+                Layout.preferredHeight: pane.detachedBodyHeight <= 0 ? (editor.wide ? 184 : 76)
+                    : editor.wide ? Math.max(184, pane.detachedBodyHeight - 72)
+                    : editor.roomy ? Math.max(184, pane.detachedBodyHeight - selectedDisplay.implicitHeight - 82)
+                    : 112
                 style: pane.style
-                label: pane.output?.enabled ? "Enabled" : "Disabled"
-                selected: pane.output?.enabled ?? false
-                onTriggered: pane.toggleOutput()
+                outputs: pane.draft
+                selected: pane.selected
+                onOutputSelected: index => pane.selected = index
+                onOutputMoved: (index, x, y) => pane.place(index, x, y)
             }
+            FieldLabel { visible: editor.roomy; text: "Drag to arrange. Use X and Y for exact positions." }
         }
-        RowLayout {
+        GroupCard {
+            id: selectedDisplay
+            objectName: "display-parameters-card"
             Layout.fillWidth: true
-            enabled: pane.output?.enabled ?? false
-            ColumnLayout {
+            Layout.fillHeight: editor.wide
+            Layout.minimumWidth: 0
+            Layout.preferredWidth: pane.detachedBodyHeight > 0 && editor.width >= 800 ? 5 : 7
+            style: pane.style
+            pad: editor.wide ? pane.style.spaceMd : pane.style.spaceSm
+            contentSpacing: editor.wide ? pane.style.spaceSm : pane.style.spaceXs
+            title: "Selected display"
+            RowLayout {
                 Layout.fillWidth: true
-                Layout.preferredWidth: 2
-                spacing: pane.style.spaceXs
-                FieldLabel { text: "Resolution and refresh rate" }
                 Picker {
-                    objectName: "displays-mode"
-                    Accessible.name: "Resolution and refresh rate"
-                    model: pane.modes.map(mode => pane.modeLabel(mode))
-                    currentIndex: Math.max(0, pane.modes.findIndex(mode => pane.output && pane.sameMode(mode, pane.output)))
-                    onActivated: index => pane.setMode(pane.modes[index])
+                    objectName: "displays-output"
+                    Accessible.name: "Display"
+                    model: pane.draft.map(item => item.name + (item.enabled ? item.mirror_of ? "  ·  Mirrored" : "" : "  ·  Disabled"))
+                    currentIndex: pane.selected
+                    onActivated: index => pane.selected = index
+                }
+                ChoiceButton {
+                    objectName: "displays-enabled"
+                    Layout.preferredWidth: 96
+                    style: pane.style
+                    label: pane.output?.enabled ? "Enabled" : "Disabled"
+                    selected: pane.output?.enabled ?? false
+                    tone: "toggle"
+                    filled: true
+                    onTriggered: pane.toggleOutput()
                 }
             }
-            ColumnLayout {
+            RowLayout {
                 Layout.fillWidth: true
-                Layout.preferredWidth: 1
-                spacing: pane.style.spaceXs
-                FieldLabel { text: "Orientation" }
-                Picker {
-                    objectName: "displays-orientation"
-                    Accessible.name: "Orientation"
-                    model: pane.orientations
-                    currentIndex: pane.output?.transform ?? 0
-                    onActivated: index => pane.update(pane.selected, {transform:index})
-                }
-            }
-        }
-        FieldLabel { text: "Display mode" }
-        Picker {
-            objectName: "displays-mirror"
-            Accessible.name: "Mirroring"
-            enabled: pane.output?.enabled ?? false
-            model: pane.mirrorChoices.map(item => item.label)
-            currentIndex: Math.max(0, pane.mirrorChoices.findIndex(item => item.key === (pane.output?.mirror_of ?? "")))
-            onActivated: index => pane.update(pane.selected, {mirror_of:pane.mirrorChoices[index].key || null})
-        }
-        RowLayout {
-            Layout.fillWidth: true
-            enabled: (pane.output?.enabled ?? false) && !pane.output?.mirror_of
-            Repeater {
-                model: [{key:"scale", label:"Scale"}, {key:"x", label:"Position X"}, {key:"y", label:"Position Y"}]
+                enabled: pane.output?.enabled ?? false
                 ColumnLayout {
-                    id: fieldGroup
-                    required property var modelData
+                    Layout.fillWidth: true
+                    Layout.preferredWidth: 2
+                    spacing: pane.style.spaceXs
+                    FieldLabel { text: "Resolution and refresh rate" }
+                    Picker {
+                        objectName: "displays-mode"
+                        Accessible.name: "Resolution and refresh rate"
+                        model: pane.modes.map(mode => pane.modeLabel(mode))
+                        currentIndex: Math.max(0, pane.modes.findIndex(mode => pane.output && pane.sameMode(mode, pane.output)))
+                        onActivated: index => pane.setMode(pane.modes[index])
+                    }
+                }
+                ColumnLayout {
                     Layout.fillWidth: true
                     Layout.preferredWidth: 1
-                    FieldLabel { text: fieldGroup.modelData.label }
-                    ConnectionField {
-                        objectName: "displays-" + fieldGroup.modelData.key
+                    spacing: pane.style.spaceXs
+                    FieldLabel { text: "Orientation" }
+                    Picker {
+                        objectName: "displays-orientation"
+                        Accessible.name: "Orientation"
+                        model: pane.orientations
+                        currentIndex: pane.output?.transform ?? 0
+                        onActivated: index => pane.update(pane.selected, {transform:index})
+                    }
+                }
+            }
+            ColumnLayout {
+                Layout.fillWidth: true
+                spacing: pane.style.spaceXs
+                FieldLabel { text: "Display mode" }
+                Picker {
+                    objectName: "displays-mirror"
+                    Accessible.name: "Mirroring"
+                    enabled: pane.output?.enabled ?? false
+                    model: pane.mirrorChoices.map(item => item.label)
+                    currentIndex: Math.max(0, pane.mirrorChoices.findIndex(item => item.key === (pane.output?.mirror_of ?? "")))
+                    onActivated: index => pane.update(pane.selected, {mirror_of:pane.mirrorChoices[index].key || null})
+                }
+            }
+            RowLayout {
+                Layout.fillWidth: true
+                enabled: (pane.output?.enabled ?? false) && !pane.output?.mirror_of
+                Repeater {
+                    model: [{key:"scale", label:"Scale"}, {key:"x", label:"Position X"}, {key:"y", label:"Position Y"}]
+                    ColumnLayout {
+                        id: fieldGroup
+                        required property var modelData
                         Layout.fillWidth: true
-                        style: pane.style
-                        text: pane.fieldText(fieldGroup.modelData.key)
-                        Accessible.name: fieldGroup.modelData.label
-                        onTextEdited: pane.number(fieldGroup.modelData.key, text)
+                        Layout.preferredWidth: 1
+                        spacing: pane.style.spaceXs
+                        FieldLabel { text: fieldGroup.modelData.label }
+                        ConnectionField {
+                            objectName: "displays-" + fieldGroup.modelData.key
+                            Layout.fillWidth: true
+                            style: pane.style
+                            text: pane.fieldText(fieldGroup.modelData.key)
+                            Accessible.name: fieldGroup.modelData.label
+                            onTextEdited: pane.number(fieldGroup.modelData.key, text)
+                        }
                     }
                 }
             }
         }
     }
 
-    RowLayout {
+    SettingsActions {
         id: footerActions
+        style: pane.style
+        host: pane.footerHost
         parent: pane.footerHost ?? pane
-        width: pane.footerHost ? pane.footerHost.width : implicitWidth
-        height: pane.footerHost ? pane.footerHost.height : implicitHeight
-        Layout.fillWidth: true
         visible: pane.footerVisible
+        status: pane.testing ? "Reverts in " + pane.seconds + " s"
+            : pane.outcome || (pane.busy ? "Working…" : pane.invalidNumbers ? "Check inputs"
+                : pane.changes.length ? "Unsaved changes" : "Current layout")
+        warning: pane.invalidNumbers && !pane.testing
         ChoiceButton {
             objectName: "displays-revert"
             Layout.fillWidth: true
+            Layout.minimumWidth: 96
             Layout.preferredWidth: 1
             visible: pane.testing
             style: pane.style
@@ -466,6 +375,7 @@ ColumnLayout {
         ChoiceButton {
             objectName: "displays-confirm"
             Layout.fillWidth: true
+            Layout.minimumWidth: 112
             Layout.preferredWidth: 1
             visible: pane.testing
             style: pane.style
@@ -473,10 +383,6 @@ ColumnLayout {
             label: "Keep changes"
             available: pane.service.verified
             onTriggered: { pane.forceActiveFocus(); pane.service.confirm(); }
-        }
-        FieldLabel {
-            visible: !pane.testing
-            text: pane.outcome || (pane.changes.length ? "Unsaved changes" : pane.busy ? "Working…" : "Current layout")
         }
         ChoiceButton {
             objectName: "displays-refresh"

@@ -22,6 +22,8 @@ def main():
     parser.add_argument("--screenshots", type=Path)
     parser.add_argument("--keyboard", action="store_true")
     only = parser.add_mutually_exclusive_group()
+    only.add_argument("--overview-only", action="store_true", help="Check overview and search geometry")
+    only.add_argument("--palette-only", action="store_true", help="Review desktop pages in both palettes")
     only.add_argument("--appearance-only", action="store_true", help="Check only the appearance page")
     only.add_argument("--displays-only", action="store_true", help="Check only the display layout page")
     only.add_argument("--idle-only", action="store_true", help="Check only the idle settings page")
@@ -76,11 +78,45 @@ def main():
                 colors = body.getcolors(body.width * body.height)
                 assert max(count for count, _ in colors) < body.width * body.height * .99, "Appearance content was not rendered"
 
+    def check_overview_geometry():
+        for width in ["740", "440"]:
+            call("width", width)
+            for light in ["false", "true"]:
+                call("light", light)
+                call("page", "overview")
+                call("scrollOverview", "false")
+                card = settle()["card"]
+                search = json.loads(call("controlBounds", "launcher-search"))
+                left = search["x"] - card["left"]
+                right = card["right"] - search["x"] - search["width"]
+                top = search["y"] - card["top"]
+                assert left > 0 and abs(left - right) <= 1 and abs(top - left) <= 1, (card, search)
+                screenshot("overview-" + width + "-" + light)
+                status = json.loads(call("controlBounds", "search-status"))
+                assert abs(status["y"] + status["height"] / 2 - search["y"] - search["height"] / 2) <= 1, (search, status)
+                assert status["x"] >= search["x"] + search["width"] / 2, (search, status)
+                assert status["x"] + status["width"] < search["x"] + search["width"], (search, status)
+                call("scrollOverview", "true")
+                card = settle()["card"]
+                notifications = json.loads(call("controlBounds", "overview-notifications"))
+                footer = json.loads(call("controlBounds", "workspace-footer"))
+                above = footer["y"] - notifications["y"] - notifications["height"]
+                below = card["bottom"] - footer["y"] - footer["height"]
+                assert abs(above - below) <= 1 and 0 < above < top, (notifications, footer, card)
+                screenshot("overview-footer-" + width + "-" + light)
+                call("search", ">?")
+                settle()
+                assert json.loads(call("controlBounds", "launcher-search")) == search
+                assert json.loads(call("controlBounds", "search-status")) == {}
+        call("width", "740")
+        call("light", "false")
+        call("page", "overview")
+
     def check_appearance():
-        # Enter appearance through the brightness row's production button.
+        # Enter appearance through the overview's settings group.
         call("page", "overview")
         settle()
-        assert call("activateControl", "brightness-details") == "true"
+        assert call("activateControl", "settings-appearance") == "true"
         assert settle()["page"] == "detail:appearance"
         for mode in ["light", "dark", "auto"]:
             assert call("activateControl", "appearance-mode-" + mode) == "true"
@@ -118,6 +154,29 @@ def main():
         call("activateControl", "appearance-reset")
         assert not state()["preferencesOverridden"]
 
+    def review_palette():
+        for light in ["true", "false"]:
+            call("light", light)
+            palette = "light" if light == "true" else "dark"
+            for width in ["740", "440"]:
+                call("width", width)
+                for page in ["overview", "desktop", "wifi", "bluetooth", "audio", "media", "notifications",
+                             "appearance", "displays", "idle", "wallpaper", "session", "search"]:
+                    call("scenario", "media" if page == "media" else "normal")
+                    if page == "search":
+                        call("search", ">")
+                    else:
+                        call("page", page)
+                    if page == "wallpaper":
+                        assert call("draft", "wallpaper", wallpaper_image.as_uri()) == "true"
+                    current = settle()
+                    expected = page if page in ["overview", "desktop", "search"] else "detail:" + page
+                    assert current["page"] == expected and current["dark"] == (light == "false"), current
+                    if page == "wallpaper":
+                        apply = json.loads(call("controlBounds", "wallpaper-apply"))
+                        assert apply["y"] + apply["height"] <= current["card"]["bottom"] - 8, (apply, current)
+                    screenshot(palette + "-" + width + "-" + page)
+
     def finish(process, log):
         call("quit")
         process.wait(timeout=5)
@@ -126,6 +185,17 @@ def main():
         assert not errors, "\n".join(errors)
 
     def check_displays():
+        def check_card_alignment(side_by_side):
+            arrangement = json.loads(call("controlBounds", "display-arrangement-card"))
+            fields = json.loads(call("controlBounds", "display-parameters-card"))
+            if side_by_side:
+                assert arrangement["x"] + arrangement["width"] < fields["x"], (arrangement, fields)
+                assert abs(arrangement["y"] - fields["y"]) <= 1, (arrangement, fields)
+                assert abs(arrangement["height"] - fields["height"]) <= 1, (arrangement, fields)
+            else:
+                assert abs(arrangement["x"] - fields["x"]) <= 1, (arrangement, fields)
+                assert arrangement["y"] + arrangement["height"] < fields["y"], (arrangement, fields)
+
         call("page", "displays")
         assert settle()["page"] == "detail:displays"
         assert call("activateControl", "displays-test") == "false", "A clean layout needs no trial"
@@ -137,6 +207,7 @@ def main():
             assert button["height"] >= 32 and button["y"] + button["height"] <= s["card"]["bottom"] - 8, (s, button)
             geometry = json.loads(call("detailGeometry", "displays"))
             assert geometry["contentHeight"] <= geometry["viewportHeight"] + 1, geometry
+            check_card_alignment(width == "740")
             screenshot("displays-editor-" + width + ("-light" if light == "true" else "-dark"))
         assert call("activateControl", "displays-enabled") == "true"
         assert call("displaySelect", "1") == "true"
@@ -179,6 +250,54 @@ def main():
         assert call("activateControl", "displays-revert") == "true"
         assert settle()["lastAction"] == "display-revert"
         screenshot("displays-reverted")
+
+        assert call("displayTopology", "3") == "true"
+        names = ("HDMI-A-1", "eDP-1", "DP-1")
+        for width in ["740", "440"]:
+            call("width", width)
+            settle()
+            left, center, right = [json.loads(call("controlBounds", "arrangement-output-" + name)) for name in names]
+            assert left["x"] < center["x"] < right["x"] and left["y"] < center["y"], (left, center, right)
+            assert left["height"] > left["width"] and all(rect["width"] >= 8 for rect in (left, center, right))
+            screenshot("displays-three-" + width)
+        assert call("displaySelect", "2") == "true"
+        assert call("displayValue", "scale", "1.25") == "true"
+        assert call("activateControl", "displays-test") == "true"
+        preview = settle()
+        assert {d["name"]: d["scale"] for d in preview["displayDraft"]} == {"eDP-1": 1, "DP-1": 1, "HDMI-A-1": 1.25}, preview
+        assert preview["displayTrialChanges"] == [{"name": "HDMI-A-1", "rows": [{"label": "Scale", "value": "1× → 1.25×"}]}], preview
+        assert call("activateControl", "displays-revert") == "true"
+        assert settle()["displayPhase"] == "idle"
+        assert call("activateControl", "displays-test") == "false"
+
+        assert call("displayValue", "x", "-1200") == "true"
+        assert call("activateControl", "detach-page") == "true"
+        assert "displays" in settle()["detached"]
+        initial = json.loads(call("detailGeometry", "displays"))
+        assert initial["pageWidth"] >= 850 and initial["arrangementHeight"] > 240, initial
+        check_card_alignment(True)
+        call("resizeDetached", "displays", "1100", "710")
+        time.sleep(.3)
+        large = json.loads(call("detailGeometry", "displays"))
+        assert large["arrangementWidth"] > initial["arrangementWidth"], (initial, large)
+        assert large["arrangementHeight"] > initial["arrangementHeight"], (initial, large)
+        call("resizeDetached", "displays", "880", "940")
+        time.sleep(.3)
+        tall = json.loads(call("detailGeometry", "displays"))
+        assert tall["arrangementWidth"] > large["arrangementWidth"], (large, tall)
+        assert tall["arrangementHeight"] > initial["arrangementHeight"], (initial, tall)
+        check_card_alignment(False)
+        call("resizeDetached", "displays", "490", "340")
+        time.sleep(.3)
+        narrow = json.loads(call("detailGeometry", "displays"))
+        assert narrow["arrangementHeight"] < initial["arrangementHeight"], (initial, narrow)
+        assert narrow["contentHeight"] > narrow["viewportHeight"], narrow
+        assert call("activateControl", "displays-test") == "true"
+        assert settle()["displayDraft"][2]["x"] == -1200
+        assert call("activateControl", "displays-revert") == "true"
+        call("closeDetached", "displays")
+        assert "displays" not in settle()["detached"]
+        assert call("displayTopology", "2") == "true"
 
     def check_idle():
         call("page", "session")
@@ -237,6 +356,16 @@ def main():
                 time.sleep(0.1)
             else:
                 raise AssertionError("Preview IPC did not become ready")
+            if args.overview_only:
+                check_overview_geometry()
+                finish(process, log)
+                print("Overview preview: balanced search insets and inline status passed")
+                return
+            if args.palette_only:
+                review_palette()
+                finish(process, log)
+                print("Panel palettes: 13 routes rendered at wide and narrow sizes")
+                return
             if args.appearance_only:
                 check_appearance()
                 finish(process, log)
@@ -254,6 +383,7 @@ def main():
                 return
             settle()
             screenshot("normal")
+            check_overview_geometry()
             # With only the tools remaining, resizing must still recenter them.
             call("scenario", "empty")
             for width in ["440", "740", "440"]:
@@ -427,6 +557,23 @@ def main():
                     settle()
                     screenshot("quick-footer-" + width + "-" + light)
                     call("scrollOverview", "false")
+            call("width", "440")
+            for section in ["appearance", "wallpaper", "displays", "idle"]:
+                assert call("activateControl", "settings-" + section) == "true"
+                current = settle()
+                assert current["page"] == "detail:" + section, (section, current)
+                if args.keyboard:
+                    subprocess.run(["wtype", "-k", "Escape"], check=True, timeout=5)
+                else:
+                    call("page", "overview")
+                assert settle()["page"] == "overview"
+            if args.keyboard:
+                assert call("focusControl", "overview", "settings-displays") == "true"
+                assert settle()["focusedItem"] == "settings-displays"
+                subprocess.run(["wtype", "-k", "Return"], check=True, timeout=5)
+                assert settle()["page"] == "detail:displays"
+                call("page", "overview")
+            call("width", "740")
             for condition in ["busy", "unavailable"]:
                 call("quickState", condition)
                 for section in ["wifi", "bluetooth"]:

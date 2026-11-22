@@ -2,8 +2,6 @@ pragma ComponentBehavior: Bound
 
 import QtQuick
 import QtQuick.Layouts
-import QtQuick.Controls
-import QtQuick.Window
 import Quickshell.Widgets
 import ".."
 
@@ -14,13 +12,11 @@ ColumnLayout {
     required property Theme style
     required property var services
     required property var actions
-    required property var appearance
     required property var notifs
     required property var searchModel
     required property var trayItems
     signal menuRequested(var owner, real right, real top)
     required property var controls
-    required property date date
     required property bool panelOpen
     signal dismissRequested
     readonly property real naturalHeight: content.implicitHeight
@@ -43,132 +39,114 @@ ColumnLayout {
         restoreMode: Binding.RestoreNone
     }
     onPanelOpenChanged: if (panelOpen) viewport.contentY = 0
-    function revealFocus() {
-        if (!panelOpen) return;
-        const item = page.Window.window?.activeFocusItem;
-        if (!item) return;
-        let ancestor = item;
-        while (ancestor && ancestor !== content) ancestor = ancestor.parent;
-        if (!ancestor) return;
-        const point = item.mapToItem(viewport, 0, 0);
-        if (point.y < 0) viewport.contentY += point.y;
-        else if (point.y + item.height > viewport.height) viewport.contentY += point.y + item.height - viewport.height;
-        viewport.contentY = Math.max(0, Math.min(viewport.contentY, viewport.contentHeight - viewport.height));
-    }
-    Connections {
-        target: page.Window.window
-        function onActiveFocusItemChanged() { Qt.callLater(page.revealFocus); }
-    }
     Item {
         Layout.fillWidth: true
         Layout.fillHeight: true
         Layout.minimumHeight: 0
         implicitHeight: page.naturalHeight
-        Flickable {
+        FocusFlickable {
             id: viewport
             objectName: "overview-scroll"
             anchors.fill: parent
             contentWidth: width
             contentHeight: content.implicitHeight
-            boundsBehavior: Flickable.StopAtBounds
-            clip: true
+            followFocus: page.panelOpen
             ColumnLayout {
                 id: content
                 width: viewport.width
                 spacing: page.style.spaceMd
-                ConnectivitySummary {
-                    Layout.fillWidth: true
-                    style: page.style
-                    actions: page.actions
-                    system: page.system
-                }
                 GridLayout {
                     Layout.fillWidth: true
-                    columns: width < 500 ? 1 : 2
-                    columnSpacing: page.style.spaceLg
-                    rowSpacing: page.style.spaceSm
-                    OverviewLevelControl {
+                    columns: content.width >= 540 ? 2 : 1
+                    columnSpacing: page.style.spaceMd
+                    rowSpacing: page.style.spaceMd
+                    GroupCard {
+                        Layout.fillWidth: true
+                        Layout.preferredWidth: 1
                         style: page.style
-                        actions: page.actions
-                        title: "Volume"
-                        icon: "volume"
-                        value: page.sink?.audio?.volume ?? 0
-                        available: !!page.sink?.audio
-                        muted: page.sink?.audio?.muted ?? false
-                        action: "output-mute"
-                        detailsAction: "audio"
-                        detailsTooltip: "Audio devices and microphone"
-                        onEdited: value => page.services.setVolume(value)
+                        contentSpacing: 0
+                        ConnectivitySummary {
+                            Layout.fillWidth: true
+                            singleColumn: true
+                            rowSpacing: 0
+                            style: page.style
+                            actions: page.actions
+                            system: page.system
+                        }
                     }
-                    OverviewLevelControl {
+                    GroupCard {
+                        Layout.fillWidth: true
+                        Layout.preferredWidth: 1
                         style: page.style
-                        actions: page.actions
-                        title: "Brightness"
-                        icon: "brightness"
-                        value: Math.max(0, page.services.brightness)
-                        available: page.services.brightness >= 0
-                        detailsAction: "appearance"
-                        detailsTooltip: "Appearance settings"
-                        onEdited: value => page.services.setBrightness(value)
+                        contentSpacing: 0
+                        OverviewLevelControl {
+                            style: page.style
+                            actions: page.actions
+                            title: "Volume"
+                            icon: "volume"
+                            value: page.sink?.audio?.volume ?? 0
+                            available: !!page.sink?.audio
+                            muted: page.sink?.audio?.muted ?? false
+                            action: "output-mute"
+                            detailsAction: "audio"
+                            detailsTooltip: "Audio devices and microphone"
+                            onEdited: value => page.services.setVolume(value)
+                        }
+                        OverviewLevelControl {
+                            style: page.style
+                            actions: page.actions
+                            title: "Brightness"
+                            icon: "brightness"
+                            value: Math.max(0, page.services.brightness)
+                            available: page.services.brightness >= 0
+                            onEdited: value => page.services.setBrightness(value)
+                        }
                     }
                 }
-                RowLayout {
+                GroupCard {
                     Layout.fillWidth: true
-                    spacing: 8
-                    ChoiceButton {
-                        id: notificationGlance
-                        objectName: "overview-notifications"
+                    style: page.style
+                    GridLayout {
                         Layout.fillWidth: true
-                        Layout.minimumWidth: 64
-                        Layout.preferredHeight: 40
-                        style: page.style
-                        label: ""
-                        Accessible.name: "Notifications, " + page.notifs.current.length + " pending"
-                        tooltip: page.notifs.current.length
-                            ? (page.notifs.current[0].appName || "Application") + " · " + (page.notifs.current[0].summary || "Notification")
-                            : "No pending notifications · Open history"
-                        onTriggered: page.actions.execute("notifications")
-                        RowLayout {
-                            anchors.fill: parent
-                            anchors.leftMargin: 0
-                            anchors.rightMargin: page.style.spaceXs
-                            spacing: page.style.spaceMd
-                            Item {
-                                Layout.preferredWidth: 40
-                                Layout.preferredHeight: 32
-                                StatusIcon {
-                                    anchors.centerIn: parent
-                                    kind: "bell"
-                                    ink: page.style.textMuted
-                                    width: 20; height: 20
-                                }
-                            }
-                            Text {
+                        columns: content.width >= 320 ? 2 : 1
+                        rowSpacing: 0
+                        columnSpacing: page.style.spaceSm
+                        Repeater {
+                            model: [
+                                {route: "appearance", title: "Appearance", icon: "appearance"},
+                                {route: "wallpaper", title: "Wallpaper", icon: "app"},
+                                {route: "displays", title: "Displays", icon: "window"},
+                                {route: "idle", title: "Idle and lock", icon: "lock"}
+                            ]
+                            delegate: DeviceRow {
+                                required property var modelData
+                                objectName: "settings-" + modelData.route
                                 Layout.fillWidth: true
                                 Layout.minimumWidth: 0
-                                visible: notificationGlance.width >= 110
-                                text: page.notifs.current.length
-                                    ? String(page.notifs.current[0].summary || "Notification").replace(/\s+/g, " ")
-                                    : "No notifications"
-                                textFormat: Text.PlainText
-                                elide: Text.ElideRight
-                                color: page.style.textSecondary
-                                font.family: page.style.fontFamily
-                                font.pixelSize: page.style.fontSizeBody
-                            }
-                            Text {
-                                text: page.notifs.current.length > 99 ? "99+" : String(page.notifs.current.length)
-                                color: page.style.textMuted
-                                font.family: page.style.fontFamily
-                                font.pixelSize: page.style.fontSizeSmall
-                            }
-                            StatusIcon {
-                                kind: "chevron"
-                                ink: page.style.textMuted
-                                Layout.preferredWidth: 20; Layout.preferredHeight: 20
+                                Layout.preferredWidth: 1
+                                style: page.style
+                                title: modelData.title
+                                iconKind: modelData.icon
+                                available: page.actions.available(modelData.route)
+                                onTriggered: page.actions.execute(modelData.route)
                             }
                         }
                     }
+                }
+                DeviceRow {
+                    id: notificationEntry
+                    objectName: "overview-notifications"
+                    Layout.fillWidth: true
+                    style: page.style
+                    iconKind: "bell"
+                    title: page.notifs.current.length
+                        ? String(page.notifs.current[0].summary || "Notification").replace(/\s+/g, " ")
+                        : "No pending notifications"
+                    Accessible.name: page.notifs.current.length
+                        ? page.notifs.current.length + " pending notifications. Latest: " + notificationEntry.title
+                        : notificationEntry.title + ". Open notification history"
+                    expanded: true
+                    onTriggered: page.actions.execute("notifications")
                 }
                 Rectangle {
                     Layout.fillWidth: true
@@ -237,18 +215,11 @@ ColumnLayout {
                         }
                     }
                 }
-                // Center every row of navigation, tray and quick tools.
-                Rectangle {
-                    Layout.fillWidth: true
-                    Layout.preferredHeight: 1
-                    Layout.topMargin: 4
-                    color: page.style.separator
-                }
                 WorkspaceStrip {
                     id: navigationStrip
+                    objectName: "workspace-footer"
                     Layout.fillWidth: true
                     Layout.minimumWidth: 0
-                    Layout.preferredHeight: implicitHeight
                     style: page.style
                     controls: page.controls
                     searchModel: page.searchModel

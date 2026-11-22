@@ -9,9 +9,10 @@ GridLayout {
     required property Theme style
     required property var actions
     required property var system
+    property bool singleColumn: false
     readonly property var network: system.wifiNetworks.find(network => network.connected) ?? null
     readonly property var devices: system.bluetoothDevices.filter(device => device.connected)
-    columns: width < 500 ? 1 : 2
+    columns: singleColumn || width < 500 ? 1 : 2
     columnSpacing: style.spaceLg
     rowSpacing: style.spaceSm
     OverviewStatusEntry {

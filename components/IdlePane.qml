@@ -11,6 +11,9 @@ ColumnLayout {
     required property Theme style
     required property var preferences
     required property var services
+    property Item footerHost: null
+    readonly property bool footerVisible: true
+    readonly property real footerHeight: footerActions.implicitHeight
     property var draft: ({})
     property var observed: ({})
     readonly property var rows: [
@@ -59,14 +62,6 @@ ColumnLayout {
         }
     }
 
-    component Hint: Text {
-        Layout.fillWidth: true
-        wrapMode: Text.Wrap
-        color: pane.style.textSecondary
-        font.family: pane.style.fontFamily
-        font.pixelSize: pane.style.fontSizeSmall
-    }
-
     SettingsNotice {
         style: pane.style
         title: pane.services.keepAwake ? "Idle timers paused" : "Idle timers active"
@@ -86,100 +81,77 @@ ColumnLayout {
             onTriggered: pane.services.setKeepAwake(!pane.services.keepAwake)
         }
     }
-    ColumnLayout {
+    GroupCard {
         Layout.fillWidth: true
-        spacing: pane.style.spaceSm
-        RowLayout {
+        style: pane.style
+        title: "After inactivity"
+        caption: "min:sec"
+        ColumnLayout {
             Layout.fillWidth: true
-            Text {
-                Layout.fillWidth: true
-                text: "After inactivity"
-                color: pane.style.textPrimary
-                font.family: pane.style.fontFamily
-                font.pixelSize: pane.style.fontSizeBody
-                font.weight: Font.DemiBold
-            }
-            Text {
-                text: "min:sec"
-                color: pane.style.textSecondary
-                font.family: pane.style.fontFamily
-                font.pixelSize: pane.style.fontSizeLabel
-            }
-        }
-        Rectangle {
-            Layout.fillWidth: true
-            implicitHeight: timers.implicitHeight + 2 * pane.style.spaceXs
-            color: pane.style.surfaceRaised
-            radius: pane.style.radiusCard
-            border.width: 1
-            border.color: pane.style.separator
-            ColumnLayout {
-                id: timers
-                anchors.fill: parent
-                anchors.margins: pane.style.spaceXs
-                spacing: 0
-                Repeater {
-                    model: pane.rows
-                    ColumnLayout {
-                        id: entry
-                        required property var modelData
-                        required property int index
+            spacing: 0
+            Repeater {
+                model: pane.rows
+                ColumnLayout {
+                    id: entry
+                    required property var modelData
+                    required property int index
+                    Layout.fillWidth: true
+                    spacing: 0
+                    Rectangle {
                         Layout.fillWidth: true
-                        spacing: 0
-                        Rectangle {
-                            Layout.fillWidth: true
-                            Layout.preferredHeight: 1
-                            visible: entry.index > 0
-                            color: pane.style.separator
+                        Layout.preferredHeight: 1
+                        visible: entry.index > 0
+                        color: pane.style.separator
+                    }
+                    RowLayout {
+                        Layout.fillWidth: true
+                        Layout.topMargin: pane.style.spaceXs
+                        Layout.bottomMargin: pane.style.spaceXs
+                        spacing: pane.style.spaceMd
+                        StatusIcon {
+                            kind: entry.modelData.icon
+                            ink: pane.style.textSecondary
+                            Layout.preferredWidth: 18
+                            Layout.preferredHeight: 18
                         }
-                        RowLayout {
+                        Text {
                             Layout.fillWidth: true
-                            Layout.margins: pane.style.spaceSm
-                            spacing: pane.style.spaceMd
-                            StatusIcon {
-                                kind: entry.modelData.icon
-                                ink: pane.style.textSecondary
-                                Layout.preferredWidth: 18
-                                Layout.preferredHeight: 18
-                            }
-                            Text {
-                                Layout.fillWidth: true
-                                text: entry.modelData.label
-                                color: pane.style.textPrimary
-                                font.family: pane.style.fontFamily
-                                font.pixelSize: pane.style.fontSizeBody
-                            }
-                            ConnectionField {
-                                objectName: "idle-" + entry.modelData.key
-                                style: pane.style
-                                Layout.preferredWidth: 88
-                                Layout.preferredHeight: pane.style.controlHeight
-                                enabled: pane.preferences.ready && !pane.preferences.saving
-                                text: pane.draft[entry.modelData.key] ?? ""
-                                horizontalAlignment: Text.AlignHCenter
-                                Accessible.name: entry.modelData.label + " (minutes and seconds)"
-                                onTextEdited: pane.edit(entry.modelData.key, text)
-                                onEditingFinished: pane.normalize(entry.modelData.key, text)
-                            }
+                            text: entry.modelData.label
+                            color: pane.style.textPrimary
+                            font.family: pane.style.fontFamily
+                            font.pixelSize: pane.style.fontSizeBody
+                        }
+                        ConnectionField {
+                            objectName: "idle-" + entry.modelData.key
+                            style: pane.style
+                            Layout.preferredWidth: 88
+                            Layout.preferredHeight: pane.style.controlHeight
+                            enabled: pane.preferences.ready && !pane.preferences.saving
+                            text: pane.draft[entry.modelData.key] ?? ""
+                            horizontalAlignment: Text.AlignHCenter
+                            Accessible.name: entry.modelData.label + " (minutes and seconds)"
+                            onTextEdited: pane.edit(entry.modelData.key, text)
+                            onEditingFinished: pane.normalize(entry.modelData.key, text)
                         }
                     }
                 }
             }
         }
     }
-    Hint {
-        text: pane.preferences.error || (!pane.valid ? "Enter min:sec or seconds. Dim first, then lock, then turn off displays."
-            : pane.changed ? "Unsaved changes" : pane.preferences.overridden ? "Saved idle settings" : "Configuration defaults")
-        color: pane.preferences.error || !pane.valid ? pane.style.danger : pane.style.textSecondary
-    }
-    RowLayout {
-        Layout.fillWidth: true
+    SettingsActions {
+        id: footerActions
+        style: pane.style
+        host: pane.footerHost
+        parent: pane.footerHost ?? pane
+        status: pane.preferences.error || (!pane.valid ? "Use min:sec. Dim first, then lock, then turn off displays."
+            : pane.changed ? "Unsaved changes" : pane.preferences.overridden ? "Saved timers" : "Configuration defaults")
+        warning: !!pane.preferences.error || !pane.valid
         ChoiceButton {
             objectName: "idle-reset"
-            Layout.fillWidth: true
-            Layout.preferredWidth: 1
+            Layout.preferredWidth: 112
             style: pane.style
-            label: "Restore defaults"
+            label: "Use defaults"
+            tooltip: "Restore timer values from configuration"
             available: pane.preferences.ready && !pane.preferences.saving && (pane.preferences.overridden || pane.changed)
             onTriggered: {
                 if (pane.preferences.overridden) pane.preferences.store(null);
@@ -188,8 +160,7 @@ ColumnLayout {
         }
         ChoiceButton {
             objectName: "idle-save"
-            Layout.fillWidth: true
-            Layout.preferredWidth: 1
+            Layout.preferredWidth: 102
             style: pane.style
             label: pane.preferences.saving ? "Saving…" : "Save timers"
             tone: "primary"

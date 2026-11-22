@@ -14,41 +14,49 @@ ColumnLayout {
     function nextTime(timestamp) {
         return timestamp ? new Date(timestamp * 1000).toLocaleString(Qt.locale(), "ddd hh:mm") : "";
     }
-    RowLayout {
+    GroupCard {
         Layout.fillWidth: true
-        spacing: pane.style.spaceSm
-        Repeater {
-            model: [{key: "light", label: "Light", icon: "brightness"},
-                {key: "dark", label: "Dark", icon: "moon"}, {key: "auto", label: "Automatic", icon: "clock"}]
-            ChoiceButton {
-                required property var modelData
-                objectName: "appearance-mode-" + modelData.key
-                Layout.fillWidth: true
-                Layout.preferredWidth: 1
-                style: pane.style
-                label: modelData.label
-                iconKind: modelData.icon
-                filled: true
-                selected: pane.appearance.selectedMode === modelData.key
-                available: pane.appearance.appearanceAvailable
-                onTriggered: pane.appearance.selectMode(modelData.key)
+        style: pane.style
+        title: "Color mode"
+        iconKind: "appearance"
+        RowLayout {
+            Layout.fillWidth: true
+            spacing: pane.style.spaceSm
+            Repeater {
+                model: [{key: "light", label: "Light", icon: "brightness"},
+                    {key: "dark", label: "Dark", icon: "moon"}, {key: "auto", label: "Automatic", icon: "clock"}]
+                ChoiceButton {
+                    required property var modelData
+                    objectName: "appearance-mode-" + modelData.key
+                    Layout.fillWidth: true
+                    Layout.preferredWidth: 1
+                    style: pane.style
+                    label: modelData.label
+                    iconKind: modelData.icon
+                    filled: true
+                    selected: pane.appearance.selectedMode === modelData.key
+                    available: pane.appearance.appearanceAvailable
+                    onTriggered: pane.appearance.selectMode(modelData.key)
+                }
             }
         }
+        Text {
+            Layout.fillWidth: true
+            text: pane.appearance.automatic
+                ? "Follow sunrise and sunset · " + (pane.appearance.darkMode ? "Dark now" : "Light now")
+                : "Always use " + (pane.appearance.darkMode ? "dark" : "light") + " appearance"
+            wrapMode: Text.Wrap
+            color: pane.style.textSecondary
+            font.family: pane.style.fontFamily
+            font.pixelSize: pane.style.fontSizeSmall
+        }
     }
-    Text {
-        Layout.fillWidth: true
-        text: pane.appearance.automatic
-            ? "Follow sunrise and sunset · " + (pane.appearance.darkMode ? "Dark now" : "Light now")
-            : "Always use " + (pane.appearance.darkMode ? "dark" : "light") + " appearance"
-        wrapMode: Text.Wrap
-        color: pane.style.textSecondary
-        font.family: pane.style.fontFamily
-        font.pixelSize: pane.style.fontSizeSmall
-    }
-    ColumnLayout {
+    GroupCard {
         Layout.fillWidth: true
         visible: pane.appearance.automatic
-        spacing: pane.style.spaceMd
+        style: pane.style
+        title: "Sunrise and sunset"
+        iconKind: "clock"
         Text {
             Layout.fillWidth: true
             text: pane.appearance.overrideUntil > 0
@@ -78,7 +86,7 @@ ColumnLayout {
             color: pane.style.textPrimary
             font.family: pane.style.fontFamily
             font.pixelSize: pane.style.fontSizeBody
-            font.weight: Font.Medium
+            font.weight: Font.DemiBold
         }
         RowLayout {
             Layout.fillWidth: true
@@ -153,7 +161,7 @@ ColumnLayout {
                 Layout.fillWidth: true
                 style: pane.style
                 label: "Apply coordinates"
-                filled: true
+                tone: "primary"
                 onTriggered: {
                     const lat = pane.coordinateDraft.latitude.trim();
                     const lon = pane.coordinateDraft.longitude.trim();

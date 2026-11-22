@@ -12,24 +12,22 @@ RowLayout {
     property bool expanded: true
     readonly property bool hasBattery: services.battery?.isPresent ?? false
     readonly property string powerState: services.batteryDetail(services.battery)
-    spacing: 6
+    spacing: style.spaceMd
         RowLayout {
             id: statusClock
-            Layout.leftMargin: 0
-            Layout.rightMargin: 6
-            spacing: 12
+            spacing: status.style.spaceSm
             Text {
                 text: Qt.formatDateTime(status.date, "HH:mm")
                 color: status.style.textPrimary
                 font.family: status.style.fontFamily
-                font.pixelSize: 18
+                font.pixelSize: status.style.fontSizeSmall
                 font.weight: Font.DemiBold
             }
             Text {
                 text: Qt.formatDateTime(status.date, status.expanded ? "MMM d, ddd" : "M/d")
                 color: status.style.textSecondary
                 font.family: status.style.fontFamily
-                font.pixelSize: status.style.fontSizeBody
+                font.pixelSize: status.style.fontSizeSmall
                 font.weight: Font.Normal
             }
             HoverHandler { id: clockHover }
@@ -42,13 +40,13 @@ RowLayout {
         Item {
             id: powerLabel
             visible: status.hasBattery
-            Layout.preferredWidth: batteryContents.implicitWidth + 12
-            Layout.preferredHeight: 36
+            Layout.preferredWidth: batteryContents.implicitWidth
+            Layout.preferredHeight: batteryContents.implicitHeight
             Accessible.name: "Battery " + Math.round((status.services.battery?.percentage ?? 0) * 100) + "% · " + status.powerState
             RowLayout {
                 id: batteryContents
                 anchors.centerIn: parent
-                spacing: 8
+                spacing: status.style.spaceXs
                 BatteryGlyph {
                     level: status.services.battery?.percentage ?? 0
                     charging: status.services.battery?.state === UPowerDeviceState.Charging
@@ -59,7 +57,7 @@ RowLayout {
                     text: Math.round((status.services.battery?.percentage ?? 0) * 100) + "%"
                     color: status.style.textPrimary
                     font.family: status.style.fontFamily
-                    font.pixelSize: 18
+                    font.pixelSize: status.style.fontSizeSmall
                     font.weight: Font.DemiBold
                 }
             }

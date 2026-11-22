@@ -14,7 +14,7 @@ Rectangle {
     // neutral: navigation/expanded choices; toggle: local on-state icon;
     // primary: the single emphasized form action; danger: destructive action.
     property string tone: "neutral"
-    readonly property color contentInk: tone === "primary" ? style.accentInk : tone === "danger" ? style.danger
+    readonly property color contentInk: tone === "primary" ? (available ? style.accentInk : style.textMuted) : tone === "danger" ? style.danger
         : selected ? style.textSelected : style.textSecondary
     readonly property color iconInk: tone === "toggle" && selected ? style.accent : contentInk
     property bool available: true
@@ -47,12 +47,12 @@ Rectangle {
     implicitHeight: compact ? style.compactControlHeight : style.controlHeight
     implicitWidth: compact && !label ? implicitHeight : 0
     radius: style.radiusControl
-    color: tone === "primary" ? (mouse.containsMouse && available ? Qt.darker(style.accent, 1.10) : style.accent)
+    color: tone === "primary" ? (!available ? style.surfaceHover : mouse.containsMouse ? Qt.darker(style.accent, 1.10) : style.accent)
         : selected ? style.surfaceSelected
         : (mouse.containsMouse && available ? style.surfaceHover : filled ? choice.filledColor : "transparent")
     border.width: activeFocus ? 1 : 0
     border.color: tone === "primary" ? style.textPrimary : style.accent
-    opacity: available ? 1 : 0.45
+    opacity: available || tone === "primary" ? 1 : 0.45
 
     Behavior on color { ColorAnimation { duration: 120 } }
 

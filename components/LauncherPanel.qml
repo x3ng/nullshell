@@ -31,6 +31,7 @@ PanelWindow {
     property string layerNamespace: "quickshell-launcher"
     property string windowTitleSuffix: "nullshell"
     property real maximumCardWidth: style.maximumPanelWidth
+    readonly property real surfaceOpacity: style.darkMode ? style.glassOpacity : Math.max(0.94, style.glassOpacity)
     readonly property rect cardGeometry: Qt.rect(card.x, card.y, card.width, card.height)
     property bool open: false
     property string homeTab: "overview"
@@ -270,19 +271,15 @@ PanelWindow {
         id: card
         objectName: "launcher-card"
         materialTheme: panel.style
-        materialOpacity: panel.style.glassOpacity
+        materialOpacity: panel.surfaceOpacity
         enabled: panel.open
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.top: parent.top
         // Keep the search field stationary as status/search content changes height.
         anchors.topMargin: Math.max(16, Math.round(parent.height * 0.18))
         width: Math.min(panel.maximumCardWidth, parent.width - 32)
-        // Header content is centered in the full stripHeight band. The footer
-        // combines its content gap and bottom inset into the same-sized band.
-        readonly property int topPadding: panel.showingDetails || panel.showingWorkspace
-            ? panel.style.panelPadding : 0
-        readonly property int bottomPadding: panel.showingDetails || panel.showingWorkspace
-            ? panel.style.panelPadding : panel.style.spaceMd
+        readonly property int inset: panel.style.panelPadding
+        readonly property int bottomInset: panel.activePage === panel.pageIndexes.overview ? panel.style.spaceMd : inset
         readonly property real contentHeight: panel.showingDetails ? controlDetails.naturalHeight
             : panel.searching ? searchResultsPage.naturalHeight
             : panel.homeTab === "desktop" ? desktopPage.naturalHeight
@@ -293,7 +290,7 @@ PanelWindow {
         // Fit the active page; long content scrolls under the shared screen limit.
         readonly property real targetHeight: Math.max(0, Math.min(panel.style.maximumPanelHeight,
             parent.height - anchors.topMargin - 16,
-            contentHeight + chromeHeight + card.topPadding + card.bottomPadding))
+            contentHeight + chromeHeight + card.inset + card.bottomInset))
         property real layoutHeight: 0
         Binding {
             target: card
@@ -321,36 +318,38 @@ PanelWindow {
             // Lay out once at the destination height. The animated outer card
             // reveals/clips it instead of squeezing every row on every frame.
             anchors { left: parent.left; right: parent.right; top: parent.top }
-            anchors.margins: panel.style.panelPadding
-            anchors.topMargin: card.topPadding
-            height: Math.max(0, card.layoutHeight - card.topPadding - card.bottomPadding)
+            anchors.margins: card.inset
+            height: Math.max(0, card.layoutHeight - card.inset - card.bottomInset)
             spacing: panel.style.panelGap
 
             Rectangle {
                 id: searchStrip
+                objectName: "launcher-search"
                 visible: !panel.showingDetails && !panel.showingWorkspace
                 Layout.fillWidth: true
-                implicitHeight: panel.style.stripHeight
+                implicitHeight: panel.style.fieldHeight
                 Layout.preferredHeight: implicitHeight
                 Layout.minimumHeight: implicitHeight
                 Layout.maximumHeight: implicitHeight
                 radius: panel.style.radiusInput
-                color: "transparent"
-                Rectangle {
-                    anchors { left: parent.left; right: parent.right; bottom: parent.bottom }
-                    height: 1
-                    color: panel.style.separator
+                color: panel.style.inputSurface
+                border.color: panel.style.separator
+                StatusIcon {
+                    anchors.left: parent.left
+                    anchors.leftMargin: panel.style.spaceMd
+                    anchors.verticalCenter: parent.verticalCenter
+                    width: 18; height: 18
+                    kind: "search"
+                    ink: panel.style.textSecondary
                 }
                 EmacsInput {
                     id: search
                     anchors.fill: parent
-                    anchors.leftMargin: panel.style.spaceSm
-                    anchors.rightMargin: panel.commandScope ? scopeHints.implicitWidth + 16 : 4
-                    anchors.topMargin: panel.style.spaceSm
-                    anchors.bottomMargin: panel.style.spaceSm
+                    anchors.leftMargin: 40
+                    anchors.rightMargin: scopeHints.visible ? scopeHints.implicitWidth + 16 : panel.style.spaceMd
                     verticalAlignment: TextInput.AlignVCenter
                     font.family: panel.style.fontFamily
-                    font.pixelSize: 18
+                    font.pixelSize: panel.style.fontSizeBody
                     color: panel.style.textPrimary
                     selectionColor: panel.style.surfaceSelected
                     selectedTextColor: panel.style.textSelected
@@ -373,18 +372,21 @@ PanelWindow {
                 }
                 RowLayout {
                     anchors.fill: parent
-                    anchors.leftMargin: panel.style.spaceSm
-                    anchors.rightMargin: 4
-                    spacing: 12
+                    anchors.leftMargin: search.anchors.leftMargin
+                    anchors.rightMargin: panel.style.spaceSm
+                    spacing: panel.style.spaceSm
                     visible: panel.commandScope || (search.text.length === 0 && search.preeditText.length === 0)
-                    SearchStatus {
+                    Text {
+                        Layout.fillWidth: true
+                        Layout.minimumWidth: 0
                         visible: !panel.commandScope
-                        style: panel.style
-                        services: panel.services
-                        date: panel.displayDate
-                        expanded: searchStrip.width >= 600
+                        text: searchStrip.width >= 600 ? "Search apps, windows and commands" : "Search…"
+                        elide: Text.ElideRight
+                        color: panel.style.textMuted
+                        font.family: panel.style.fontFamily
+                        font.pixelSize: panel.style.fontSizeBody
                     }
-                    Item { Layout.fillWidth: true; Layout.minimumWidth: 0 }
+                    Item { visible: panel.commandScope; Layout.fillWidth: true; Layout.minimumWidth: 0 }
                     RowLayout {
                         id: scopeHints
                         spacing: 6
@@ -413,12 +415,28 @@ PanelWindow {
                                 Text {
                                     id: hintText
                                     anchors.centerIn: parent
-                                    text: scopeHint.hint.prefix + (panel.commandScope || searchStrip.width >= 600 ? " " + scopeHint.hint.label : "")
+                                    text: scopeHint.hint.prefix + (panel.commandScope ? " " + scopeHint.hint.label : "")
                                     color: panel.style.textSecondary
                                     font.family: panel.style.fontFamily
                                     font.pixelSize: panel.style.fontSizeLabel
                                 }
                             }
+                        }
+                        Rectangle {
+                            visible: searchStatus.visible
+                            Layout.preferredWidth: 1
+                            Layout.preferredHeight: panel.style.spaceLg
+                            Layout.rightMargin: panel.style.spaceXs
+                            color: panel.style.separator
+                        }
+                        SearchStatus {
+                            id: searchStatus
+                            objectName: "search-status"
+                            visible: !panel.commandScope
+                            style: panel.style
+                            services: panel.services
+                            date: panel.displayDate
+                            expanded: searchStrip.width >= 600
                         }
                     }
                 }
@@ -447,11 +465,9 @@ PanelWindow {
                 currentIndex: panel.activePage
                 OverviewPage {
                     id: overviewPage
-                    date: panel.displayDate
                     style: panel.style
                     services: panel.services
                     actions: panel.actions
-                    appearance: panel.appearance
                     notifs: panel.notifs
                     searchModel: panel.searchModel
                     controls: panel.hyprControls
