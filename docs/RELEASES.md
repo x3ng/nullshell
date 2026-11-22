@@ -11,11 +11,20 @@ idle desktop and existing homepage layout:
 - Add one-hour notification quiet periods with critical-alert exceptions and
   restart-safe expiry. History defaults to seven days (still at most 50 entries),
   excludes transient hints by default, and supports opt-out and per-app exclusions.
+- Schedule automatic appearance offline from the time zone or fixed coordinates;
+  IP location is optional. Publish the effective preference through Settings.
+- Add an opt-in Hyprland display editor with trial, confirmation and rollback.
+  Hyprland restores confirmed layouts without a running shell.
+- Add GUI idle timer editing with per-domain persistence and reset to
+  configuration defaults; the system suspend and lid policy is unchanged.
 
 Validation: portable checks, private-bus configuration/command tests, isolated
 keyboard previews with inspected 440/740 px screenshots in both palettes, and a
 real systemd application-launch VM. Native tray application compatibility and
 physical-device acceptance remain separate from synthetic preview checks.
+The display and idle pages have their own preview and state tests. Nested
+Hyprland covers display persistence and virtual hotplug; it does not substitute
+for real external connectors, lid or resume testing.
 
 Keep upstream Quickshell and native named configuration discovery. Install the
 helper/runtime independently of user QML; greeter resources remain separate.
@@ -51,9 +60,8 @@ actual preview mapping and production-service isolation. Physical Bluetooth,
 GPU and suspend behavior remain hardware acceptance boundaries; aarch64 builds
 and other distributions have not been exercised in this release run.
 
-This is a source release. No consumer nix-config or dotfiles update and no host
-activation is part of publishing it. The withdrawn experimental v0.1.2–v0.1.10
-tags are not reused.
+This is a source release. Publishing it does not update consumer configurations
+or activate a host. The withdrawn experimental v0.1.2–v0.1.10 tags are not reused.
 
 ## v0.1.1
 

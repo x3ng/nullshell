@@ -10,9 +10,20 @@ The CLI dispatches to the following modules in `backend/src/`.
 | `settings-portal` | `settings_portal.rs` | D-Bus activated Settings backend, reading the desktop’s published mode |
 | `appearance-export`, `wallpaper-export` | `appearance.rs`, `wallpaper.rs` | One validated snapshot publication per invocation |
 | `solar`, `timezone`, `location` | `solar.rs`, `timezone.rs`, `location.rs` | One solar calculation, offline time-zone estimate, or coarse HTTPS IP lookup per invocation |
+| `displays` | `displays.rs`, `display_restore.lua` | Read-only Hyprland inventory or layout plan, with generated restoration rules |
 
 Compatibility is defined by each command’s argv, protocol and exit behavior.
 The Cargo package and QML configuration have independent build and release paths.
+
+## Displays
+
+`displays outputs` reads the current compositor inventory and supported modes.
+`displays plan FILE [NAME]` matches an existing profile; `displays draft JSON`
+validates an editor draft against the current connectors and modes. These
+commands emit versioned JSON, do not apply the plan and do not write files.
+Restore records are sensitive to the physical output set and can contain
+monitor serials. Hyprland, not the helper, owns application and confirmation.
+See [DISPLAYS.md](DISPLAYS.md) for the loader and rollback contract.
 
 ## Sleep coordination
 

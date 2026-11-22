@@ -8,20 +8,30 @@ With Python 3, Cargo and Quickshell installed, no Nix evaluation is needed:
 make check
 make check-command
 make check-backend
+make check-idle
+make check-displays # also requires LuaJIT
 cargo clippy --locked --manifest-path backend/Cargo.toml -- -D warnings
 # Inside a Wayland compositor (starts and closes only its fixture preview):
 make check-preview
 python3 tests/test_panel_preview.py --appearance-only
+python3 tests/test_panel_preview.py --displays-only
+python3 tests/test_panel_preview.py --idle-only
 python3 tests/test_panel_preview.py --screenshots /tmp/nullshell-preview
 ```
 
-The preview test requires Quickshell on PATH; screenshots additionally require
-`grim`. `--keyboard` additionally uses `wtype`, preferably inside a nested/test
+The preview test requires Quickshell on PATH; screenshots require Pillow and
+some detached-window captures also use `grim`. `--keyboard` uses `wtype`, preferably inside a nested/test
 compositor so synthetic keys cannot interfere with other work. It exercises the
 same QML panel with mock states, checks routing and settled geometry, selection
 identity across title updates, resize/palette changes, logs and process cleanup.
 It does not claim to prove hover stability from a result count or screenshot.
 The test refuses to attach to an existing preview instance.
+
+`make check-idle` exercises the real preference store offscreen, including
+reset and failed writes; it never triggers a lock, display power-off or suspend.
+`make check-displays` uses a fake compositor command and real QML/helper calls.
+The optional nested Hyprland check in [DISPLAYS.md](DISPLAYS.md) exercises real
+layout changes on virtual outputs, including restoration without nullshell.
 
 `make check-command` additionally requires D-Bus and Python dbus-next (available
 in `nix develop`). It stages real search/config/notification/launcher modules in

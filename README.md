@@ -26,11 +26,18 @@ git clone git@github.com:x3ng/nullshell.git ~/.config/quickshell/nullshell
 Nix 默认包就是 `packages.runtime`：安装上游 Quickshell、helper、启动器和依赖，
 不携带用户 QML，不包装全局 Quickshell，不主动管理用户配置。
 用户可以自行使用 Home Manager 管理配置；这不是安装前提，当前也没有专用 HM 模块。
-本机个人 nix-config 仍只安装软件和提供必要环境，配置由外部管理。
 `packages.helper` 可单独安装；`packages.greeter` 使用独立的系统资源快照。
 用户启动器使用原生 `-c nullshell`（以及 `nullshell/lock`、`nullshell/polkit`）。
-helper 与 QML 只需接口兼容，无需同一 Git 提交。
+helper 与 QML 只需接口兼容；用到新 helper 命令的 QML 需要一起更新运行环境。
 启动不会自动导入旧配置或状态；需要迁移时显式执行 `nullshell migrate-state`。
+
+## 桌面设置
+
+在命令面板搜索 **Appearance settings**、**Display settings** 或 **Idle and sleep settings**：
+
+- [外观](docs/APPEARANCE.md)：深浅色和日出日落，默认可离线按时区估算。
+- [显示器](docs/DISPLAYS.md)：排列、模式、缩放与镜像。需要显式启用 Hyprland 加载入口；确认过的布局由 Hyprland 独立恢复。
+- [空闲计时](docs/CONFIGURATION.md)：调暗、锁屏、息屏以及暂停计时；不改变合盖或系统挂起策略。
 
 - [架构与迁移规范](docs/SPEC.md)
 - [配置格式与热加载](docs/CONFIGURATION.md)

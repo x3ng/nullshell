@@ -18,15 +18,9 @@ Scope {
     property string error: ""
     property var pending: null
 
-    function checked(value) {
-        if (!value || Object.keys(value).sort().join(",") !== "dimSeconds,displayOffSeconds,lockSeconds")
-            throw new Error("Expected all three idle deadlines");
-        return Rules.parse(JSON.stringify({version:1, idle:value})).idle;
-    }
-
     function store(value): bool {
         if (!ready || saving) return false;
-        try { pending = value === null ? null : checked(value); }
+        try { pending = value === null ? null : Rules.idleDeadlines(value, true); }
         catch (_) {
             error = "Use whole seconds with dimming before locking and locking before display off.";
             return false;
@@ -47,7 +41,7 @@ Scope {
             try {
                 const data = JSON.parse(text());
                 if (data.version !== 1 || Object.keys(data).sort().join(",") !== "idle,version") throw new Error();
-                root.savedValues = data.idle === null ? null : root.checked(data.idle);
+                root.savedValues = data.idle === null ? null : Rules.idleDeadlines(data.idle, true);
             } catch (_) { root.error = "Could not read saved idle preferences; using configuration defaults."; }
             root.ready = true;
         }

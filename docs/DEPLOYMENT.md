@@ -44,6 +44,12 @@ by default; fixed coordinates also work offline. Opt-in IP location requires
 `curl`. None of these modes requires a system location service.
 See [APPEARANCE.md](APPEARANCE.md).
 
+Display editing requires an explicit Hyprland include; installation does not
+add it. The shell manages trial and confirmation, while Hyprland restores the
+confirmed layout independently. See [DISPLAYS.md](DISPLAYS.md). Idle timeouts
+are desktop preferences; no login manager or hardware power policy is changed
+by editing them.
+
 ## State
 
 Only an explicit `nullshell migrate-state` command performs a locked, one-time import of known files from

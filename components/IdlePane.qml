@@ -3,6 +3,7 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Layouts
 import ".."
+import "../ConfigRules.js" as Rules
 
 ColumnLayout {
     id: pane
@@ -11,6 +12,7 @@ ColumnLayout {
     required property var preferences
     required property var services
     property var draft: ({})
+    property var observed: ({})
     readonly property var rows: [
         {key:"dimSeconds", label:"Dim display after"},
         {key:"lockSeconds", label:"Lock screen after"},
@@ -18,14 +20,14 @@ ColumnLayout {
     ]
     readonly property var numbers: ({dimSeconds: Number(draft.dimSeconds), lockSeconds: Number(draft.lockSeconds),
         displayOffSeconds: Number(draft.displayOffSeconds)})
-    readonly property bool valid: Object.values(numbers).every(n => Number.isInteger(n) && n >= 1 && n <= 86400)
-        && numbers.dimSeconds < numbers.lockSeconds && numbers.lockSeconds < numbers.displayOffSeconds
-    readonly property bool changed: JSON.stringify(numbers) !== JSON.stringify(preferences.values)
+    readonly property bool valid: Rules.validIdleDeadlines(numbers)
+    readonly property bool changed: rows.some(row => numbers[row.key] !== preferences.values[row.key])
     spacing: style.spaceSm
 
     function resetDraft() {
         const fields = {};
         for (const row of rows) fields[row.key] = String(preferences.values[row.key]);
+        observed = preferences.values;
         draft = fields;
     }
     function edit(key, text) {
@@ -34,7 +36,12 @@ ColumnLayout {
     Component.onCompleted: resetDraft()
     Connections {
         target: pane.preferences
-        function onValuesChanged() { pane.resetDraft(); }
+        function onOverriddenChanged() { pane.resetDraft(); }
+        function onValuesChanged() {
+            // A config reload can reallocate an unchanged idle object. Do not
+            // discard an in-progress edit when only unrelated settings changed.
+            if (pane.rows.some(row => pane.observed[row.key] !== pane.preferences.values[row.key])) pane.resetDraft();
+        }
     }
 
     component Hint: Text {
@@ -82,7 +89,7 @@ ColumnLayout {
                 Layout.preferredWidth: 84
                 enabled: pane.preferences.ready && !pane.preferences.saving
                 inputMethodHints: Qt.ImhDigitsOnly
-                validator: IntValidator { bottom: 1; top: 86400; locale: "C" }
+                validator: IntValidator { bottom: 1; top: Rules.idleMaximumSeconds(); locale: "C" }
                 text: pane.draft[entry.modelData.key] ?? ""
                 Accessible.name: entry.modelData.label + " (seconds)"
                 onTextEdited: pane.edit(entry.modelData.key, text)

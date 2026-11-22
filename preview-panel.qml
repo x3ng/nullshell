@@ -215,6 +215,7 @@ ShellRoot {
             editor.edit(key, value);
             return true;
         }
+        function idleReloadUnchanged(): void { idleFixture.values = Object.assign({}, idleFixture.values); }
         function shortcutCount(): int { return root.control("shortcut-list")?.matches.length ?? -1; }
         function coordinate(name: string, value: string): bool {
             const item = root.control("appearance-" + name);

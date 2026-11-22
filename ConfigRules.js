@@ -15,6 +15,33 @@ function object(value, name, keys) {
         if (!keys.includes(key)) throw new Error("Unknown " + name + " field: " + key);
 }
 
+function idleMaximumSeconds() { return 86400; }
+
+// Static config may specify only some deadlines; a UI override is a complete
+// snapshot so later changes to the defaults cannot invalidate its ordering.
+function idleDeadlines(input, complete) {
+    const result = defaults().idle;
+    const keys = Object.keys(result);
+    object(input, "idle", keys);
+    const supplied = Object.keys(input);
+    if (complete && supplied.length !== keys.length)
+        throw new Error("Expected all three idle deadlines");
+    for (const key of supplied) {
+        const value = input[key];
+        if (!Number.isInteger(value) || value < 1 || value > idleMaximumSeconds())
+            throw new Error("idle." + key + " must be an integer from 1 to " + idleMaximumSeconds());
+        result[key] = value;
+    }
+    if (!(result.dimSeconds < result.lockSeconds && result.lockSeconds < result.displayOffSeconds))
+        throw new Error("Idle deadlines must satisfy dim < lock < display off");
+    return result;
+}
+
+function validIdleDeadlines(input) {
+    try { idleDeadlines(input, true); return true; }
+    catch (_) { return false; }
+}
+
 function parse(text) {
     const input = JSON.parse(text);
     object(input, "config", ["version", "terminal", "idle", "appearance", "displays", "search", "notifications"]);
@@ -62,18 +89,7 @@ function parse(text) {
             throw new Error("terminal must be an argv array (or [] to disable terminal launches)");
         result.terminal = input.terminal.slice();
     }
-    if (input.idle !== undefined) {
-        object(input.idle, "idle", Object.keys(result.idle));
-        for (const key of Object.keys(input.idle)) {
-            const value = input.idle[key];
-            if (!Number.isInteger(value) || value < 1 || value > 86400)
-                throw new Error("idle." + key + " must be an integer from 1 to 86400");
-            result.idle[key] = value;
-        }
-    }
-    if (!(result.idle.dimSeconds < result.idle.lockSeconds
-        && result.idle.lockSeconds < result.idle.displayOffSeconds))
-        throw new Error("Idle deadlines must satisfy dim < lock < display off");
+    if (input.idle !== undefined) result.idle = idleDeadlines(input.idle, false);
     if (input.appearance !== undefined) {
         object(input.appearance, "appearance", Object.keys(result.appearance));
         Object.assign(result.appearance, input.appearance);

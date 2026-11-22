@@ -166,6 +166,7 @@ def main():
             settle()
             screenshot("idle-" + width)
         assert call("idleValue", "lockSeconds", "100") == "true"
+        call("idleReloadUnchanged")
         assert call("activateControl", "idle-save") == "false"
         assert call("idleValue", "dimSeconds", "60") == "true"
         assert call("activateControl", "idle-save") == "true"
