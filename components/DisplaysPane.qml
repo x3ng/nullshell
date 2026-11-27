@@ -153,9 +153,12 @@ ColumnLayout {
     Component.onCompleted: { reset(); service.refreshEditor(); }
     Connections {
         target: pane.service
-        // A late inventory must not discard an edit in progress.
+        // Adding or removing a display reloads the draft; a value-only update must
+        // not discard an edit in progress.
         function onEditorOutputsChanged() {
-            if (pane.reloadAfterTrial || (!pane.changes.length && !pane.invalidNumbers)) {
+            const reported = pane.service.editorOutputs.map(item => item.name).join(",");
+            const editing = pane.draft.map(item => item.name).join(",");
+            if (pane.reloadAfterTrial || reported !== editing || (!pane.changes.length && !pane.invalidNumbers)) {
                 pane.reloadAfterTrial = false;
                 pane.reset();
             } else pane.outcome = "Displays changed; discard edits to reload";

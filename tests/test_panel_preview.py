@@ -306,15 +306,25 @@ def main():
             screenshot("displays-three-" + width)
         assert call("displaySelect", "2") == "true"
         assert call("displayValue", "scale", "1.25") == "true"
+        # Scaling shrinks the portrait display away from the centre one, so the
+        # trial is refused until Arrange restores contact.
+        assert [issue["kind"] for issue in json.loads(call("displayIssues"))] == ["detached"], state()
+        assert call("activateControl", "displays-test") == "false", "A detached display must not be tested"
+        assert call("activateControl", "displays-tidy") == "true"
+        assert json.loads(call("displayIssues")) == [], state()
         assert call("activateControl", "displays-test") == "true"
         preview = settle()
         assert {d["name"]: d["scale"] for d in preview["displayDraft"]} == {"eDP-1": 1, "DP-1": 1, "HDMI-A-1": 1.25}, preview
-        assert preview["displayTrialChanges"] == [{"name": "HDMI-A-1", "rows": [{"label": "Scale", "value": "1× → 1.25×"}]}], preview
+        # Arrange moved the display flush, so the summary reports the new position too.
+        assert preview["displayTrialChanges"] == [{"name": "HDMI-A-1", "rows": [{"label": "Scale", "value": "1× → 1.25×"},
+            {"label": "Position", "value": "-864, -456"}]}], preview
         assert call("activateControl", "displays-revert") == "true"
         assert settle()["displayPhase"] == "idle"
         assert call("activateControl", "displays-test") == "false"
 
-        assert call("displayValue", "x", "-1200") == "true"
+        # Any valid unsaved edit will do; sliding along the shared edge stays flush.
+        assert call("displayValue", "y", "-200") == "true"
+        assert json.loads(call("displayIssues")) == [], state()
         assert call("activateControl", "detach-page") == "true"
         assert "displays" in settle()["detached"]
         initial = json.loads(call("detailGeometry", "displays"))
@@ -337,7 +347,7 @@ def main():
         assert narrow["arrangementHeight"] < initial["arrangementHeight"], (initial, narrow)
         assert narrow["contentHeight"] > narrow["viewportHeight"], narrow
         assert call("activateControl", "displays-test") == "true"
-        assert settle()["displayDraft"][2]["x"] == -1200
+        assert settle()["displayDraft"][2]["y"] == -200
         assert call("activateControl", "displays-revert") == "true"
         call("closeDetached", "displays")
         assert "displays" not in settle()["detached"]
