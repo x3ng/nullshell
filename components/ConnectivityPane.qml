@@ -83,7 +83,6 @@ ColumnLayout {
         Layout.fillWidth: true
         visible: !pane.wifi && !!pane.system.pairingDevice
         style: pane.style
-        border.color: pane.style.accent
         Text {
             Layout.fillWidth: true
             text: "Pair with " + (pane.system.pairingDevice?.name || pane.system.pairingDevice?.address || "device")
@@ -129,14 +128,18 @@ ColumnLayout {
         }
         RowLayout {
             Layout.fillWidth: true
+            spacing: pane.style.spaceSm
             ChoiceButton {
                 Layout.fillWidth: true
+                Layout.preferredWidth: 1
                 style: pane.style
+                filled: true
                 label: "Cancel pairing"
                 onTriggered: pane.system.cancelBluetoothPairing()
             }
             ChoiceButton {
                 Layout.fillWidth: true
+                Layout.preferredWidth: 1
                 style: pane.style
                 filled: true
                 selected: true
@@ -164,7 +167,6 @@ ColumnLayout {
         Layout.fillWidth: true
         visible: !!pane.selectedDevice && pane.system.pairingDevice !== pane.selectedDevice
         style: pane.style
-        border.color: pane.style.accent
         RowLayout {
             Layout.fillWidth: true
             Text {
@@ -179,9 +181,11 @@ ColumnLayout {
             }
             ChoiceButton {
                 Layout.preferredWidth: 28
+                Layout.preferredHeight: 28
                 style: pane.style
                 label: ""
                 iconKind: "close"
+                tooltip: "Close"
                 onTriggered: { pane.selectedKey = ""; password.clear(); }
             }
         }
@@ -222,9 +226,10 @@ ColumnLayout {
             spacing: pane.style.spaceSm
             ChoiceButton {
                 Layout.fillWidth: true
+                Layout.preferredWidth: 1
                 style: pane.style
                 filled: true
-                selected: true
+                selected: !pane.selectedDevice?.connected
                 label: pane.selectedBusy ? "Working…" : pane.selectedDevice?.connected ? "Disconnect"
                     : !pane.wifi && !pane.selectedDevice?.paired ? "Pair & connect" : "Connect"
                 objectName: pane.wifi ? "wifi-connect" : "bluetooth-connect"
@@ -239,7 +244,9 @@ ColumnLayout {
             }
             ChoiceButton {
                 Layout.fillWidth: true
+                Layout.preferredWidth: 1
                 style: pane.style
+                filled: true
                 label: pane.confirmForget ? "Confirm forget" : "Forget"
                 tone: pane.confirmForget ? "danger" : "neutral"
                 visible: pane.wifi ? (pane.selectedDevice?.known ?? false) : (pane.selectedDevice?.paired ?? false)

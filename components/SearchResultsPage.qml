@@ -46,15 +46,9 @@ ColumnLayout {
             color: page.style.textMuted
             font.family: page.style.fontFamily
             font.pixelSize: page.style.fontSizeLabel
+            font.weight: Font.Medium
         }
         Item { Layout.fillWidth: true }
-        Text {
-            visible: page.width >= 520 && page.searchModel.scope === "ALL"
-            text: "> Commands    @ Windows    / Applications"
-            color: page.style.textMuted
-            font.family: page.style.fontFamily
-            font.pixelSize: page.style.fontSizeLabel
-        }
         Text {
             text: page.results.length === 1 ? "1 result" : page.results.length + " results"
             color: page.style.textMuted

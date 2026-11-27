@@ -227,7 +227,7 @@ ColumnLayout {
             label: "Arrange"
             tooltip: "Move the reported display to the nearest flush position"
             filled: true
-            filledColor: pane.style.surfaceSelected
+            selected: true
             visible: pane.issues.length > 0 && !pane.busy
             onTriggered: pane.tidy()
         }
@@ -293,16 +293,13 @@ ColumnLayout {
             style: pane.style
             stretchContent: editor.wide
             pad: editor.wide ? pane.style.spaceMd : pane.style.spaceSm
-            title: "Arrangement"
-            iconKind: "window"
-            caption: editor.wide ? pane.draft.length + (pane.draft.length === 1 ? " display" : " displays") : "Drag to arrange"
             DisplayArrangement {
                 objectName: "display-arrangement"
                 Layout.fillWidth: true
                 Layout.fillHeight: editor.wide
-                Layout.preferredHeight: pane.detachedBodyHeight <= 0 ? (editor.wide ? 184 : 88)
-                    : editor.wide ? Math.max(184, pane.detachedBodyHeight - 72)
-                    : editor.roomy ? Math.max(184, pane.detachedBodyHeight - selectedDisplay.implicitHeight - 82)
+                Layout.preferredHeight: pane.detachedBodyHeight <= 0 ? (editor.wide ? 228 : 104)
+                    : editor.wide ? Math.max(228, pane.detachedBodyHeight - 28)
+                    : editor.roomy ? Math.max(184, pane.detachedBodyHeight - selectedDisplay.implicitHeight - 42)
                     : 112
                 style: pane.style
                 outputs: pane.draft
@@ -311,7 +308,6 @@ ColumnLayout {
                 onOutputSelected: index => pane.selected = index
                 onOutputMoved: (index, x, y) => pane.place(index, x, y)
             }
-            FieldLabel { visible: editor.roomy; text: "Drag to arrange; edges snap. Use X and Y for exact positions." }
         }
         GroupCard {
             id: selectedDisplay
@@ -324,7 +320,6 @@ ColumnLayout {
             pad: editor.wide ? pane.style.spaceMd : pane.style.spaceSm
             // The narrow editor must fit without scrolling, so it keeps 4px between groups.
             contentSpacing: editor.wide ? pane.style.spaceSm : pane.style.spaceXs
-            title: "Selected display"
             RowLayout {
                 Layout.fillWidth: true
                 Picker {

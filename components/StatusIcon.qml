@@ -165,9 +165,32 @@ Canvas {
         } else if (kind === "chevron") {
             c.beginPath(); c.moveTo(7.5, 5); c.lineTo(13, 10); c.lineTo(7.5, 15);
             c.stroke();
+        } else if (kind === "chevron-down") {
+            c.beginPath(); c.moveTo(5.5, 7.5); c.lineTo(10, 12.5); c.lineTo(14.5, 7.5);
+            c.stroke();
         } else if (kind === "back") {
             c.beginPath(); c.moveTo(12.5, 5); c.lineTo(7, 10); c.lineTo(12.5, 15);
             c.stroke();
+        } else if (kind === "logout") {
+            c.beginPath();
+            c.moveTo(9, 4); c.lineTo(5, 4); c.quadraticCurveTo(3.5, 4, 3.5, 5.5);
+            c.lineTo(3.5, 14.5); c.quadraticCurveTo(3.5, 16, 5, 16); c.lineTo(9, 16);
+            c.moveTo(8, 10); c.lineTo(16.5, 10);
+            c.moveTo(13, 6.5); c.lineTo(16.5, 10); c.lineTo(13, 13.5);
+            c.stroke();
+        } else if (kind === "restart") {
+            c.beginPath(); c.arc(10, 10, 6.5, -Math.PI * 0.15, Math.PI * 1.45); c.stroke();
+            c.beginPath(); c.moveTo(13, 3.5); c.lineTo(16.5, 4.5); c.lineTo(15, 8); c.stroke();
+        } else if (kind === "display") {
+            c.strokeRect(2.5, 3.5, 15, 10);
+            c.beginPath();
+            c.moveTo(10, 13.5); c.lineTo(10, 16.5);
+            c.moveTo(6.5, 16.5); c.lineTo(13.5, 16.5);
+            c.stroke();
+        } else if (kind === "wallpaper") {
+            c.strokeRect(3, 4, 14, 12);
+            c.beginPath(); c.arc(7.5, 8, 1.3, 0, Math.PI * 2); c.fill();
+            c.beginPath(); c.moveTo(3.5, 14.5); c.lineTo(8.5, 10.5); c.lineTo(11.5, 13); c.lineTo(14, 11); c.lineTo(16.5, 14.5); c.stroke();
         } else if (kind === "check") {
             c.beginPath(); c.moveTo(4, 11); c.lineTo(8.5, 15.5); c.lineTo(16, 6);
             c.stroke();

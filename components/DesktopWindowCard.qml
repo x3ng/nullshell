@@ -18,6 +18,7 @@ GroupCard {
     readonly property string iconSource: searchModel.desktopIconSource(entry)
     pad: 6
     radius: style.radiusControl
+    border.width: 0
     color: windowMouse.containsMouse ? style.surfaceHover
         : windowData.focused ? style.surfaceSelected : "transparent"
 
@@ -167,7 +168,6 @@ GroupCard {
                     style: card.style
                     label: modelData.name
                     filled: true
-                    filledColor: card.style.surfaceHover
                     available: !card.controls.busy
                     onTriggered: {
                         if (card.controls.moveWindow(card.windowData.address, modelData.address)) card.modeRequested("");
@@ -210,7 +210,6 @@ GroupCard {
                 label: "Close window"
                 tone: "danger"
                 filled: true
-                filledColor: card.style.surfaceHover
                 available: !card.controls.busy
                 onTriggered: {
                     if (card.controls.closeWindow(card.windowData.address)) card.modeRequested("");

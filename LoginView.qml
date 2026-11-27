@@ -154,8 +154,8 @@ Item {
                     height: 48
                     radius: root.theme.radiusInput
                     color: root.theme.inputSurface
-                    border.width: 1
-                    border.color: userInput.activeFocus ? root.theme.accent : root.theme.separator
+                    border.width: userInput.activeFocus ? root.theme.focusWidth : 1
+                    border.color: userInput.activeFocus ? root.theme.focusInk : root.theme.fieldOutline
 
                     TextInput {
                         id: userInput
@@ -190,8 +190,8 @@ Item {
                     height: 48
                     radius: root.theme.radiusInput
                     color: root.theme.inputSurface
-                    border.color: passwordInput.activeFocus ? root.theme.accent : root.theme.separator
-                    border.width: 1
+                    border.color: passwordInput.activeFocus ? root.theme.focusInk : root.theme.fieldOutline
+                    border.width: passwordInput.activeFocus ? root.theme.focusWidth : 1
 
                     TextInput {
                         id: passwordInput

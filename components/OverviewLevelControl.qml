@@ -29,6 +29,7 @@ Item {
             Layout.preferredWidth: 40
             Layout.preferredHeight: 32
             ChoiceButton {
+                id: muteButton
                 anchors.fill: parent
                 visible: level.action !== ""
                 style: level.style
@@ -38,10 +39,10 @@ Item {
                     width: 20; height: 20
                     kind: level.icon
                     muted: level.muted
-                    ink: level.muted ? level.style.textMuted : level.style.textSecondary
+                    ink: muteButton.hovered ? level.style.textPrimary : level.muted ? level.style.textMuted : level.style.textSecondary
                 }
                 tooltip: level.muted ? "Unmute output" : "Mute output"
-                available: level.available
+                available: level.available && level.actions.available(level.action)
                 onTriggered: level.actions.execute(level.action)
             }
             StatusIcon {
@@ -49,7 +50,7 @@ Item {
                 width: 20; height: 20
                 visible: level.action === ""
                 kind: level.icon
-                ink: level.style.textSecondary
+                ink: level.available ? level.style.textSecondary : level.style.textDisabled
             }
         }
         PanelSlider {
@@ -78,6 +79,7 @@ Item {
             Layout.preferredWidth: 28
             Layout.preferredHeight: 32
             ChoiceButton {
+                id: detailsButton
                 anchors.fill: parent
                 visible: level.detailsAction !== ""
                 objectName: level.icon + "-details"
@@ -85,6 +87,8 @@ Item {
                 label: ""
                 iconKind: "chevron"
                 iconSize: 20
+                iconInk: detailsButton.hovered ? level.style.textSecondary : level.style.textMuted
+                available: level.detailsAction !== "" && level.actions.available(level.detailsAction)
                 tooltip: level.detailsTooltip
                 onTriggered: level.actions.execute(level.detailsAction)
             }

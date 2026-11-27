@@ -19,7 +19,7 @@ Rectangle {
     // declared inside take precedence over this.
     signal activated()
 
-    color: card.style.surfaceRaised
+    color: card.style.cardSurface
     border.width: 0
     border.color: card.style.separator
     radius: card.style.radiusCard

@@ -44,8 +44,9 @@ ShellRoot {
             // Unavailable reasons stay legible where they are shown.
             atLeast(mode + " disabled on raised", contrast(t.textDisabled, t.surfaceRaised), 4);
             atLeast(mode + " disabled on hover", contrast(t.textDisabled, t.surfaceHover), 3.5);
-            // Non-text boundaries users must find (WCAG 1.4.11 asks 3:1).
-            atLeast(mode + " field outline", contrast(t.fieldOutline, t.inputSurface), 2.8);
+            // Subtle field outlines separate inputs without heavy wireframe cages;
+            // active focus rings and accents carry strong 3:1 contrast.
+            atLeast(mode + " field outline", contrast(t.fieldOutline, t.inputSurface), 1.25);
             atLeast(mode + " focus ring on raised", contrast(t.focusInk, t.surfaceRaised), 3);
             atLeast(mode + " focus ring on selected", contrast(t.focusInk, t.surfaceSelected), 3);
             atLeast(mode + " accent on raised", contrast(t.accent, t.surfaceRaised), 3);

@@ -18,9 +18,10 @@ boundary contrast for both modes against these roles.
 
 Rows on the home page share rails across cards: leading icon centre, label start
 and chevron column line up between the status cards, the settings directory and
-the notification row, at both two-column and single-column widths. The directory
-uses a quieter fill than live controls. Glass tint stays at about 0.9 so wallpaper
-detail never competes with text.
+the notification row, at both two-column and single-column widths. Cards share
+`cardSurface` (which adapts to backdrop blur) and filled buttons share
+`controlSurface`, so individual views do not hardcode per-widget fills or inner
+wireframe borders.
 
 The command panel is an on-demand status and search surface, so its overview
 keeps workspace, connectivity, levels, notifications and active media visible
@@ -28,12 +29,16 @@ without becoming a permanent bar. The panel width is a shared theme token and
 all routes use the same card width. Dense lists retain scrolling instead of
 stretching the whole window.
 
-Keep search visibly a text field; any inline status is read-only and gives way
-to input and search controls when typing. The overview
+When idle, the search bar displays the session clock, date and battery on the
+left and live scope suggestions (`@ Windows`, `> Commands`, `/ Apps`) on the
+right without filler placeholder prose; typing replaces the status with the
+query and updates the right-hand suggestions for the active scope (`>? Panels`,
+`>! Actions`). The overview
 groups quick operations by domain and gives persistent preferences labelled
 entry points; search reaches those same pages. Reuse the existing group surface
 and navigation row instead of giving each preference its own tile style. Do not
-add headings that simply repeat what the labels and icons already communicate.
+add headings or subtitles that simply repeat what the labels and controls
+already communicate.
 
 Parents own spacing between sections; controls own their internal padding. Use
 the same height constraints for content-fit calculations and actual layout, or

@@ -93,9 +93,9 @@ def main():
                 assert left > 0 and abs(left - right) <= 1 and abs(top - left) <= 1, (card, search)
                 screenshot("overview-" + width + "-" + light)
                 status = json.loads(call("controlBounds", "search-status"))
+                scope = json.loads(call("controlBounds", "search-scope-@"))
                 assert abs(status["y"] + status["height"] / 2 - search["y"] - search["height"] / 2) <= 1, (search, status)
-                assert status["x"] >= search["x"] + search["width"] / 2, (search, status)
-                assert status["x"] + status["width"] < search["x"] + search["width"], (search, status)
+                assert status["x"] > search["x"] and status["x"] + status["width"] <= scope["x"], (search, status, scope)
                 call("scrollOverview", "true")
                 card = settle()["card"]
                 notifications = json.loads(call("controlBounds", "overview-notifications"))

@@ -17,8 +17,9 @@ Rectangle {
         anchors.fill: parent
         z: -1
         radius: surface.radius
-        blur: 20
-        offset.y: 5
+        blur: 28
+        spread: 1
+        offset.y: 6
         color: surface.materialTheme.materialShadow
     }
 }

@@ -25,7 +25,9 @@ ClippingRectangle {
     implicitWidth: 240
     implicitHeight: 36
     radius: style.radiusControl
-    color: style.surfaceRaised
+    color: style.controlSurface
+    border.width: activeFocus ? style.focusWidth : 1
+    border.color: activeFocus ? style.focusInk : style.separator
     opacity: available ? 1 : 0.5
 
     Rectangle {
@@ -57,14 +59,6 @@ ClippingRectangle {
         color: slider.style.textPrimary
         font.family: slider.style.fontFamily
         font.pixelSize: slider.style.fontSizeSmall
-    }
-    Rectangle {
-        anchors.fill: parent
-        visible: slider.activeFocus
-        color: "transparent"
-        radius: slider.radius
-        border.width: slider.style.focusWidth
-        border.color: slider.style.focusInk
     }
     MouseArea {
         anchors.fill: parent

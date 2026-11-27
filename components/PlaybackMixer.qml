@@ -34,6 +34,7 @@ ColumnLayout {
                 Layout.preferredWidth: 72
                 Layout.preferredHeight: 36
                 style: mixer.style
+                filled: true
                 label: selected ? "Unmute" : "Mute"
                 selected: row.audio?.muted ?? false
                 available: !!row.audio

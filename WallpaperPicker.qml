@@ -4,6 +4,7 @@ import QtQuick.Layouts
 import QtQuick.Dialogs
 import QtCore
 import Quickshell
+import Quickshell.Widgets
 import "components"
 
 ColumnLayout {
@@ -44,7 +45,7 @@ ColumnLayout {
             text: "Display"
             color: root.style.textPrimary
             font.family: root.style.fontFamily
-            font.pixelSize: 14
+            font.pixelSize: root.style.fontSizeBody
         }
         Item { Layout.fillWidth: true }
         SettingsSelect {
@@ -57,26 +58,42 @@ ColumnLayout {
             onActivated: root.loadSelection()
         }
     }
-    WallpaperImage {
-        id: preview
-        objectName: "wallpaper-preview"
+    ClippingRectangle {
+        id: previewFrame
         Layout.fillWidth: true
         Layout.alignment: Qt.AlignHCenter
         Layout.maximumWidth: root.detached ? Number.POSITIVE_INFINITY : 540
         implicitHeight: width * 9 / 16
         Layout.minimumHeight: implicitHeight
         Layout.maximumHeight: implicitHeight
-        source: root.wallpaper.urlFor(root.pendingPath)
-        fit: ["cover", "contain", "stretch"][fitChoice.currentIndex] || "cover"
-        fallbackColor: root.style.surfaceRaised
+        radius: root.style.radiusCard
+        color: root.style.surfaceRaised
+        border.width: 1
+        border.color: root.style.separator
+        WallpaperImage {
+            id: preview
+            objectName: "wallpaper-preview"
+            anchors.fill: parent
+            source: root.wallpaper.urlFor(root.pendingPath)
+            fit: ["cover", "contain", "stretch"][fitChoice.currentIndex] || "cover"
+            fallbackColor: root.style.surfaceRaised
+        }
+        StatusIcon {
+            anchors.centerIn: parent
+            width: 24; height: 24
+            visible: !preview.hasFrame
+            kind: "wallpaper"
+            ink: root.style.textMuted
+        }
     }
     Text {
         Layout.fillWidth: true
-        text: root.pendingPath ? (root.pendingPath.startsWith("file://") ? decodeURIComponent(root.pendingPath.split("/").pop()) : root.pendingPath.split("/").pop()) : "Choose an image"
+        visible: root.pendingPath !== ""
+        text: root.pendingPath.startsWith("file://") ? decodeURIComponent(root.pendingPath.split("/").pop()) : root.pendingPath.split("/").pop()
         elide: Text.ElideMiddle
         color: root.style.textSecondary
         font.family: root.style.fontFamily
-        font.pixelSize: 13
+        font.pixelSize: root.style.fontSizeSmall
     }
     Text {
         Layout.fillWidth: true
@@ -85,7 +102,7 @@ ColumnLayout {
         wrapMode: Text.Wrap
         color: root.wallpaper.error ? root.style.danger : root.style.textSecondary
         font.family: root.style.fontFamily
-        font.pixelSize: 13
+        font.pixelSize: root.style.fontSizeSmall
     }
     SettingsActions {
         style: root.style
@@ -93,7 +110,7 @@ ColumnLayout {
             objectName: "wallpaper-choose"
             Layout.fillWidth: true
             Layout.preferredWidth: 140
-            Layout.preferredHeight: 40
+            Layout.preferredHeight: root.style.fieldHeight
             style: root.style
             label: "Choose image…"
             filled: true
@@ -104,7 +121,7 @@ ColumnLayout {
         ChoiceButton {
             objectName: "wallpaper-apply"
             Layout.preferredWidth: 80
-            Layout.preferredHeight: 40
+            Layout.preferredHeight: root.style.fieldHeight
             style: root.style
             tone: "primary"
             label: root.wallpaper.saving ? "Saving…" : "Apply"

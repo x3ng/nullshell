@@ -34,10 +34,9 @@ MaterialSurface {
 
     implicitHeight: content.implicitHeight + pad * 2
     radius: style.radiusCard
-    color: compact ? (hovered ? style.surfaceHover : "transparent")
-        : Qt.alpha(style.surfaceRaised, style.glassOpacity)
+    color: hovered && compact ? style.surfaceHover : style.cardSurface
     // Only focus and critical entries carry an edge; ordinary cards rest on fill.
-    border.width: activeFocus || (critical && !compact) ? 1 : 0
+    border.width: activeFocus ? style.focusWidth : (critical && !compact ? 1 : 0)
     border.color: activeFocus ? style.focusInk : style.accentWarm
     activeFocusOnTab: visible
     Accessible.role: activationLabel ? Accessible.Button : Accessible.ListItem
@@ -172,7 +171,6 @@ MaterialSurface {
                 visible: card.activationLabel !== ""
                 style: card.style
                 filled: true
-                filledColor: card.style.surfaceHover
                 label: card.activationLabel
                 onTriggered: card.activated()
             }
@@ -184,7 +182,6 @@ MaterialSurface {
                     height: 32
                     style: card.style
                     filled: true
-                    filledColor: card.style.surfaceHover
                     textSize: card.style.fontSizeSmall
                     label: modelData.text || "Action"
                     Text {

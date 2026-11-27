@@ -82,7 +82,7 @@ Rectangle {
             style: detail.style
             title: detail.title
             subtitle: detail.subtitle
-            showSubtitle: ["appearance", "displays", "idle", "wallpaper"].includes(detail.section)
+            showSubtitle: false
             backTooltip: detail.detached ? "Close window" : "Back to overview"
             backIcon: detail.detached ? "close" : "back"
             onBackRequested: detail.dismissRequested()
@@ -222,6 +222,7 @@ Rectangle {
                                 Layout.fillWidth: true
                                 Layout.preferredWidth: 1
                                 Layout.preferredHeight: 36
+                                filled: true
                                 style: detail.style
                                 label: modelData
                                 selected: detail.audioTab === modelData

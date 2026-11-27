@@ -186,12 +186,14 @@ Item {
                         visible: !trayIcon.visible
                         text: (trayItem.modelData.title || trayItem.modelData.id || "?").slice(0, 1)
                         color: strip.style.textSecondary
+                        font.family: strip.style.fontFamily
                         font.pixelSize: strip.style.fontSizeBody
                     }
                     MouseArea {
                         id: trayMouse
                         anchors.fill: parent
                         hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor
                         acceptedButtons: Qt.LeftButton | Qt.RightButton
                         onClicked: event => {
                             if (event.button === Qt.RightButton) trayItem.openMenu();

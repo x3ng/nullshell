@@ -31,7 +31,7 @@ PanelWindow {
     property string layerNamespace: "quickshell-launcher"
     property string windowTitleSuffix: "nullshell"
     property real maximumCardWidth: style.maximumPanelWidth
-    readonly property real surfaceOpacity: style.darkMode ? style.glassOpacity : Math.max(0.94, style.glassOpacity)
+    readonly property real surfaceOpacity: style.glassOpacity
     readonly property rect cardGeometry: Qt.rect(card.x, card.y, card.width, card.height)
     property bool open: false
     property string homeTab: "overview"
@@ -96,7 +96,7 @@ PanelWindow {
         homeTab = "overview";
         controlSection = "";
         query = text;
-        Qt.callLater(() => { if (panel.open) search.forceActiveFocus(); });
+        Qt.callLater(() => { if (panel.open) { search.forceActiveFocus(); search.cursorPosition = search.text.length; } });
     }
 
     function toggle() {
@@ -272,6 +272,7 @@ PanelWindow {
         objectName: "launcher-card"
         materialTheme: panel.style
         materialOpacity: panel.surfaceOpacity
+        shadowEnabled: true
         enabled: panel.open
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.top: parent.top
@@ -325,6 +326,9 @@ PanelWindow {
             Rectangle {
                 id: searchStrip
                 objectName: "launcher-search"
+                readonly property bool emptyQuery: search.text.length === 0 && search.preeditText.length === 0
+                readonly property string bareScope: search.preeditText.length === 0
+                    && (panel.query.trim() === "@" || panel.query.trim() === "/") ? panel.query.trim() : ""
                 visible: !panel.showingDetails && !panel.showingWorkspace
                 Layout.fillWidth: true
                 implicitHeight: panel.style.fieldHeight
@@ -333,21 +337,22 @@ PanelWindow {
                 Layout.maximumHeight: implicitHeight
                 radius: panel.style.radiusInput
                 color: panel.style.inputSurface
+                border.width: 1
                 // A typed query strengthens the edge; the default auto-focus stays calm.
-                border.color: search.text.length > 0 ? panel.style.fieldOutline : panel.style.separator
+                border.color: search.text.length > 0 ? panel.style.outline : panel.style.fieldOutline
                 StatusIcon {
                     anchors.left: parent.left
                     anchors.leftMargin: panel.style.spaceMd
                     anchors.verticalCenter: parent.verticalCenter
                     width: 18; height: 18
                     kind: "search"
-                    ink: panel.style.textSecondary
+                    ink: search.text.length > 0 ? panel.style.textPrimary : panel.style.textMuted
                 }
                 EmacsInput {
                     id: search
                     anchors.fill: parent
                     anchors.leftMargin: 40
-                    anchors.rightMargin: scopeHints.visible ? scopeHints.implicitWidth + 16 : panel.style.spaceMd
+                    anchors.rightMargin: scopeHints.visible ? scopeHints.implicitWidth + 14 : panel.style.spaceMd
                     verticalAlignment: TextInput.AlignVCenter
                     font.family: panel.style.fontFamily
                     font.pixelSize: panel.style.fontSizeSearch
@@ -366,8 +371,8 @@ PanelWindow {
                     Keys.onEscapePressed: panel.handleEscape()
                     Accessible.name: "Search apps, windows and commands"
                     cursorDelegate: Rectangle {
-                        implicitWidth: 1
-                        color: panel.style.textPrimary
+                        implicitWidth: 1.5
+                        color: panel.style.accent
                         visible: search.text.length > 0 || search.preeditText.length > 0
                     }
 
@@ -375,20 +380,19 @@ PanelWindow {
                 RowLayout {
                     anchors.fill: parent
                     anchors.leftMargin: search.anchors.leftMargin
-                    anchors.rightMargin: panel.style.spaceSm
+                    anchors.rightMargin: 6
                     spacing: panel.style.spaceSm
-                    visible: panel.commandScope || (search.text.length === 0 && search.preeditText.length === 0)
-                    Text {
-                        Layout.fillWidth: true
-                        Layout.minimumWidth: 0
-                        visible: !panel.commandScope
-                        text: searchStrip.width >= 600 ? "Search apps, windows and commands" : "Search…"
-                        elide: Text.ElideRight
-                        color: panel.style.textMuted
-                        font.family: panel.style.fontFamily
-                        font.pixelSize: panel.style.fontSizeSearch
+                    visible: panel.commandScope || searchStrip.bareScope !== "" || searchStrip.emptyQuery
+                    SearchStatus {
+                        id: searchStatus
+                        objectName: "search-status"
+                        visible: searchStrip.emptyQuery
+                        style: panel.style
+                        services: panel.services
+                        date: panel.displayDate
+                        expanded: searchStrip.width >= 520
                     }
-                    Item { visible: panel.commandScope; Layout.fillWidth: true; Layout.minimumWidth: 0 }
+                    Item { Layout.fillWidth: true; Layout.minimumWidth: 0 }
                     RowLayout {
                         id: scopeHints
                         spacing: panel.style.spaceXs
@@ -398,50 +402,47 @@ PanelWindow {
                                 {prefix: ">?", label: "Panels", filter: "panel"},
                                 {prefix: ">!", label: "Actions", filter: "operation"}
                             ].filter(hint => hint.filter !== panel.commandFilter) : [
-                                {prefix: "@", label: "Windows"},
-                                {prefix: ">", label: "Commands"},
-                                {prefix: "/", label: "Applications"}
-                            ]
+                                {prefix: "@", label: "Windows", shortLabel: "Windows"},
+                                {prefix: ">", label: "Commands", shortLabel: "Commands"},
+                                {prefix: "/", label: "Applications", shortLabel: "Apps"}
+                            ].filter(hint => hint.prefix !== searchStrip.bareScope)
                             ChoiceButton {
                                 id: scopeHint
                                 required property var modelData
-                                readonly property var hint: modelData || ({prefix: "", label: "", filter: ""})
+                                readonly property var hint: modelData || ({prefix: "", label: "", shortLabel: "", filter: ""})
+                                readonly property bool showLabel: panel.commandScope || searchStrip.width >= 560
                                 objectName: panel.commandScope ? "command-filter-" + hint.filter : "search-scope-" + hint.prefix
                                 Layout.preferredHeight: 28
-                                Layout.preferredWidth: Math.max(28, hintText.implicitWidth + 2 * panel.style.spaceSm)
+                                Layout.preferredWidth: Math.max(28, hintRow.implicitWidth + 2 * panel.style.spaceSm)
                                 compact: true
                                 style: panel.style
                                 label: ""
-                                tooltip: "Search " + hint.label.toLowerCase() + " · Type " + hint.prefix + " to filter"
+                                tooltip: panel.commandScope
+                                    ? (hint.filter === "all" ? "All commands · Type >" : hint.label + " · Type " + hint.prefix + " to filter")
+                                    : "Search " + hint.label.toLowerCase() + " · Type " + hint.prefix + " to filter"
                                 Accessible.name: "Search " + hint.label.toLowerCase()
                                 onTriggered: panel.commandScope ? panel.setCommandFilter(hint.filter) : panel.openSearch(hint.prefix + " ")
-                                Text {
-                                    id: hintText
+                                Row {
+                                    id: hintRow
                                     anchors.centerIn: parent
-                                    text: scopeHint.hint.prefix + (panel.commandScope ? " " + scopeHint.hint.label : "")
-                                    color: panel.style.textSecondary
-                                    font.family: panel.style.fontFamily
-                                    font.pixelSize: panel.style.fontSizeLabel
-                                    font.weight: Font.Medium
+                                    spacing: 4
+                                    Text {
+                                        text: scopeHint.hint.prefix
+                                        color: panel.style.accent
+                                        font.family: panel.style.fontFamily
+                                        font.pixelSize: panel.style.fontSizeLabel
+                                        font.weight: Font.DemiBold
+                                    }
+                                    Text {
+                                        visible: scopeHint.showLabel
+                                        text: scopeHint.hint.shortLabel || scopeHint.hint.label
+                                        color: scopeHint.hovered ? panel.style.textPrimary : panel.style.textMuted
+                                        font.family: panel.style.fontFamily
+                                        font.pixelSize: panel.style.fontSizeLabel
+                                        font.weight: Font.Medium
+                                    }
                                 }
                             }
-                        }
-                        Rectangle {
-                            visible: searchStatus.visible
-                            Layout.preferredWidth: 1
-                            Layout.preferredHeight: panel.style.spaceLg
-                            Layout.leftMargin: panel.style.spaceXs
-                            Layout.rightMargin: panel.style.spaceXs
-                            color: panel.style.separator
-                        }
-                        SearchStatus {
-                            id: searchStatus
-                            objectName: "search-status"
-                            visible: !panel.commandScope
-                            style: panel.style
-                            services: panel.services
-                            date: panel.displayDate
-                            expanded: searchStrip.width >= 600
                         }
                     }
                 }

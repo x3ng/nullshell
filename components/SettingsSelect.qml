@@ -21,52 +21,59 @@ Basic.ComboBox {
         verticalAlignment: Text.AlignVCenter
         elide: Text.ElideRight
     }
-    indicator: Text {
+    indicator: StatusIcon {
         x: picker.width - width - picker.style.spaceMd
         y: (picker.height - height) / 2
-        text: "▾"
-        color: picker.style.textSecondary
-        font.pixelSize: picker.style.fontSizeSmall
+        width: 16
+        height: 16
+        kind: "chevron-down"
+        ink: picker.style.textSecondary
     }
     background: Rectangle {
         radius: picker.style.radiusControl
-        color: picker.style.inputSurface
+        color: picker.hovered && picker.enabled ? picker.style.surfaceHover : picker.style.inputSurface
         border.color: picker.activeFocus ? picker.style.focusInk : picker.style.fieldOutline
-        border.width: 1
+        border.width: picker.activeFocus ? picker.style.focusWidth : 1
         opacity: picker.enabled ? 1 : 0.55
     }
     delegate: Basic.ItemDelegate {
         id: option
         required property string modelData
         required property int index
-        width: picker.width - 2
+        width: picker.width - 8
+        implicitHeight: 34
+        leftPadding: picker.style.spaceSm
+        rightPadding: picker.style.spaceSm
         highlighted: picker.highlightedIndex === index
         contentItem: Text {
             text: option.modelData
             font: picker.font
             color: picker.style.textPrimary
+            verticalAlignment: Text.AlignVCenter
             elide: Text.ElideRight
         }
         background: Rectangle {
-            color: option.highlighted || option.hovered ? picker.style.surfaceSelected : picker.style.panelSurface
+            radius: picker.style.radiusSmall
+            color: option.highlighted || option.hovered ? picker.style.surfaceSelected : "transparent"
         }
     }
     popup: Basic.Popup {
-        y: picker.height
+        y: picker.height + 4
         width: picker.width
-        padding: 1
-        implicitHeight: Math.min(240, contentItem.implicitHeight + 2)
+        padding: 4
+        implicitHeight: Math.min(240, contentItem.implicitHeight + 8)
         contentItem: ListView {
             clip: true
+            spacing: 2
             implicitHeight: contentHeight
             model: picker.delegateModel
             currentIndex: picker.highlightedIndex
         }
         background: Rectangle {
-            color: picker.style.panelSurface
-            border.color: picker.style.separator
+            color: picker.style.surfaceRaised
+            border.color: picker.style.outline
             border.width: 1
-            radius: picker.style.radiusControl
+            radius: picker.style.radiusCard
         }
     }
 }

@@ -17,7 +17,7 @@ Rectangle {
 
     Layout.fillWidth: true
     implicitHeight: content.implicitHeight + 2 * style.spaceMd
-    color: style.surfaceRaised
+    color: style.cardSurface
     radius: style.radiusCard
     border.color: Qt.rgba(ink.r, ink.g, ink.b, 0.5)
     border.width: tone === "neutral" ? 0 : 1

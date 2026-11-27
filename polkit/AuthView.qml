@@ -118,8 +118,8 @@ MaterialSurface {
             background: Rectangle {
                 radius: root.theme.radiusInput
                 color: root.theme.inputSurface
-                border.width: 1
-                border.color: secret.activeFocus ? root.theme.accent : root.theme.separator
+                border.width: secret.activeFocus ? root.theme.focusWidth : 1
+                border.color: secret.activeFocus ? root.theme.focusInk : root.theme.fieldOutline
             }
             onAccepted: root.submit()
         }

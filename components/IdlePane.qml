@@ -70,22 +70,20 @@ ColumnLayout {
         detail: !pane.services.keepAwake ? "Actions run after the last input."
             : pane.services.keepAwakeRequested ? "Keep awake is on."
             : "Keep awake until " + Qt.formatTime(new Date(pane.services.keepAwakeUntil), "hh:mm") + "."
-        actions: ChoiceButton {
-            objectName: "idle-keep-awake"
-            Layout.preferredWidth: 115
-            style: pane.style
-            label: pane.services.keepAwake ? "Resume timers" : "Keep awake"
-            filled: true
-            filledColor: pane.style.surfaceSelected
-            available: pane.services.keepAwakeReady
-            onTriggered: pane.services.setKeepAwake(!pane.services.keepAwake)
-        }
+    actions: ChoiceButton {
+        objectName: "idle-keep-awake"
+        Layout.preferredWidth: 115
+        style: pane.style
+        label: pane.services.keepAwake ? "Resume timers" : "Keep awake"
+        filled: true
+        selected: pane.services.keepAwake
+        available: pane.services.keepAwakeReady
+        onTriggered: pane.services.setKeepAwake(!pane.services.keepAwake)
+    }
     }
     GroupCard {
         Layout.fillWidth: true
         style: pane.style
-        title: "After inactivity"
-        caption: "min:sec"
         ColumnLayout {
             Layout.fillWidth: true
             spacing: 0

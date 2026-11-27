@@ -36,11 +36,10 @@ Rectangle {
     readonly property bool hovered: mouse.containsMouse && available
     color: selectionOnly && selected ? (hovered ? style.surfaceSelectedHover : style.surfaceSelected)
         : hovered ? style.surfaceHover
-        : selectionOnly || expanded ? style.surfaceRaised : "transparent"
+        : selectionOnly || expanded ? style.cardSurface : "transparent"
     opacity: available ? 1 : 0.55
     border.width: activeFocus ? style.focusWidth : 0
     border.color: style.focusInk
-    Behavior on color { ColorAnimation { duration: 100 } }
     RowLayout {
         anchors.fill: parent
         anchors.topMargin: row.style.spaceMd

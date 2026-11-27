@@ -64,11 +64,11 @@ ColumnLayout {
                         Layout.fillWidth: true
                         Layout.preferredWidth: 1
                         style: page.style
-                        contentSpacing: 0
+                        contentSpacing: 2
                         ConnectivitySummary {
                             Layout.fillWidth: true
                             singleColumn: true
-                            rowSpacing: 0
+                            rowSpacing: 2
                             style: page.style
                             actions: page.actions
                             system: page.system
@@ -78,7 +78,7 @@ ColumnLayout {
                         Layout.fillWidth: true
                         Layout.preferredWidth: 1
                         style: page.style
-                        contentSpacing: 0
+                        contentSpacing: 2
                         OverviewLevelControl {
                             style: page.style
                             actions: page.actions
@@ -108,21 +108,19 @@ ColumnLayout {
                 GroupCard {
                     Layout.fillWidth: true
                     style: page.style
-                    // Navigation, not live state: a quieter surface than the cards above.
-                    color: page.style.surfaceDirectory
                     GridLayout {
                         Layout.fillWidth: true
                         // Same breakpoint and column geometry as the two-card grid
                         // above: two card paddings plus their gap, so icons, labels
                         // and chevrons share rails with the block above.
                         columns: content.width >= 540 ? 2 : 1
-                        rowSpacing: 0
+                        rowSpacing: 2
                         columnSpacing: 3 * page.style.spaceMd
                         Repeater {
                             model: [
                                 {route: "appearance", title: "Appearance", icon: "appearance"},
-                                {route: "wallpaper", title: "Wallpaper", icon: "app"},
-                                {route: "displays", title: "Displays", icon: "window"},
+                                {route: "wallpaper", title: "Wallpaper", icon: "wallpaper"},
+                                {route: "displays", title: "Displays", icon: "display"},
                                 {route: "idle", title: "Idle and lock", icon: "lock"}
                             ]
                             delegate: DeviceRow {
@@ -170,8 +168,8 @@ ColumnLayout {
                     Layout.fillWidth: true
                     implicitHeight: mediaCard.coverSize + 2 * page.style.spaceMd
                     visible: !!page.player
-                    radius: page.style.radiusControl
-                    color: page.style.surfaceRaised
+                    radius: page.style.radiusCard
+                    color: page.style.cardSurface
                     RowLayout {
                         anchors.fill: parent
                         anchors.margins: page.style.spaceMd

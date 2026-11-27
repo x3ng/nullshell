@@ -17,8 +17,6 @@ ColumnLayout {
     GroupCard {
         Layout.fillWidth: true
         style: pane.style
-        title: "Color mode"
-        iconKind: "appearance"
         RowLayout {
             Layout.fillWidth: true
             spacing: pane.style.spaceSm
@@ -40,53 +38,38 @@ ColumnLayout {
                 }
             }
         }
-        Text {
-            Layout.fillWidth: true
-            text: pane.appearance.automatic
-                ? "Follow sunrise and sunset · " + (pane.appearance.darkMode ? "Dark now" : "Light now")
-                : "Always use " + (pane.appearance.darkMode ? "dark" : "light") + " appearance"
-            wrapMode: Text.Wrap
-            color: pane.style.textSecondary
-            font.family: pane.style.fontFamily
-            font.pixelSize: pane.style.fontSizeSmall
-        }
     }
     GroupCard {
         Layout.fillWidth: true
         visible: pane.appearance.automatic
         style: pane.style
-        title: "Sunrise and sunset"
-        iconKind: "clock"
-        Text {
+        RowLayout {
             Layout.fillWidth: true
-            text: pane.appearance.overrideUntil > 0
-                ? "Temporary override until " + pane.nextTime(pane.appearance.overrideUntil)
-                : pane.appearance.nextTransition ? "Next change · " + pane.nextTime(pane.appearance.nextTransition)
-                : pane.appearance.locationStatus === "unset" ? "Choose a location source to calculate sunrise and sunset."
-                : pane.appearance.locationStatus === "locating" ? "Finding approximate location…"
-                : pane.appearance.locationStatus === "unavailable" ? "Location unavailable · keeping current appearance"
-                : "No sunrise or sunset expected in the next two days"
-            wrapMode: Text.Wrap
-            color: pane.style.textSecondary
-            font.family: pane.style.fontFamily
-            font.pixelSize: pane.style.fontSizeSmall
-        }
-        ChoiceButton {
-            objectName: "appearance-resume"
-            Layout.fillWidth: true
-            visible: pane.appearance.overrideUntil > 0
-            style: pane.style
-            label: "Resume automatic"
-            filled: true
-            onTriggered: pane.appearance.resumeAutomatic()
-        }
-        Text {
-            Layout.topMargin: pane.style.spaceXs
-            text: "Location"
-            color: pane.style.textPrimary
-            font.family: pane.style.fontFamily
-            font.pixelSize: pane.style.fontSizeBody
-            font.weight: Font.DemiBold
+            spacing: pane.style.spaceSm
+            Text {
+                Layout.fillWidth: true
+                text: pane.appearance.overrideUntil > 0
+                    ? "Temporary override until " + pane.nextTime(pane.appearance.overrideUntil)
+                    : pane.appearance.nextTransition ? "Next change · " + pane.nextTime(pane.appearance.nextTransition)
+                    : pane.appearance.locationStatus === "unset" ? "Choose a location source for sunrise and sunset"
+                    : pane.appearance.locationStatus === "locating" ? "Finding approximate location…"
+                    : pane.appearance.locationStatus === "unavailable" ? "Location unavailable · keeping current mode"
+                    : "Following sunrise and sunset"
+                wrapMode: Text.Wrap
+                color: pane.style.textSecondary
+                font.family: pane.style.fontFamily
+                font.pixelSize: pane.style.fontSizeSmall
+            }
+            ChoiceButton {
+                objectName: "appearance-resume"
+                Layout.preferredWidth: 148
+                compact: true
+                visible: pane.appearance.overrideUntil > 0
+                style: pane.style
+                label: "Resume automatic"
+                filled: true
+                onTriggered: pane.appearance.resumeAutomatic()
+            }
         }
         RowLayout {
             Layout.fillWidth: true
@@ -148,7 +131,7 @@ ColumnLayout {
                             Layout.fillWidth: true
                             property string coordinate: parent.modelData
                             text: pane.appearance.effectiveSettings[coordinate] === null ? "" : String(pane.appearance.effectiveSettings[coordinate])
-                            placeholderText: coordinate === "latitude" ? "e.g. 51.5" : "e.g. -0.1"
+                            placeholderText: coordinate === "latitude" ? "51.5" : "-0.1"
                             Accessible.name: coordinate
                             onTextEdited: { pane.inputError = ""; pane.coordinateDraft[coordinate] = text; }
                             onTextChanged: pane.coordinateDraft[coordinate] = text
@@ -173,21 +156,13 @@ ColumnLayout {
         }
         Text {
             Layout.fillWidth: true
-            text: "Time zone works offline. IP location contacts BeaconDB, which sees your public IP."
-            wrapMode: Text.Wrap
-            color: pane.style.textSecondary
-            font.family: pane.style.fontFamily
-            font.pixelSize: pane.style.fontSizeSmall
-        }
-        Text {
-            Layout.fillWidth: true
             visible: !pane.fixed
             text: pane.appearance.locationStatus === "ready"
-                ? (pane.appearance.effectiveSettings.location === "timezone" ? "Using an approximate location for your time zone" : "Approximate IP location available")
-                : pane.appearance.locationStatus === "locating" ? "Requesting an approximate location…"
-                : "No location available. Try again or use fixed coordinates."
+                ? (pane.appearance.effectiveSettings.location === "timezone" ? "Approximate location from time zone (offline)" : "Approximate IP location via BeaconDB")
+                : pane.appearance.locationStatus === "locating" ? "Requesting approximate location via BeaconDB…"
+                : "No location available · try again or use coordinates"
             wrapMode: Text.Wrap
-            color: pane.style.textSecondary
+            color: pane.style.textMuted
             font.family: pane.style.fontFamily
             font.pixelSize: pane.style.fontSizeSmall
         }

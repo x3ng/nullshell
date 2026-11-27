@@ -16,11 +16,11 @@ Rectangle {
     property string tone: "neutral"
     readonly property color contentInk: tone === "primary" ? (available ? style.accentInk : style.textMuted) : tone === "danger" ? style.danger
         : selected ? style.textSelected : style.textSecondary
-    readonly property color iconInk: tone === "toggle" && selected ? style.accent : contentInk
+    property color iconInk: tone === "toggle" && selected ? style.accent : contentInk
     property bool available: true
     property bool filled: false
-    // Background for filled buttons; override to surfaceHover inside cards.
-    property color filledColor: style.surfaceRaised
+    // Shared semantic fill for buttons and segmented tabs.
+    property color filledColor: style.controlSurface
     property int textSize: style.fontSizeSmall
     property int contentAlignment: Qt.AlignHCenter
     // Optional leading glyph. With a label it sits left of the text
@@ -54,8 +54,6 @@ Rectangle {
     border.width: activeFocus ? style.focusWidth : 0
     border.color: tone === "primary" && available ? style.accentInk : style.focusInk
     opacity: available || tone === "primary" ? 1 : 0.55
-
-    Behavior on color { ColorAnimation { duration: 100 } }
 
     Text {
         anchors.verticalCenter: parent.verticalCenter

@@ -18,28 +18,28 @@ function M.apply(mode)
   if mode ~= "dark" and mode ~= "light" then return end
 
   local dark = mode == "dark"
-  local active = dark and "rgba(6487b8ff)" or "rgba(6585afff)"
-  local inactive = dark and "rgba(4a535c80)" or "rgba(7c839080)"
-  local locked = dark and "rgba(e4bb80ff)" or "rgba(805313ff)"
+  local active = dark and "rgba(6487b8ff)" or "rgba(5b82b8ff)"
+  local inactive = dark and "rgba(3e475480)" or "rgba(8c97a880)"
+  local locked = dark and "rgba(e5bc82ff)" or "rgba(7d5112ff)"
   hl.config({
     general = {
       ["col.active_border"] = active,
       ["col.inactive_border"] = inactive,
     },
     decoration = {
-      shadow = { color = dark and "rgba(00000066)" or "rgba(21293420)" },
+      shadow = { color = dark and "rgba(00000066)" or "rgba(0f172a22)" },
     },
     group = {
       ["col.border_active"] = active,
       ["col.border_inactive"] = inactive,
       ["col.border_locked_active"] = locked,
-      ["col.border_locked_inactive"] = dark and "rgba(69717eff)" or "rgba(7c839080)",
+      ["col.border_locked_inactive"] = dark and "rgba(69717eff)" or "rgba(8c97a880)",
       groupbar = {
-        text_color = dark and "rgba(f0f1f3ff)" or "rgba(212934ff)",
-        ["col.active"] = dark and "rgba(34435aff)" or "rgba(d5e2f4ff)",
-        ["col.inactive"] = dark and "rgba(1e2229f5)" or "rgba(e8edf4fa)",
+        text_color = dark and "rgba(f1f3f5ff)" or "rgba(18202cff)",
+        ["col.active"] = dark and "rgba(2d3c52ff)" or "rgba(dce8f8ff)",
+        ["col.inactive"] = dark and "rgba(171a20f5)" or "rgba(f3f5f8fa)",
         ["col.locked_active"] = dark and "rgba(51432dff)" or "rgba(f0e3cdff)",
-        ["col.locked_inactive"] = dark and "rgba(282d35ff)" or "rgba(e2e9f2ff)",
+        ["col.locked_inactive"] = dark and "rgba(21262eff)" or "rgba(e9eef5ff)",
       },
     },
   })

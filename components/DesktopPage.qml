@@ -246,11 +246,11 @@ ColumnLayout {
                                     }
                                 }
                                 ChoiceButton {
-                                    Layout.preferredWidth: Math.min(100, workspaceCard.width * 0.48)
+                                    Layout.preferredWidth: Math.min(96, workspaceCard.width * 0.48)
                                     Layout.preferredHeight: 28
                                     style: page.style
                                     objectName: "layout-workspace-" + workspaceCard.modelData.address
-                                    label: (workspaceCard.modelData.layout ?? "—") + "  ▾"
+                                    label: workspaceCard.modelData.layout ?? "—"
                                     selected: page.choosingLayout && page.selectedWorkspaceAddress === workspaceCard.modelData.address
                                     available: page.controls.available && !page.controls.busy && !!workspaceCard.modelData.exists
                                     onTriggered: {
