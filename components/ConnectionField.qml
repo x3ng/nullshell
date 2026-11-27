@@ -25,7 +25,7 @@ TextField {
         radius: field.style.radiusControl
         color: field.style.inputSurface
         border.width: 1
-        border.color: field.activeFocus ? field.style.accent : field.style.separator
+        border.color: field.activeFocus ? field.style.focusInk : field.style.fieldOutline
     }
     ChoiceButton {
         anchors.right: parent.right

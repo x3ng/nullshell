@@ -319,6 +319,7 @@ ColumnLayout {
             Layout.preferredWidth: pane.detachedBodyHeight > 0 && editor.width >= 800 ? 5 : 7
             style: pane.style
             pad: editor.wide ? pane.style.spaceMd : pane.style.spaceSm
+            // The narrow editor must fit without scrolling, so it keeps 4px between groups.
             contentSpacing: editor.wide ? pane.style.spaceSm : pane.style.spaceXs
             title: "Selected display"
             RowLayout {
@@ -422,13 +423,13 @@ ColumnLayout {
             : pane.outcome || (pane.busy ? "Working…" : pane.invalidNumbers ? "Check inputs"
                 : pane.issues.length ? "Check positions"
                 : pane.changes.length ? "Unsaved changes" : "Current layout")
-        warning: (pane.invalidNumbers || pane.issues.length > 0) && !pane.testing
+        // The inline notice carries the warning; the footer only restates it.
+        warning: pane.invalidNumbers && !pane.testing
         ChoiceButton {
             id: revertButton
             objectName: "displays-revert"
-            Layout.fillWidth: true
-            Layout.minimumWidth: 96
-            Layout.preferredWidth: 1
+            Layout.preferredWidth: 128
+            Layout.minimumWidth: 112
             visible: pane.testing
             style: pane.style
             label: "Revert"
@@ -437,9 +438,8 @@ ColumnLayout {
         }
         ChoiceButton {
             objectName: "displays-confirm"
-            Layout.fillWidth: true
+            Layout.preferredWidth: 128
             Layout.minimumWidth: 112
-            Layout.preferredWidth: 1
             visible: pane.testing
             style: pane.style
             tone: "primary"

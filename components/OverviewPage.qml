@@ -108,11 +108,16 @@ ColumnLayout {
                 GroupCard {
                     Layout.fillWidth: true
                     style: page.style
+                    // Navigation, not live state: a quieter surface than the cards above.
+                    color: page.style.surfaceDirectory
                     GridLayout {
                         Layout.fillWidth: true
-                        columns: content.width >= 320 ? 2 : 1
+                        // Same breakpoint and column geometry as the two-card grid
+                        // above: two card paddings plus their gap, so icons, labels
+                        // and chevrons share rails with the block above.
+                        columns: content.width >= 540 ? 2 : 1
                         rowSpacing: 0
-                        columnSpacing: page.style.spaceSm
+                        columnSpacing: 3 * page.style.spaceMd
                         Repeater {
                             model: [
                                 {route: "appearance", title: "Appearance", icon: "appearance"},
@@ -129,9 +134,11 @@ ColumnLayout {
                                 style: page.style
                                 title: modelData.title
                                 iconKind: modelData.icon
-                                // Match the status rows above: chevrons share one right edge.
-                                leftInset: page.style.spaceSm
+                                // Same rails as the status rows above: icon centre 32,
+                                // label 64 and chevron column from the card edge.
+                                leftInset: 0
                                 rightInset: page.style.spaceXs
+                                iconSlot: 40
                                 available: page.actions.available(modelData.route)
                                 onTriggered: page.actions.execute(modelData.route)
                             }
@@ -151,6 +158,10 @@ ColumnLayout {
                         ? page.notifs.current.length + " pending notifications. Latest: " + notificationEntry.title
                         : notificationEntry.title + ". Open notification history"
                     expanded: true
+                    // Its own card: icon centre 32, label 64 and chevron 16 from the edge, like the cards above.
+                    leftInset: page.style.spaceMd
+                    rightInset: page.style.spaceLg
+                    iconSlot: 40
                     onTriggered: page.actions.execute("notifications")
                 }
                 Rectangle {

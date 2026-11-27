@@ -227,3 +227,10 @@ panel card; inspect both palettes and narrow/wide appearance states before relea
 Review interaction invariants in [SPEC.md](SPEC.md), shared layout conventions in
 [VISUAL.md](VISUAL.md), and concrete regression scenarios in
 [`tests/test_panel_preview.py`](../tests/test_panel_preview.py).
+
+Panel rows in different cards are checked against shared rails: the icon centre,
+label start and chevron column must agree within 1px between the status cards,
+the settings directory (both columns at wide sizes, one column at narrow) and the
+notification row. Palette roles and the small-corner relationship are checked by
+`tests/test_palette.py`; row geometry inside the scrollable arrangement by
+`tests/tst_display_drag.qml`; placement rules by `tests/test_display_geometry.py`.

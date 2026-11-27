@@ -77,6 +77,7 @@ check-preview:
 	python3 tests/test_panel_preview.py
 
 check-appearance: helper
+	python3 tests/test_palette.py
 	python3 tests/test_wallpaper.py "$(CARGO_TARGET_DIR)/release/nullshell-helper"
 	python3 tests/test_solar_appearance.py "$(CARGO_TARGET_DIR)/release/nullshell-helper"
 	python3 tests/test_appearance.py "$(CARGO_TARGET_DIR)/release/nullshell-helper"
@@ -86,7 +87,9 @@ check-displays: helper
 	luajit tests/test_display_trial.lua adapters/DisplayTrial.lua
 	python3 tests/test_displays.py "$(CARGO_TARGET_DIR)/release/nullshell-helper"
 
+# qmltestrunner does not search its own Qt installation for QtTest's imports.
 check-display-drag:
+	QML_IMPORT_PATH="$$(dirname "$$(dirname "$$(readlink -f "$$(command -v qmltestrunner)")")")/lib/qt-6/qml" \
 	QT_QPA_PLATFORM=offscreen QT_QUICK_BACKEND=software qmltestrunner -input tests/tst_display_drag.qml
 
 check-idle:

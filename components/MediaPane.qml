@@ -26,7 +26,7 @@ ColumnLayout {
         textFormat: Text.PlainText
         wrapMode: Text.Wrap
         font.family: media.style.fontFamily
-        font.pixelSize: media.style.fontSizeBody
+        font.pixelSize: media.style.fontSizeTitle
         font.weight: Font.DemiBold
         color: media.style.textPrimary
     }
@@ -38,7 +38,7 @@ ColumnLayout {
         elide: Text.ElideRight
         font.family: media.style.fontFamily
         font.pixelSize: media.style.fontSizeSmall
-        color: media.style.textMuted
+        color: media.style.textSecondary
     }
     RowLayout {
         Layout.fillWidth: true
@@ -113,14 +113,14 @@ ColumnLayout {
             onTriggered: media.player.shuffle = !media.player.shuffle
         }
         ChoiceButton {
-            Layout.preferredWidth: 44
+            Layout.preferredWidth: media.style.controlHeight
             style: media.style
             label: ""; iconKind: "prev"; tooltip: "Previous track"
             available: media.player?.canGoPrevious ?? false
             onTriggered: media.player.previous()
         }
         ChoiceButton {
-            Layout.preferredWidth: 52
+            Layout.preferredWidth: 44
             style: media.style
             filled: true
             label: ""; iconKind: media.player?.isPlaying ? "pause" : "play"
@@ -129,7 +129,7 @@ ColumnLayout {
             onTriggered: media.player.togglePlaying()
         }
         ChoiceButton {
-            Layout.preferredWidth: 44
+            Layout.preferredWidth: media.style.controlHeight
             style: media.style
             label: ""; iconKind: "next"; tooltip: "Next track"
             available: media.player?.canGoNext ?? false

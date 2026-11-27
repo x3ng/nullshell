@@ -77,9 +77,10 @@ ColumnLayout {
             required property int index
             width: resultList.width
             height: 60
-            opacity: modelData.enabled === false ? 0.45 : 1
+            // Unavailable rows keep a readable reason; only the icon is dimmed.
+            readonly property bool unavailable: modelData.enabled === false
             radius: page.style.radiusControl
-            color: index === page.selectedIndex ? page.style.surfaceSelected
+            color: index === page.selectedIndex ? (rowMouse.containsMouse ? page.style.surfaceSelectedHover : page.style.surfaceSelected)
                 : rowMouse.containsMouse ? page.style.surfaceHover : "transparent"
             RowLayout {
                 anchors.fill: parent
@@ -89,6 +90,7 @@ ColumnLayout {
                 Item {
                     Layout.preferredWidth: 40
                     Layout.preferredHeight: 30
+                    opacity: resultRow.unavailable ? 0.45 : 1
                     IconImage {
                         id: resultIcon
                         anchors.centerIn: parent
@@ -114,8 +116,8 @@ ColumnLayout {
                         Layout.fillWidth: true
                         text: resultRow.modelData.title
                         textFormat: Text.PlainText
-                        color: resultRow.index === page.selectedIndex
-                            ? page.style.textSelected : page.style.textPrimary
+                        color: resultRow.unavailable ? page.style.textDisabled
+                            : resultRow.index === page.selectedIndex ? page.style.textSelected : page.style.textPrimary
                         elide: Text.ElideRight
                         font.family: page.style.fontFamily
                         font.pixelSize: page.style.fontSizeBody
@@ -123,10 +125,10 @@ ColumnLayout {
                     }
                     Text {
                         Layout.fillWidth: true
-                        text: resultRow.modelData.enabled === false ? "Currently unavailable"
+                        text: resultRow.unavailable ? "Currently unavailable"
                             : resultRow.modelData.detail || page.kindLabel(resultRow.modelData)
                         textFormat: Text.PlainText
-                        color: page.style.textMuted
+                        color: resultRow.unavailable ? page.style.textDisabled : page.style.textMuted
                         elide: Text.ElideRight
                         font.family: page.style.fontFamily
                         font.pixelSize: page.style.fontSizeLabel

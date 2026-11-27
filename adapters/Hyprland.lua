@@ -27,7 +27,7 @@ function M.apply(mode)
       ["col.inactive_border"] = inactive,
     },
     decoration = {
-      shadow = { color = dark and "rgba(00000066)" or "rgba(24272d20)" },
+      shadow = { color = dark and "rgba(00000066)" or "rgba(21293420)" },
     },
     group = {
       ["col.border_active"] = active,
@@ -35,11 +35,11 @@ function M.apply(mode)
       ["col.border_locked_active"] = locked,
       ["col.border_locked_inactive"] = dark and "rgba(69717eff)" or "rgba(7c839080)",
       groupbar = {
-        text_color = dark and "rgba(f0f1f3ff)" or "rgba(24272dff)",
-        ["col.active"] = dark and "rgba(353e4bff)" or "rgba(e0e7f0ff)",
-        ["col.inactive"] = dark and "rgba(202328f5)" or "rgba(f4f4f5fa)",
+        text_color = dark and "rgba(f0f1f3ff)" or "rgba(212934ff)",
+        ["col.active"] = dark and "rgba(34435aff)" or "rgba(d5e2f4ff)",
+        ["col.inactive"] = dark and "rgba(1e2229f5)" or "rgba(e8edf4fa)",
         ["col.locked_active"] = dark and "rgba(51432dff)" or "rgba(f0e3cdff)",
-        ["col.locked_inactive"] = dark and "rgba(292d33ff)" or "rgba(e6e8ebff)",
+        ["col.locked_inactive"] = dark and "rgba(282d35ff)" or "rgba(e2e9f2ff)",
       },
     },
   })

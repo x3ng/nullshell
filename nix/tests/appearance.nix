@@ -23,6 +23,8 @@ let
       ../../WallpaperImage.qml
       ../../tests/test_appearance.py
       ../../tests/test_wallpaper.py
+      ../../tests/palette.qml
+      ../../tests/test_palette.py
     ];
   };
 in
@@ -37,6 +39,7 @@ pkgs.runCommand "nullshell-appearance-check"
   }
   ''
     mkdir -p "$out"
+    python3 ${source}/tests/test_palette.py > "$out/palette.log" 2>&1 || { cat "$out/palette.log"; exit 1; }
     python3 ${source}/tests/test_wallpaper.py ${packages.helper}/bin/nullshell-helper > "$out/wallpaper.log" 2>&1 || { cat "$out/wallpaper.log"; exit 1; }
     python3 ${source}/tests/test_solar_appearance.py ${packages.helper}/bin/nullshell-helper > "$out/solar.log" 2>&1 || { cat "$out/solar.log"; exit 1; }
     python3 ${source}/tests/test_appearance.py ${packages.helper}/bin/nullshell-helper > "$out/result.log" 2>&1 || { cat "$out/result.log"; exit 1; }

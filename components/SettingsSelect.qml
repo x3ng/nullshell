@@ -31,7 +31,7 @@ Basic.ComboBox {
     background: Rectangle {
         radius: picker.style.radiusControl
         color: picker.style.inputSurface
-        border.color: picker.activeFocus ? picker.style.accent : picker.style.separator
+        border.color: picker.activeFocus ? picker.style.focusInk : picker.style.fieldOutline
         border.width: 1
         opacity: picker.enabled ? 1 : 0.55
     }

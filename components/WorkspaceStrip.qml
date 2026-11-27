@@ -15,6 +15,10 @@ Item {
     property var trayItems: []
     property Component toolsComponent: null
     signal menuRequested(var owner, real right, real top)
+    // Within a group, between groups, and between wrapped rows.
+    readonly property int itemGap: style.spaceXs
+    readonly property int groupGap: style.spaceMd
+    readonly property int rowGap: style.spaceXs
     // The parent owns space to the separator and outer edge.
     implicitHeight: Math.max(style.stripHeight - 2 * style.spaceMd, footer.implicitHeight)
     Item {
@@ -34,7 +38,7 @@ Item {
                 let row = {items: [], width: 0, height: 0};
                 for (const child of children) {
                     if (!child.visible || child.width <= 0 || child.height <= 0) continue;
-                    let gap = row.items.length ? (row.items[row.items.length - 1].item.group === child.group ? 3 : 8) : 0;
+                    let gap = row.items.length ? (row.items[row.items.length - 1].item.group === child.group ? strip.itemGap : strip.groupGap) : 0;
                     if (row.items.length && row.width + gap + child.width > width) {
                         result.push(row);
                         row = {items: [], width: 0, height: 0};
@@ -47,7 +51,7 @@ Item {
                 if (row.items.length) result.push(row);
                 return result;
             }
-            implicitHeight: rows.reduce((height, row) => height + row.height, 0) + Math.max(0, rows.length - 1) * 3
+            implicitHeight: rows.reduce((height, row) => height + row.height, 0) + Math.max(0, rows.length - 1) * strip.rowGap
             function arrange() {
                 let top = 0;
                 for (const row of rows) {
@@ -55,7 +59,7 @@ Item {
                         cell.item.x = (width - row.width) / 2 + cell.offset;
                         cell.item.y = top + (row.height - cell.item.height) / 2;
                     }
-                    top += row.height + 3;
+                    top += row.height + strip.rowGap;
                 }
             }
             onRowsChanged: arrange()
@@ -69,7 +73,12 @@ Item {
                     required property var modelData
                     readonly property bool special: modelData.special || String(modelData.address).startsWith("special:")
                     readonly property var apps: strip.windows.filter(w => w.workspaceAddress === modelData.address)
-                    width: contents.implicitWidth + 14
+                    // Identifiable icons are shown; windows without one collapse into a
+                    // single generic glyph and a count instead of a run of identical boxes.
+                    readonly property var known: apps.filter(w => strip.searchModel.desktopIconSource(strip.searchModel.desktopEntryFor(w)) !== "")
+                    readonly property var shown: known.slice(0, 3)
+                    readonly property int generic: apps.length - shown.length
+                    width: contents.implicitWidth + 2 * strip.style.spaceSm
                     height: 32
                     style: strip.style
                     label: ""
@@ -89,41 +98,43 @@ Item {
                             text: chip.special ? "$" : String(chip.modelData.name)
                             textFormat: Text.PlainText
                             font.family: strip.style.fontFamily
-                            font.pixelSize: 14
+                            font.pixelSize: strip.style.fontSizeSmall
                             font.weight: Font.Medium
                             color: chip.selected ? strip.style.textPrimary : strip.style.textSecondary
                             width: Math.min(implicitWidth, 64)
                             elide: Text.ElideRight
                         }
                         Repeater {
-                            model: chip.apps.slice(0, 3)
+                            model: chip.shown
                             Item {
                                 required property var modelData
                                 width: 16; height: 28
                                 IconImage {
-                                    id: appIcon
                                     anchors.centerIn: parent
                                     implicitSize: 16
                                     source: strip.searchModel.desktopIconSource(strip.searchModel.desktopEntryFor(modelData))
-                                    visible: status === Image.Ready
-                                }
-                                StatusIcon {
-                                    anchors.centerIn: parent
-                                    width: 16; height: 16
-                                    kind: "window"
-                                    ink: strip.style.textMuted
-                                    visible: !appIcon.visible
                                 }
                             }
                         }
+                        Item {
+                            visible: chip.generic > 0
+                            width: 14; height: 28
+                            StatusIcon {
+                                anchors.centerIn: parent
+                                width: 14; height: 14
+                                kind: "window"
+                                ink: strip.style.textMuted
+                            }
+                        }
                         Text {
-                            visible: chip.apps.length > 3
+                            // Count the windows not shown as an icon; one generic window needs no number.
+                            visible: chip.generic > 1 || (chip.generic > 0 && chip.shown.length > 0)
                             height: 28
                             verticalAlignment: Text.AlignVCenter
-                            text: "+" + (chip.apps.length - 3)
+                            text: chip.shown.length ? "+" + chip.generic : String(chip.generic)
                             color: strip.style.textMuted
                             font.family: strip.style.fontFamily
-                            font.pixelSize: 13
+                            font.pixelSize: strip.style.fontSizeLabel
                         }
                     }
                 }
@@ -140,8 +151,8 @@ Item {
                     Accessible.role: Accessible.Button
                     Accessible.name: modelData.tooltipTitle || modelData.title || modelData.id || "Tray item"
                     Accessible.onPressAction: trayItem.triggered()
-                    border.width: activeFocus ? 1 : 0
-                    border.color: strip.style.accent
+                    border.width: activeFocus ? strip.style.focusWidth : 0
+                    border.color: strip.style.focusInk
                     function openMenu() {
                         const pos = trayItem.mapToItem(strip, width, 0);
                         strip.menuRequested(modelData, pos.x, pos.y);
@@ -161,14 +172,8 @@ Item {
                     }
                     width: 32; height: 32
                     radius: strip.style.radiusControl
-                    color: "transparent"
-                    Rectangle {
-                        anchors.fill: parent
-                        anchors.topMargin: 4
-                        anchors.bottomMargin: 4
-                        radius: strip.style.radiusControl
-                        color: trayMouse.containsMouse ? strip.style.surfaceHover : "transparent"
-                    }
+                    // Hover uses the full target, like neighbouring footer controls.
+                    color: trayMouse.containsMouse ? strip.style.surfaceHover : "transparent"
                     IconImage {
                         id: trayIcon
                         anchors.centerIn: parent

@@ -13,7 +13,7 @@ Slider {
         width: adjustment.availableWidth
         height: 6
         radius: 3
-        color: adjustment.style.separator
+        color: adjustment.style.sliderTrack
         Rectangle {
             width: adjustment.visualPosition * parent.width
             height: parent.height
@@ -27,6 +27,8 @@ Slider {
         y: adjustment.topPadding + adjustment.availableHeight / 2 - height / 2
         width: 12; height: 12; radius: 6
         color: adjustment.style.accent
+        border.width: adjustment.activeFocus ? 2 : 0
+        border.color: adjustment.style.focusInk
         visible: adjustment.showHandle || adjustment.hovered || adjustment.pressed || adjustment.activeFocus
     }
 }

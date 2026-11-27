@@ -47,14 +47,15 @@ Rectangle {
     implicitHeight: compact ? style.compactControlHeight : style.controlHeight
     implicitWidth: compact && !label ? implicitHeight : 0
     radius: style.radiusControl
-    color: tone === "primary" ? (!available ? style.surfaceHover : mouse.containsMouse ? Qt.darker(style.accent, 1.10) : style.accent)
-        : selected ? style.surfaceSelected
-        : (mouse.containsMouse && available ? style.surfaceHover : filled ? choice.filledColor : "transparent")
-    border.width: activeFocus ? 1 : 0
-    border.color: tone === "primary" ? style.textPrimary : style.accent
-    opacity: available || tone === "primary" ? 1 : 0.45
+    readonly property bool hovered: mouse.containsMouse && available
+    color: tone === "primary" ? (!available ? style.surfaceHover : hovered ? Qt.darker(style.accent, 1.10) : style.accent)
+        : selected ? (hovered ? style.surfaceSelectedHover : style.surfaceSelected)
+        : (hovered ? style.surfaceHover : filled ? choice.filledColor : "transparent")
+    border.width: activeFocus ? style.focusWidth : 0
+    border.color: tone === "primary" && available ? style.accentInk : style.focusInk
+    opacity: available || tone === "primary" ? 1 : 0.55
 
-    Behavior on color { ColorAnimation { duration: 120 } }
+    Behavior on color { ColorAnimation { duration: 100 } }
 
     Text {
         anchors.verticalCenter: parent.verticalCenter

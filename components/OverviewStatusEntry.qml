@@ -56,9 +56,11 @@ RowLayout {
                 text: entry.error || entry.detail
                 textFormat: Text.PlainText
                 elide: Text.ElideRight
-                color: entry.error ? entry.style.danger : entry.available ? entry.style.textPrimary : entry.style.textMuted
+                color: entry.error ? entry.style.danger : entry.available ? entry.style.textPrimary : entry.style.textDisabled
                 font.family: entry.style.fontFamily
                 font.pixelSize: entry.style.fontSizeBody
+                // Live status names read one step above the settings directory.
+                font.weight: Font.Medium
             }
             Text {
                 visible: entry.available && entry.secondary !== "" && entry.error === ""

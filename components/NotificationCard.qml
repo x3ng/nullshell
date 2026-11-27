@@ -36,8 +36,9 @@ MaterialSurface {
     radius: style.radiusCard
     color: compact ? (hovered ? style.surfaceHover : "transparent")
         : Qt.alpha(style.surfaceRaised, style.glassOpacity)
-    border.width: compact && !activeFocus ? 0 : 1
-    border.color: activeFocus ? style.accent : critical ? style.accentWarm : style.materialEdge
+    // Only focus and critical entries carry an edge; ordinary cards rest on fill.
+    border.width: activeFocus || (critical && !compact) ? 1 : 0
+    border.color: activeFocus ? style.focusInk : style.accentWarm
     activeFocusOnTab: visible
     Accessible.role: activationLabel ? Accessible.Button : Accessible.ListItem
     Accessible.name: [entry.appName, entry.summary].filter(Boolean).join(". ")

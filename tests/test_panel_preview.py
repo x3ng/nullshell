@@ -268,9 +268,12 @@ def main():
         assert changes == {"Resolution": "1920 × 1080 → 1280 × 720", "Scale": "1× → 1.25×", "Position": "896, 0"}, changes
         # Entering the trial must leave a visible, deliberate focus target.
         assert state()["focusedItem"] == "displays-revert", state()
+        widths = set()
         for control in ("displays-confirm", "displays-revert"):
             button = json.loads(call("controlBounds", control))
             assert button["width"] >= 90 and button["y"] + button["height"] <= s["card"]["bottom"] - 8, button
+            widths.add(round(button["width"]))
+        assert len(widths) == 1, f"Trial actions should be equal width: {widths}"
         screenshot("displays-confirmation")
         if args.keyboard:
             assert call("focusControl", "displays", "displays-confirm") == "true"
@@ -425,6 +428,27 @@ def main():
             settle()
             screenshot("normal")
             check_overview_geometry()
+            # Rows in different cards share icon, label and chevron rails.
+            names = ("quick-wifi-toggle", "quick-wifi-details", "volume-details", "brightness-details",
+                "settings-appearance", "settings-wallpaper", "settings-displays", "settings-idle",
+                "overview-notifications")
+            rails = {name: json.loads(call("rowRails", name)) for name in names}
+            # The radio toggle owns the Wi-Fi icon and its details button the label and
+            # chevron; single-glyph buttons report that glyph as their icon.
+            wifiIcon = rails.pop("quick-wifi-toggle")["icon"]
+            wifi = rails.pop("quick-wifi-details")
+            wifiChevron = wifi["trailing"] or wifi["icon"]
+            levelChevron = rails.pop("volume-details")["icon"]
+            assert abs(rails.pop("brightness-details")["icon"] - levelChevron) <= 1, ("level chevrons", rails)
+            # The left column of the directory continues the left card above it.
+            for name in ("settings-appearance", "settings-displays"):
+                assert abs(rails[name]["icon"] - wifiIcon) <= 1, ("icon rail", name, rails[name])
+                assert abs(rails[name]["label"] - wifi["label"]) <= 1, ("label rail", name, rails[name])
+                assert abs(rails[name]["trailing"] - wifiChevron) <= 1, ("left chevron rail", name, rails[name])
+            # The right column continues the right card above it, and the full-width
+            # notification row continues the same right edge.
+            for name in ("settings-wallpaper", "settings-idle", "overview-notifications"):
+                assert abs(rails[name]["trailing"] - levelChevron) <= 1, ("right chevron rail", name, rails[name], levelChevron)
             # With only the tools remaining, resizing must still recenter them.
             call("scenario", "empty")
             for width in ["440", "740", "440"]:
@@ -797,9 +821,15 @@ def main():
                         geometry = json.loads(call("detailGeometry", page))
                         assert abs(geometry["imageHeight"] - geometry["imageWidth"] * 9 / 16) < 1, geometry
                         assert geometry["contentHeight"] > geometry["viewportHeight"], geometry
-                        assert call("focusControl", page, "wallpaper-apply") == "true"
-                        time.sleep(.2)
-                        assert json.loads(call("detailGeometry", page))["scroll"] > 0
+                        # Only an active window has a focus item; the headless seat has
+                        # one only when the keyboard device is attached.
+                        if args.keyboard:
+                            assert call("focusControl", page, "wallpaper-apply") == "true"
+                            for _ in range(20):
+                                scrolled = json.loads(call("detailGeometry", page))
+                                if scrolled["scroll"] > 0: break
+                                time.sleep(.1)
+                            assert scrolled["scroll"] > 0, (scrolled, state()["detachedFocus"])
                     if args.screenshots:
                         assert call("captureDetached", page, str(args.screenshots / ("detached-small-" + page + "-" + light + ".png"))) == "true"
                     call("scrollDetail", page)

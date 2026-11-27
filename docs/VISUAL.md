@@ -3,8 +3,24 @@
 Nullshell follows a restrained, flat Material-style hierarchy. Background,
 panel, raised controls and selected controls use distinct tonal surfaces from
 `Theme.qml`. Elevation is a small shadow where a floating surface needs to
-separate from its background. Cards have no simulated gloss or inner highlight. Containers use near-square
-4px outer / 3px inner corners, neutral grey surfaces and restrained blue accents.
+separate from its background. Cards have no simulated gloss or inner highlight.
+Corners are small and decorative: 6px for the panel, 4px for cards, inputs and
+controls, 3px for small marks; nested shapes never round more than their
+container. Surfaces are cool neutral greys with restrained blue accents.
+
+State is never carried by one colour alone. Hover lifts a surface; selection
+keeps its own fill and survives hover; keyboard focus is a 2px ring drawn inside
+the control, so it never moves layout. Unavailable items keep a readable label
+and only dim their icon. Level fills (mixer streams) use their own colour rather
+than the selection fill. Dividers are decorative; inputs use a stronger
+`fieldOutline` so fields can be found. `tests/test_palette.py` checks text and
+boundary contrast for both modes against these roles.
+
+Rows on the home page share rails across cards: leading icon centre, label start
+and chevron column line up between the status cards, the settings directory and
+the notification row, at both two-column and single-column widths. The directory
+uses a quieter fill than live controls. Glass tint stays at about 0.9 so wallpaper
+detail never competes with text.
 
 The command panel is an on-demand status and search surface, so its overview
 keeps workspace, connectivity, levels, notifications and active media visible

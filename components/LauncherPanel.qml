@@ -333,7 +333,8 @@ PanelWindow {
                 Layout.maximumHeight: implicitHeight
                 radius: panel.style.radiusInput
                 color: panel.style.inputSurface
-                border.color: panel.style.separator
+                // A typed query strengthens the edge; the default auto-focus stays calm.
+                border.color: search.text.length > 0 ? panel.style.fieldOutline : panel.style.separator
                 StatusIcon {
                     anchors.left: parent.left
                     anchors.leftMargin: panel.style.spaceMd
@@ -349,7 +350,8 @@ PanelWindow {
                     anchors.rightMargin: scopeHints.visible ? scopeHints.implicitWidth + 16 : panel.style.spaceMd
                     verticalAlignment: TextInput.AlignVCenter
                     font.family: panel.style.fontFamily
-                    font.pixelSize: panel.style.fontSizeBody
+                    font.pixelSize: panel.style.fontSizeSearch
+                    font.weight: Font.Medium
                     color: panel.style.textPrimary
                     selectionColor: panel.style.surfaceSelected
                     selectedTextColor: panel.style.textSelected
@@ -384,12 +386,12 @@ PanelWindow {
                         elide: Text.ElideRight
                         color: panel.style.textMuted
                         font.family: panel.style.fontFamily
-                        font.pixelSize: panel.style.fontSizeBody
+                        font.pixelSize: panel.style.fontSizeSearch
                     }
                     Item { visible: panel.commandScope; Layout.fillWidth: true; Layout.minimumWidth: 0 }
                     RowLayout {
                         id: scopeHints
-                        spacing: 6
+                        spacing: panel.style.spaceXs
                         Repeater {
                             model: panel.commandScope ? [
                                 {prefix: ">", label: "All", filter: "all"},
@@ -406,7 +408,8 @@ PanelWindow {
                                 readonly property var hint: modelData || ({prefix: "", label: "", filter: ""})
                                 objectName: panel.commandScope ? "command-filter-" + hint.filter : "search-scope-" + hint.prefix
                                 Layout.preferredHeight: 28
-                                Layout.preferredWidth: hintText.implicitWidth + 14
+                                Layout.preferredWidth: Math.max(28, hintText.implicitWidth + 2 * panel.style.spaceSm)
+                                compact: true
                                 style: panel.style
                                 label: ""
                                 tooltip: "Search " + hint.label.toLowerCase() + " · Type " + hint.prefix + " to filter"
@@ -419,6 +422,7 @@ PanelWindow {
                                     color: panel.style.textSecondary
                                     font.family: panel.style.fontFamily
                                     font.pixelSize: panel.style.fontSizeLabel
+                                    font.weight: Font.Medium
                                 }
                             }
                         }
@@ -426,6 +430,7 @@ PanelWindow {
                             visible: searchStatus.visible
                             Layout.preferredWidth: 1
                             Layout.preferredHeight: panel.style.spaceLg
+                            Layout.leftMargin: panel.style.spaceXs
                             Layout.rightMargin: panel.style.spaceXs
                             color: panel.style.separator
                         }

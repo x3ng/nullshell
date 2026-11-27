@@ -215,6 +215,30 @@ ShellRoot {
             const point = item.mapToItem(panel.contentItem, 0, 0);
             return JSON.stringify({x:point.x, y:point.y, width:item.width, height:item.height});
         }
+        // Leading icon centre, first label and trailing glyph centre of an
+        // overview row, so tests can check that rows share the same rails.
+        function rowRails(name: string): string {
+            const row = root.control(name);
+            if (!row || !row.visible) return "{}";
+            const parts = [];
+            const walk = item => {
+                for (const child of item.children) {
+                    if (!child.visible || child.width <= 0) continue;
+                    const kind = child.kind !== undefined ? "icon" : child.text !== undefined && child.font !== undefined && child.text !== "" ? "text" : "";
+                    if (kind) {
+                        const point = child.mapToItem(panel.contentItem, 0, 0);
+                        parts.push({kind: kind, x: point.x, centre: point.x + child.width / 2});
+                    }
+                    walk(child);
+                }
+            };
+            walk(row);
+            parts.sort((a, b) => a.x - b.x);
+            const icons = parts.filter(part => part.kind === "icon");
+            const text = parts.find(part => part.kind === "text");
+            return JSON.stringify({icon: icons.length ? icons[0].centre : null, label: text ? text.x : null,
+                trailing: icons.length > 1 ? icons[icons.length - 1].centre : null});
+        }
         function setToolField(name: string, value: string): bool {
             if (!["awake-duration", "shortcut-filter", "notification-filter"].includes(name)) return false;
             const field = root.control(name);

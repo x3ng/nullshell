@@ -20,14 +20,14 @@ RowLayout {
                 text: Qt.formatDateTime(status.date, "HH:mm")
                 color: status.style.textPrimary
                 font.family: status.style.fontFamily
-                font.pixelSize: status.style.fontSizeSmall
-                font.weight: Font.DemiBold
+                font.pixelSize: status.style.fontSizeLabel
+                font.weight: Font.Medium
             }
             Text {
                 text: Qt.formatDateTime(status.date, status.expanded ? "MMM d, ddd" : "M/d")
                 color: status.style.textSecondary
                 font.family: status.style.fontFamily
-                font.pixelSize: status.style.fontSizeSmall
+                font.pixelSize: status.style.fontSizeLabel
                 font.weight: Font.Normal
             }
             HoverHandler { id: clockHover }
@@ -50,15 +50,14 @@ RowLayout {
                 BatteryGlyph {
                     level: status.services.battery?.percentage ?? 0
                     charging: status.services.battery?.state === UPowerDeviceState.Charging
-                    ink: level < 0.2 ? status.style.accentWarm : status.style.textPrimary
+                    ink: level < 0.2 ? status.style.accentWarm : status.style.textSecondary
                     surface: status.style.panelSurface
                 }
                 Text {
                     text: Math.round((status.services.battery?.percentage ?? 0) * 100) + "%"
-                    color: status.style.textPrimary
+                    color: (status.services.battery?.percentage ?? 1) < 0.2 ? status.style.accentWarm : status.style.textSecondary
                     font.family: status.style.fontFamily
-                    font.pixelSize: status.style.fontSizeSmall
-                    font.weight: Font.DemiBold
+                    font.pixelSize: status.style.fontSizeLabel
                 }
             }
             HoverHandler { id: powerHover }

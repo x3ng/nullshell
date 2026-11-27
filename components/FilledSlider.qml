@@ -32,7 +32,7 @@ ClippingRectangle {
         width: slider.width * Math.max(0, Math.min(1, slider.value))
         height: slider.height
         radius: 0
-        color: slider.style.surfaceSelected
+        color: slider.style.meterFill
     }
     Text {
         anchors.left: parent.left
@@ -63,7 +63,8 @@ ClippingRectangle {
         visible: slider.activeFocus
         color: "transparent"
         radius: slider.radius
-        border.color: slider.style.accent
+        border.width: slider.style.focusWidth
+        border.color: slider.style.focusInk
     }
     MouseArea {
         anchors.fill: parent

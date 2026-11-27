@@ -41,34 +41,51 @@ Scope {
     readonly property int motionDistance: 8
     readonly property int motionHintEnter: 100
     readonly property int motionHintExit: 80
-    readonly property int radiusPanel: 4
-    readonly property int radiusInput: 3
-    readonly property int radiusPopup: 4
-    readonly property int radiusCard: 3
-    readonly property int radiusControl: 3
+    // Small, decorative corners: the panel reads one step softer than its
+    // cards so nested shapes do not look interchangeable.
+    readonly property int radiusPanel: 6
+    readonly property int radiusInput: 4
+    readonly property int radiusPopup: 6
+    readonly property int radiusCard: 4
+    readonly property int radiusControl: 4
     readonly property int radiusSmall: 3
+    // Keyboard focus is drawn inside the control and never changes geometry.
+    readonly property int focusWidth: 2
     // Neutral, layered surfaces: opacity is not a substitute for backdrop blur.
     readonly property color backdrop: colors.backdrop || (darkMode ? "#50000000" : "#18202730")
-    readonly property color panelSurface: colors.panelSurface || (darkMode ? "#202328" : "#f4f4f5")
-    readonly property color backgroundSurface: colors.backgroundSurface || (darkMode ? "#1b1d21" : "#e9eaec")
+    readonly property color panelSurface: colors.panelSurface || (darkMode ? "#1e2229" : "#e8edf4")
+    readonly property color backgroundSurface: colors.backgroundSurface || (darkMode ? "#181c22" : "#dce4ef")
     readonly property color surface: panelSurface
-    readonly property color surfaceRaised: colors.surfaceRaised || (darkMode ? "#292d33" : "#fdfdfe")
-    readonly property color surfaceHover: colors.surfaceHover || (darkMode ? "#34373d" : "#e6e8eb")
-    readonly property color surfaceSelected: colors.surfaceSelected || (darkMode ? "#353e4b" : "#e0e7f0")
+    readonly property color surfaceRaised: colors.surfaceRaised || (darkMode ? "#282d35" : "#f6f8fb")
+    readonly property color surfaceHover: colors.surfaceHover || (darkMode ? "#323842" : "#e2e9f2")
+    readonly property color surfaceSelected: colors.surfaceSelected || (darkMode ? "#34435a" : "#d5e2f4")
+    // A directory of links reads quieter than the live controls above it.
+    readonly property color surfaceDirectory: colors.surfaceDirectory || Qt.tint(panelSurface, Qt.alpha(surfaceRaised, 0.55))
+    // Selection survives hover: a slight lift instead of replacing the fill.
+    readonly property color surfaceSelectedHover: Qt.tint(surfaceSelected, Qt.alpha(textPrimary, 0.06))
     readonly property color materialEdge: colors.materialEdge || (darkMode ? "#70535962" : "#30434a55")
     readonly property color materialShadow: colors.materialShadow || (darkMode ? "#40000000" : "#1a20242b")
     // The compositor blurs only the matching surface region behind this tint.
-    readonly property real glassOpacity: backdropBlur ? (darkMode ? 0.78 : 0.72) : 1
-    readonly property real frostedOpacity: darkMode ? 0.86 : 0.82
+    // Enough tint that wallpaper detail never competes with the panel's text.
+    readonly property real glassOpacity: backdropBlur ? (darkMode ? 0.90 : 0.92) : 1
+    readonly property real frostedOpacity: 0.92
     readonly property color wallpaperScrim: colors.wallpaperScrim || (darkMode ? "#420b1118" : "#26e9ebef")
-    readonly property color inputSurface: colors.inputSurface || (darkMode ? "#1b1f24" : "#ffffff")
+    readonly property color inputSurface: colors.inputSurface || (darkMode ? "#1a1e24" : "#ffffff")
     readonly property color textSelected: textPrimary
-    readonly property color outline: colors.outline || (darkMode ? "#4a535c" : "#c4c8cf")
-    readonly property color separator: colors.separator || (darkMode ? "#373e45" : "#dcdfe4")
-    readonly property color textPrimary: colors.textPrimary || (darkMode ? "#f0f1f3" : "#24272d")
-    readonly property color textSecondary: colors.textSecondary || (darkMode ? "#bdc1ca" : "#525965")
-    readonly property color textMuted: colors.textMuted || (darkMode ? "#969da9" : "#69717e")
+    readonly property color outline: colors.outline || (darkMode ? "#4a535c" : "#b4bfcd")
+    // Decorative dividers; fieldOutline marks controls a user needs to find.
+    readonly property color separator: colors.separator || (darkMode ? "#38404b" : "#cbd4e1")
+    readonly property color fieldOutline: colors.fieldOutline || (darkMode ? "#5d6877" : "#8593a4")
+    readonly property color textPrimary: colors.textPrimary || (darkMode ? "#f0f1f3" : "#212934")
+    readonly property color textSecondary: colors.textSecondary || (darkMode ? "#c3c8d1" : "#465363")
+    readonly property color textMuted: colors.textMuted || (darkMode ? "#a7afbb" : "#556375")
+    // Unavailable labels stay readable; only icons are dimmed further.
+    readonly property color textDisabled: colors.textDisabled || (darkMode ? "#8a93a0" : "#66727f")
     readonly property color accent: colors.accent || (darkMode ? "#8aafe6" : "#3565a6")
+    readonly property color focusInk: colors.focusInk || (darkMode ? "#aac9f7" : "#285ca2")
+    readonly property color sliderTrack: colors.sliderTrack || (darkMode ? "#434c58" : "#c4cfde")
+    // Level fills (mixer streams) are not selection.
+    readonly property color meterFill: colors.meterFill || (darkMode ? "#323d4d" : "#dde7f3")
     readonly property color accentInk: colors.accentInk || (darkMode ? "#15253e" : "#ffffff")
     readonly property color danger: colors.danger || (darkMode ? "#e99e9b" : "#a33d3b")
     readonly property color accentWarm: colors.accentWarm || (darkMode ? "#e4bb80" : "#805313")
@@ -82,6 +99,8 @@ Scope {
     readonly property int fontSizeControl: 14
     // Detail page titles; one step above card and notice titles.
     readonly property int fontSizeTitle: 16
+    // The search field is the panel's primary input.
+    readonly property int fontSizeSearch: 15
     readonly property int fontSizeHeading: 24
     readonly property string fontFamily: "Inter"
     readonly property real sectionLetterSpacing: 1.2
