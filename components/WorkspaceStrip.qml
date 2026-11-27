@@ -17,11 +17,14 @@ Item {
     signal menuRequested(var owner, real right, real top)
 
     readonly property int itemGap: 4
-    readonly property int groupGap: 10
+    readonly property int groupGap: 16
     readonly property int rowGap: 4
     readonly property int dividerGap: 8
+    readonly property bool hasContent: workspaces.length > 0 || trayItems.length > 0 || toolsLoader.hasStatus
+    property var groupSeparators: []
 
-    implicitHeight: divider.height + dividerGap + Math.max(32, footer.implicitHeight)
+    visible: hasContent
+    implicitHeight: hasContent ? divider.height + dividerGap + Math.max(30, footer.implicitHeight) : 0
 
     Rectangle {
         id: divider
@@ -46,8 +49,8 @@ Item {
             objectName: "footer-entries"
             width: parent.width
 
-            // Single row: anchor workspaces left, tray + system tools right so the
-            // footer frames the panel edges cleanly. Overflowing narrow rows wrap neatly.
+            // Pure dynamic status bar: workspaces, tray icons and active session
+            // state center together cleanly, wrapping by row when narrow.
             readonly property var rows: {
                 const result = [];
                 let row = {items: [], width: 0, height: 0};
@@ -70,39 +73,24 @@ Item {
             implicitHeight: rows.reduce((height, row) => height + row.height, 0) + Math.max(0, rows.length - 1) * strip.rowGap
 
             function arrange() {
-                if (rows.length === 1) {
-                    const row = rows[0];
-                    const leftItems = row.items.filter(cell => cell.item.group === "workspace");
-                    const rightItems = row.items.filter(cell => cell.item.group !== "workspace");
-                    let leftX = 0;
-                    for (const cell of leftItems) {
-                        cell.item.x = leftX;
-                        cell.item.y = (row.height - cell.item.height) / 2;
-                        leftX += cell.item.width + strip.itemGap;
-                    }
-                    let rightWidth = 0;
-                    for (let i = 0; i < rightItems.length; i++) {
-                        if (i > 0) rightWidth += rightItems[i - 1].item.group === rightItems[i].item.group ? strip.itemGap : strip.groupGap;
-                        rightWidth += rightItems[i].item.width;
-                    }
-                    let rightX = Math.max(leftX, width - rightWidth);
-                    for (let i = 0; i < rightItems.length; i++) {
-                        const cell = rightItems[i];
-                        if (i > 0) rightX += rightItems[i - 1].item.group === cell.item.group ? strip.itemGap : strip.groupGap;
-                        cell.item.x = rightX;
-                        cell.item.y = (row.height - cell.item.height) / 2;
-                        rightX += cell.item.width;
-                    }
-                    return;
-                }
                 let top = 0;
+                const seps = [];
                 for (const row of rows) {
-                    for (const cell of row.items) {
-                        cell.item.x = (width - row.width) / 2 + cell.offset;
+                    const startX = Math.round((width - row.width) / 2);
+                    for (let i = 0; i < row.items.length; i++) {
+                        const cell = row.items[i];
+                        cell.item.x = startX + cell.offset;
                         cell.item.y = top + (row.height - cell.item.height) / 2;
+                        if (i > 0 && row.items[i - 1].item.group !== cell.item.group) {
+                            seps.push({
+                                x: Math.round(cell.item.x - strip.groupGap / 2),
+                                y: Math.round(top + (row.height - 14) / 2)
+                            });
+                        }
                     }
                     top += row.height + strip.rowGap;
                 }
+                strip.groupSeparators = seps;
             }
 
             onRowsChanged: arrange()
@@ -214,7 +202,7 @@ Item {
                             openMenu(); event.accepted = true;
                         }
                     }
-                    width: 30; height: 30
+                    width: 28; height: 30
                     radius: strip.style.radiusControl
                     color: trayMouse.containsMouse ? strip.style.surfaceHover : "transparent"
                     IconImage {
@@ -256,8 +244,25 @@ Item {
             Loader {
                 id: toolsLoader
                 objectName: "footer-tools"
-                readonly property string group: "tools"
+                readonly property string group: "status"
+                readonly property bool hasStatus: item?.hasStatus ?? false
+                visible: hasStatus
+                width: hasStatus && item ? item.implicitWidth : 0
+                height: hasStatus ? 30 : 0
+                onHasStatusChanged: entries.arrange()
                 sourceComponent: strip.toolsComponent
+            }
+        }
+
+        Repeater {
+            model: strip.groupSeparators
+            Rectangle {
+                required property var modelData
+                x: modelData.x
+                y: modelData.y
+                width: 1
+                height: 14
+                color: strip.style.separator
             }
         }
     }

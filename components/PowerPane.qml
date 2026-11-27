@@ -1,4 +1,5 @@
 pragma ComponentBehavior: Bound
+
 import QtQuick
 import QtQuick.Layouts
 import ".."
@@ -9,6 +10,12 @@ ColumnLayout {
     required property var services
     required property var actions
     readonly property var session: actions.session
+    readonly property var system: services.controls
+    readonly property var availableProfiles: [
+        {id: "power-saver", title: "Saver", icon: "leaf"},
+        {id: "balanced", title: "Balanced", icon: "balance"},
+        {id: "performance", title: "Performance", icon: "gauge"}
+    ].filter(item => (system?.powerProfiles ?? []).includes(item.id))
     property string pendingAction: ""
     readonly property var choices: [
         {id: "lock", title: "Lock screen", icon: "lock"},
@@ -26,6 +33,42 @@ ColumnLayout {
         target: pane.session
         function onAccepted(action) { pane.closeRequested(); }
     }
+
+    // Power profile selector (shown when power-profiles-daemon is available).
+    GroupCard {
+        visible: (pane.system?.powerAvailable ?? false) && pane.availableProfiles.length > 0
+        Layout.fillWidth: true
+        style: pane.style
+        pad: pane.style.spaceSm
+        contentSpacing: pane.style.spaceXs
+
+        RowLayout {
+            Layout.fillWidth: true
+            spacing: 6
+
+            Repeater {
+                model: pane.availableProfiles
+                delegate: ChoiceButton {
+                    required property var modelData
+                    objectName: "power-profile-" + modelData.id
+                    Layout.fillWidth: true
+                    Layout.preferredWidth: 1
+                    Layout.preferredHeight: 36
+                    style: pane.style
+                    filled: true
+                    tone: "toggle"
+                    selected: pane.system?.powerProfile === modelData.id
+                    label: modelData.title
+                    iconKind: modelData.icon
+                    iconSize: 16
+                    textSize: pane.style.fontSizeLabel
+                    available: pane.actions.available("power:" + modelData.id)
+                    onTriggered: pane.actions.execute("power:" + modelData.id)
+                }
+            }
+        }
+    }
+
     GroupCard {
         Layout.fillWidth: true
         style: pane.style
@@ -57,6 +100,7 @@ ColumnLayout {
             }
         }
     }
+
     GroupCard {
         visible: pane.pendingAction !== ""
         Layout.fillWidth: true
@@ -98,6 +142,7 @@ ColumnLayout {
             }
         }
     }
+
     Text {
         Layout.fillWidth: true
         visible: text !== ""
@@ -107,73 +152,4 @@ ColumnLayout {
         font.family: pane.style.fontFamily
         font.pixelSize: pane.style.fontSizeSmall
     }
-    GroupCard {
-        Layout.fillWidth: true
-        visible: pane.pendingAction === ""
-        style: pane.style
-        pad: pane.style.spaceSm
-        contentSpacing: pane.style.spaceXs
-        RowLayout {
-            Layout.fillWidth: true
-            Layout.leftMargin: pane.style.spaceSm
-            Layout.rightMargin: pane.style.spaceXs
-            spacing: pane.style.spaceSm
-            StatusIcon {
-                kind: "coffee"
-                Layout.preferredWidth: 20
-                Layout.preferredHeight: 20
-                ink: pane.services.keepAwakeUntil > 0 ? pane.style.accent : pane.style.textSecondary
-            }
-            Text {
-                Layout.fillWidth: true
-                wrapMode: Text.WordWrap
-                text: pane.services.keepAwakeUntil > 0
-                    ? "Keep awake until " + Qt.formatTime(new Date(pane.services.keepAwakeUntil), "hh:mm")
-                    : "Keep awake for"
-                color: pane.style.textPrimary
-                font.family: pane.style.fontFamily
-                font.pixelSize: pane.style.fontSizeBody
-            }
-            ConnectionField {
-                id: duration
-                objectName: "awake-duration"
-                style: pane.style
-                Layout.preferredWidth: 84
-                Layout.preferredHeight: 34
-                visible: !pane.services.keepAwakeUntil
-                placeholderText: " min"
-                horizontalAlignment: Text.AlignHCenter
-                validator: IntValidator { bottom: 1; top: 1440 }
-                onAccepted: if (acceptableInput) pane.services.keepAwakeFor(Number(text))
-            }
-            ChoiceButton {
-                objectName: "awake-duration-apply"
-                Layout.preferredWidth: 84
-                Layout.preferredHeight: 34
-                style: pane.style
-                filled: true
-                label: pane.services.keepAwakeUntil ? "End timer" : "Start"
-                available: pane.services.keepAwakeReady && (pane.services.keepAwakeUntil > 0 || duration.acceptableInput)
-                onTriggered: pane.services.keepAwakeFor(pane.services.keepAwakeUntil ? 0 : Number(duration.text))
-            }
-        }
-        Rectangle {
-            Layout.fillWidth: true
-            Layout.preferredHeight: 1
-            visible: pane.actions.available("idle")
-            color: pane.style.separator
-        }
-        DeviceRow {
-            objectName: "power-idle-settings"
-            Layout.fillWidth: true
-            visible: pane.actions.available("idle")
-            style: pane.style
-            title: "Idle and lock settings"
-            iconKind: "clock"
-            leftInset: pane.style.spaceSm
-            rightInset: pane.style.spaceSm
-            onTriggered: pane.actions.execute("idle")
-        }
-    }
-
 }

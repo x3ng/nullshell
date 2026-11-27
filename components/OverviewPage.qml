@@ -13,6 +13,8 @@ ColumnLayout {
     required property var services
     required property var actions
     required property var notifs
+    property var appearance: null
+    property var keyboard: null
     required property var searchModel
     required property var trayItems
     signal menuRequested(var owner, real right, real top)
@@ -20,6 +22,7 @@ ColumnLayout {
     required property bool panelOpen
     signal dismissRequested
     readonly property real naturalHeight: content.implicitHeight
+    readonly property bool hasFooter: navigationStrip.hasContent
     readonly property var system: services.controls
     readonly property var player: services.player
     readonly property var sink: services.sink
@@ -97,34 +100,41 @@ ColumnLayout {
                         icon: "brightness"
                         value: Math.max(0, page.services.brightness)
                         available: page.services.brightness >= 0
-                        detailsAction: "appearance"
-                        detailsTooltip: "Appearance settings"
                         onEdited: value => page.services.setBrightness(value)
                     }
                 }
 
-                // 3. 4-up compact quick-settings strip (no redundant chevrons)
-                GridLayout {
+                // 3. 5-up quick-panels strip (5 equal pills wide, 3+2 equal pills narrow)
+                Item {
+                    id: settingsGrid
+                    readonly property bool wideStrip: width >= 520
+                    readonly property int gap: 8
+                    readonly property int rowHeight: 38
                     Layout.fillWidth: true
-                    columns: content.width >= 460 ? 4 : 2
-                    columnSpacing: 8
-                    rowSpacing: 8
+                    implicitHeight: wideStrip ? rowHeight : rowHeight * 2 + gap
 
                     Repeater {
                         model: [
                             {route: "appearance", title: "Appearance", icon: "appearance"},
                             {route: "wallpaper", title: "Wallpaper", icon: "wallpaper"},
                             {route: "displays", title: "Displays", icon: "display"},
-                            {route: "idle", title: "Idle & lock", icon: "lock"}
+                            {route: "idle", title: "Idle", icon: "lock"},
+                            {route: "session", title: "Power", icon: "power"}
                         ]
                         delegate: ChoiceButton {
                             id: settingPill
                             required property var modelData
-                            objectName: "settings-" + modelData.route
-                            Layout.fillWidth: true
-                            Layout.minimumWidth: 0
-                            Layout.preferredWidth: 1
-                            Layout.preferredHeight: 38
+                            required property int index
+                            readonly property int countInRow: settingsGrid.wideStrip ? 5 : (index < 3 ? 3 : 2)
+                            readonly property int colInRow: settingsGrid.wideStrip ? index : (index < 3 ? index : index - 3)
+                            readonly property real cellWidth: (settingsGrid.width - (countInRow - 1) * settingsGrid.gap) / countInRow
+                            objectName: modelData.route === "session" ? "power-menu-button" : "settings-" + modelData.route
+                            x: Math.round(colInRow * (cellWidth + settingsGrid.gap))
+                            y: settingsGrid.wideStrip || index < 3 ? 0 : settingsGrid.rowHeight + settingsGrid.gap
+                            width: colInRow === countInRow - 1
+                                ? Math.max(0, settingsGrid.width - x)
+                                : Math.max(0, Math.round((colInRow + 1) * (cellWidth + settingsGrid.gap) - settingsGrid.gap) - x)
+                            height: settingsGrid.rowHeight
                             style: page.style
                             cardFilled: true
                             label: modelData.title
@@ -296,7 +306,7 @@ ColumnLayout {
                     }
                 }
 
-                // 6. Anchored workspace & system tools footer
+                // 6. Centered dynamic status bar (workspaces · tray · active state)
                 WorkspaceStrip {
                     id: navigationStrip
                     objectName: "workspace-footer"
@@ -313,6 +323,9 @@ ColumnLayout {
                             style: page.style
                             services: page.services
                             actions: page.actions
+                            notifs: page.notifs
+                            appearance: page.appearance
+                            keyboard: page.keyboard
                         }
                     }
                     onMenuRequested: (owner, right, top) => {

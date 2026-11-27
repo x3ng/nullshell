@@ -101,6 +101,10 @@ Scope {
     property double keepAwakeUntil: 0
     property bool keepAwakeRequested: true
     property bool keepAwake: true
+    property bool powerAvailable: true
+    property var powerProfiles: ["power-saver", "balanced", "performance"]
+    property string powerProfile: "balanced"
+    property bool shown: false
     property var trayItems: scenario === "empty" ? [] : Array.from({length: scenario === "crowded" ? 6 : 1}, () => tray)
     QtObject {
         id: tray
@@ -304,5 +308,7 @@ Scope {
         else if (action === "wifi-toggle") wifiEnabled = !wifiEnabled;
         else if (action === "bluetooth-toggle") bluetoothEnabled = !bluetoothEnabled;
         else if (action === "output-mute") outputAudio.muted = !outputAudio.muted;
+        else if (action === "mic-mute") inputAudio.muted = !inputAudio.muted;
+        else if (action.startsWith("power:")) powerProfile = action.slice(6);
     }
 }

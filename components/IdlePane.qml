@@ -17,12 +17,22 @@ ColumnLayout {
     property var draft: ({})
     property var observed: ({})
     readonly property var rows: [
-        {key:"dimSeconds", label:"Dim display", icon:"brightness"},
-        {key:"lockSeconds", label:"Lock screen", icon:"lock"},
-        {key:"displayOffSeconds", label:"Turn off displays", icon:"window"}
+        {key: "dimSeconds", label: "Dim display", icon: "brightness"},
+        {key: "lockSeconds", label: "Lock screen", icon: "lock"},
+        {key: "displayOffSeconds", label: "Turn off displays", icon: "window"}
     ]
-    readonly property var numbers: ({dimSeconds: durationSeconds(draft.dimSeconds), lockSeconds: durationSeconds(draft.lockSeconds),
-        displayOffSeconds: durationSeconds(draft.displayOffSeconds)})
+    readonly property var presets: [
+        {id: "off", label: "Off", minutes: 0},
+        {id: "30", label: "30m", minutes: 30},
+        {id: "60", label: "1h", minutes: 60},
+        {id: "120", label: "2h", minutes: 120},
+        {id: "always", label: "Always", minutes: -1}
+    ]
+    readonly property var numbers: ({
+        dimSeconds: durationSeconds(draft.dimSeconds),
+        lockSeconds: durationSeconds(draft.lockSeconds),
+        displayOffSeconds: durationSeconds(draft.displayOffSeconds)
+    })
     readonly property bool valid: Rules.validIdleDeadlines(numbers)
     readonly property bool changed: rows.some(row => numbers[row.key] !== preferences.values[row.key])
     spacing: style.spaceMd
@@ -51,36 +61,152 @@ ColumnLayout {
         if (Number.isInteger(seconds) && seconds >= 1 && seconds <= Rules.idleMaximumSeconds())
             edit(key, formatDuration(seconds));
     }
+    function selectPreset(preset) {
+        if (preset.id === "off") {
+            services.setKeepAwake(false);
+        } else if (preset.id === "always") {
+            if (services.keepAwakeRequested && services.keepAwakeUntil === 0) {
+                services.setKeepAwake(false);
+            } else {
+                services.keepAwakeFor(0);
+                services.setKeepAwake(true);
+            }
+        } else {
+            services.setKeepAwake(false);
+            services.keepAwakeFor(preset.minutes);
+        }
+    }
     Component.onCompleted: resetDraft()
     Connections {
         target: pane.preferences
         function onOverriddenChanged() { pane.resetDraft(); }
         function onValuesChanged() {
-            // A config reload can reallocate an unchanged idle object. Do not
-            // discard an in-progress edit when only unrelated settings changed.
             if (pane.rows.some(row => pane.observed[row.key] !== pane.preferences.values[row.key])) pane.resetDraft();
         }
     }
 
-    SettingsNotice {
+    // Unified Keep Awake card: permanent, preset durations and custom timer in one place.
+    GroupCard {
+        Layout.fillWidth: true
         style: pane.style
-        title: pane.services.keepAwake ? "Idle timers paused" : "Idle timers active"
-        iconKind: "clock"
-        ink: pane.services.keepAwake ? pane.style.accentWarm : pane.style.accent
-        detail: !pane.services.keepAwake ? "Actions run after the last input."
-            : pane.services.keepAwakeRequested ? "Keep awake is on."
-            : "Keep awake until " + Qt.formatTime(new Date(pane.services.keepAwakeUntil), "hh:mm") + "."
-    actions: ChoiceButton {
-        objectName: "idle-keep-awake"
-        Layout.preferredWidth: 115
-        style: pane.style
-        label: pane.services.keepAwake ? "Resume timers" : "Keep awake"
-        filled: true
-        selected: pane.services.keepAwake
-        available: pane.services.keepAwakeReady
-        onTriggered: pane.services.setKeepAwake(!pane.services.keepAwake)
+        contentSpacing: pane.style.spaceSm
+
+        RowLayout {
+            Layout.fillWidth: true
+            spacing: pane.style.spaceSm
+
+            StatusIcon {
+                kind: "coffee"
+                Layout.preferredWidth: 18
+                Layout.preferredHeight: 18
+                ink: pane.services.keepAwake ? pane.style.accent : pane.style.textSecondary
+            }
+
+            ColumnLayout {
+                Layout.fillWidth: true
+                spacing: 1
+
+                Text {
+                    Layout.fillWidth: true
+                    text: pane.services.keepAwakeUntil > 0
+                        ? "Keep awake until " + Qt.formatTime(new Date(pane.services.keepAwakeUntil), "hh:mm")
+                        : "Keep awake"
+                    color: pane.style.textPrimary
+                    font.family: pane.style.fontFamily
+                    font.pixelSize: pane.style.fontSizeBody
+                    font.weight: Font.Medium
+                }
+
+                Text {
+                    Layout.fillWidth: true
+                    text: !pane.services.keepAwake ? "Automatic dimming and lock are active"
+                        : pane.services.keepAwakeUntil > 0
+                            ? (pane.services.keepAwakeRequested ? "Timer active · Always is also on" : "Idle timers resume automatically when the timer ends")
+                            : "Idle timers paused indefinitely"
+                    color: pane.style.textMuted
+                    font.family: pane.style.fontFamily
+                    font.pixelSize: pane.style.fontSizeCaption
+                    wrapMode: Text.WordWrap
+                }
+            }
+        }
+
+        RowLayout {
+            Layout.fillWidth: true
+            spacing: 6
+
+            Repeater {
+                model: pane.presets
+                delegate: ChoiceButton {
+                    required property var modelData
+                    objectName: modelData.id === "always" ? "idle-keep-awake" : "awake-preset-" + modelData.id
+                    Layout.fillWidth: true
+                    Layout.preferredWidth: 1
+                    compact: true
+                    filled: true
+                    style: pane.style
+                    label: modelData.label
+                    tone: "toggle"
+                    selected: modelData.id === "off" ? !pane.services.keepAwake
+                        : modelData.id === "always" ? (pane.services.keepAwakeRequested && pane.services.keepAwakeUntil === 0)
+                        : false
+                    available: pane.services.keepAwakeReady
+                    onTriggered: pane.selectPreset(modelData)
+                }
+            }
+        }
+
+        Rectangle {
+            Layout.fillWidth: true
+            Layout.preferredHeight: 1
+            color: pane.style.separator
+        }
+
+        RowLayout {
+            Layout.fillWidth: true
+            spacing: pane.style.spaceSm
+
+            Text {
+                Layout.fillWidth: true
+                text: pane.services.keepAwakeUntil > 0 ? "Active custom timer" : "Custom timer"
+                color: pane.style.textSecondary
+                font.family: pane.style.fontFamily
+                font.pixelSize: pane.style.fontSizeSmall
+            }
+
+            ConnectionField {
+                id: duration
+                objectName: "awake-duration"
+                style: pane.style
+                Layout.preferredWidth: 84
+                Layout.preferredHeight: 32
+                visible: !pane.services.keepAwakeUntil
+                placeholderText: " min"
+                horizontalAlignment: Text.AlignHCenter
+                validator: IntValidator { bottom: 1; top: 1440 }
+                onAccepted: if (acceptableInput) { pane.services.setKeepAwake(false); pane.services.keepAwakeFor(Number(text)); }
+            }
+
+            ChoiceButton {
+                objectName: "awake-duration-apply"
+                Layout.preferredWidth: 88
+                compact: true
+                style: pane.style
+                filled: true
+                label: pane.services.keepAwakeUntil > 0 ? "End timer" : "Start"
+                available: pane.services.keepAwakeReady && (pane.services.keepAwakeUntil > 0 || duration.acceptableInput)
+                onTriggered: {
+                    if (pane.services.keepAwakeUntil > 0) {
+                        pane.services.keepAwakeFor(0);
+                    } else {
+                        pane.services.setKeepAwake(false);
+                        pane.services.keepAwakeFor(Number(duration.text));
+                    }
+                }
+            }
+        }
     }
-    }
+
     GroupCard {
         Layout.fillWidth: true
         style: pane.style
@@ -136,6 +262,7 @@ ColumnLayout {
             }
         }
     }
+
     SettingsActions {
         id: footerActions
         style: pane.style

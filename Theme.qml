@@ -51,51 +51,53 @@ Scope {
     readonly property int radiusSmall: 3
     // Keyboard focus is drawn inside the control and never changes geometry.
     readonly property int focusWidth: 2
-    // Neutral, layered surfaces: opacity is not a substitute for backdrop blur.
-    readonly property color backdrop: colors.backdrop || (darkMode ? "#50000000" : "#18202730")
-    readonly property color panelSurface: colors.panelSurface || (darkMode ? "#16191f" : "#f2f5f9")
-    readonly property color backgroundSurface: colors.backgroundSurface || (darkMode ? "#111419" : "#e6ebf2")
+    // Neutral, layered surfaces: base, cards and hover stay strictly achromatic
+    // (zero violet/slate cast in light mode) so active cerulean tints read crisp.
+    readonly property color backdrop: colors.backdrop || (darkMode ? "#50000000" : "#18181b24")
+    readonly property color panelSurface: colors.panelSurface || (darkMode ? "#16181b" : "#f3f4f5")
+    readonly property color backgroundSurface: colors.backgroundSurface || (darkMode ? "#111215" : "#e7e8ea")
     readonly property color surface: panelSurface
-    readonly property color surfaceRaised: colors.surfaceRaised || (darkMode ? "#222730" : "#ffffff")
-    readonly property color surfaceHover: colors.surfaceHover || (darkMode ? "#2d3440" : "#e3eaf3")
-    readonly property color surfaceSelected: colors.surfaceSelected || (darkMode ? "#30415a" : "#d6e4f7")
+    readonly property color surfaceRaised: colors.surfaceRaised || (darkMode ? "#202227" : "#ffffff")
+    readonly property color surfaceHover: colors.surfaceHover || (darkMode ? "#2c2f35" : "#e2e4e7")
+    // Active / selected state uses pure ~204° cerulean blue (no lavender/purple cast).
+    readonly property color surfaceSelected: colors.surfaceSelected || (darkMode ? "#1b3d5c" : "#b8def8")
     // A directory of links reads quieter than the live controls above it.
     readonly property color surfaceDirectory: colors.surfaceDirectory || Qt.tint(panelSurface, Qt.alpha(surfaceRaised, 0.55))
     // Filled controls (buttons, segmented tabs) sit clearly on both panel and card surfaces.
-    readonly property color controlSurface: colors.controlSurface || (darkMode ? "#282e39" : "#eaeff6")
-    // Selection survives hover: a slight lift instead of replacing the fill.
-    readonly property color surfaceSelectedHover: Qt.tint(surfaceSelected, Qt.alpha(textPrimary, 0.06))
-    readonly property color materialEdge: colors.materialEdge || (darkMode ? "#58424c5c" : "#281e293b")
-    readonly property color materialShadow: colors.materialShadow || (darkMode ? "#78000000" : "#2c0f172a")
+    readonly property color controlSurface: colors.controlSurface || (darkMode ? "#272a30" : "#eceef0")
+    // Selection survives hover: lift chroma/depth instead of washing out to grey.
+    readonly property color surfaceSelectedHover: colors.surfaceSelectedHover || (darkMode ? "#224b70" : "#a4d3f5")
+    readonly property color materialEdge: colors.materialEdge || (darkMode ? "#58424750" : "#26181a1f")
+    readonly property color materialShadow: colors.materialShadow || (darkMode ? "#78000000" : "#280f141c")
     // The compositor blurs only the matching surface region behind this tint.
     // Foreground cards stay slightly translucent over blur so layers breathe.
-    readonly property real glassOpacity: backdropBlur ? (darkMode ? 0.86 : 0.90) : 1
-    readonly property real cardOpacity: backdropBlur ? (darkMode ? 0.86 : 0.96) : 1
+    readonly property real glassOpacity: backdropBlur ? (darkMode ? 0.86 : 0.92) : 1
+    readonly property real cardOpacity: backdropBlur ? (darkMode ? 0.86 : 0.97) : 1
     readonly property real frostedOpacity: 0.90
     readonly property color cardSurface: Qt.alpha(surfaceRaised, cardOpacity)
     readonly property color directorySurface: Qt.alpha(surfaceDirectory, cardOpacity)
-    readonly property color wallpaperScrim: colors.wallpaperScrim || (darkMode ? "#420b1118" : "#26e9ebef")
-    readonly property color inputSurface: colors.inputSurface || (darkMode ? "#12151a" : "#ffffff")
+    readonly property color wallpaperScrim: colors.wallpaperScrim || (darkMode ? "#420b1118" : "#26e9ebed")
+    readonly property color inputSurface: colors.inputSurface || (darkMode ? "#121316" : "#ffffff")
     readonly property color textSelected: textPrimary
-    readonly property color outline: colors.outline || (darkMode ? "#3e4754" : "#bcc7d6")
+    readonly property color outline: colors.outline || (darkMode ? "#3e424b" : "#b8bcc4")
     // Decorative dividers; fieldOutline marks controls without heavy cages.
-    readonly property color separator: colors.separator || (darkMode ? "#2b323d" : "#dfe6f0")
-    readonly property color fieldOutline: colors.fieldOutline || (darkMode ? "#363f4d" : "#cbd5e2")
-    readonly property color textPrimary: colors.textPrimary || (darkMode ? "#f1f3f5" : "#18202c")
-    readonly property color textSecondary: colors.textSecondary || (darkMode ? "#c4cad3" : "#435062")
-    readonly property color textMuted: colors.textMuted || (darkMode ? "#a5aebc" : "#556375")
+    readonly property color separator: colors.separator || (darkMode ? "#2a2d34" : "#e2e4e7")
+    readonly property color fieldOutline: colors.fieldOutline || (darkMode ? "#363a42" : "#cccfd5")
+    readonly property color textPrimary: colors.textPrimary || (darkMode ? "#f2f4f6" : "#17191c")
+    readonly property color textSecondary: colors.textSecondary || (darkMode ? "#c7ccd2" : "#3b4048")
+    readonly property color textMuted: colors.textMuted || (darkMode ? "#a5acb6" : "#4b525c")
     // Unavailable labels stay readable; only icons are dimmed further.
-    readonly property color textDisabled: colors.textDisabled || (darkMode ? "#8891a0" : "#667487")
-    readonly property color accent: colors.accent || (darkMode ? "#88aee8" : "#2b62b2")
-    readonly property color focusInk: colors.focusInk || (darkMode ? "#a8c8f8" : "#2457a3")
-    readonly property color sliderTrack: colors.sliderTrack || (darkMode ? "#3a4350" : "#cfd8e5")
-    // Embedded pill sliders and subtle keycap hints.
-    readonly property color sliderFill: colors.sliderFill || (darkMode ? "#354b6e" : "#cfe0f8")
-    readonly property color sliderMutedFill: colors.sliderMutedFill || (darkMode ? "#2f3643" : "#dde4ee")
+    readonly property color textDisabled: colors.textDisabled || (darkMode ? "#8a919b" : "#656d78")
+    readonly property color accent: colors.accent || (darkMode ? "#6bb8f5" : "#0b63b6")
+    readonly property color focusInk: colors.focusInk || (darkMode ? "#9bd0fa" : "#08549c")
+    readonly property color sliderTrack: colors.sliderTrack || (darkMode ? "#383c44" : "#cdd1d7")
+    // Continuous level fills stand out clearly against white/dark tracks.
+    readonly property color sliderFill: colors.sliderFill || (darkMode ? "#234c72" : "#a9d6f5")
+    readonly property color sliderMutedFill: colors.sliderMutedFill || (darkMode ? "#2a2d33" : "#dcdfe4")
     readonly property color keycapSurface: colors.keycapSurface || Qt.alpha(textPrimary, darkMode ? 0.09 : 0.07)
     // Level fills (mixer streams) are not selection.
-    readonly property color meterFill: colors.meterFill || (darkMode ? "#2a3545" : "#e3ecf7")
-    readonly property color accentInk: colors.accentInk || (darkMode ? "#122036" : "#ffffff")
+    readonly property color meterFill: colors.meterFill || (darkMode ? "#1f354a" : "#cbe7fa")
+    readonly property color accentInk: colors.accentInk || (darkMode ? "#0b1d30" : "#ffffff")
     readonly property color danger: colors.danger || (darkMode ? "#eb9c99" : "#a33a38")
     readonly property color accentWarm: colors.accentWarm || (darkMode ? "#e5bc82" : "#7d5112")
 

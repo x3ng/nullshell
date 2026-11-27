@@ -20,43 +20,40 @@ ClippingRectangle {
     signal edited(real value)
 
     readonly property real clamped: Math.max(0, Math.min(1, value))
+    readonly property int trailingWidth: detailsSlot.visible ? 37 : 0
     Layout.fillWidth: true
     Layout.preferredWidth: 1
     Layout.minimumWidth: 0
-    implicitHeight: 42
+    implicitHeight: 40
     radius: style.radiusCard
     color: style.cardSurface
 
-    // Inset pill track inside the card so 0%, 50% and 100% all read unmistakably as a slider.
-    ClippingRectangle {
+    // Flush full-bleed tonal fill across the slider body (no nested inner box).
+    Item {
         id: trackZone
         anchors.fill: parent
-        anchors.margins: 4
-        anchors.rightMargin: detailsSlot.visible ? 39 : 4
-        radius: level.style.radiusSmall
-        color: level.style.backgroundSurface
+        anchors.rightMargin: level.trailingWidth
 
         Rectangle {
             width: Math.round(trackZone.width * level.clamped)
             height: trackZone.height
-            radius: trackZone.radius
             color: !level.available ? "transparent"
                 : level.muted ? level.style.sliderMutedFill : level.style.sliderFill
         }
 
         Rectangle {
-            visible: level.clamped > 0.02 && level.clamped < 0.99 && level.available
-            x: Math.max(0, Math.round(trackZone.width * level.clamped) - 2)
-            width: 2
+            visible: level.clamped > 0.01 && level.clamped < 0.995 && level.available
+            x: Math.max(0, Math.round(trackZone.width * level.clamped) - 1.5)
+            width: 1.5
             height: trackZone.height
             color: level.muted ? level.style.outline : level.style.accent
-            opacity: 0.85
+            opacity: 0.7
         }
 
         MouseArea {
             id: dragArea
             anchors.fill: parent
-            anchors.leftMargin: muteSlot.visible && level.action !== "" ? 34 : 0
+            anchors.leftMargin: muteSlot.visible && level.action !== "" ? 38 : 0
             enabled: level.available
             hoverEnabled: true
             cursorShape: Qt.PointingHandCursor
@@ -82,13 +79,13 @@ ClippingRectangle {
 
     RowLayout {
         anchors.fill: parent
-        anchors.leftMargin: 8
-        anchors.rightMargin: 6
-        spacing: 6
+        anchors.leftMargin: 6
+        anchors.rightMargin: 0
+        spacing: 0
 
         Item {
             id: muteSlot
-            Layout.preferredWidth: 30
+            Layout.preferredWidth: 32
             Layout.preferredHeight: 30
             ChoiceButton {
                 id: muteButton
@@ -96,14 +93,13 @@ ClippingRectangle {
                 visible: level.action !== ""
                 style: level.style
                 label: ""
-                color: muteButton.hovered ? level.style.surfaceHover : "transparent"
+                color: muteButton.hovered ? Qt.alpha(level.style.textPrimary, 0.07) : "transparent"
                 StatusIcon {
                     anchors.centerIn: parent
-                    width: 17; height: 17
+                    width: 18; height: 18
                     kind: level.icon
                     muted: level.muted
-                    ink: level.muted ? level.style.textMuted
-                        : muteButton.hovered ? level.style.textPrimary : level.style.accent
+                    ink: level.muted ? level.style.textMuted : level.style.accent
                 }
                 tooltip: level.muted ? "Unmute output" : "Mute output"
                 available: level.available && level.actions.available(level.action)
@@ -111,7 +107,7 @@ ClippingRectangle {
             }
             StatusIcon {
                 anchors.centerIn: parent
-                width: 17; height: 17
+                width: 18; height: 18
                 visible: level.action === ""
                 kind: level.icon
                 ink: level.available ? level.style.accent : level.style.textDisabled
@@ -122,7 +118,7 @@ ClippingRectangle {
 
         Text {
             id: valueLabel
-            Layout.rightMargin: 4
+            Layout.rightMargin: 10
             horizontalAlignment: Text.AlignRight
             text: level.available ? Math.round(level.clamped * 100) + "%" : "—"
             color: level.muted ? level.style.textMuted : level.style.textPrimary
@@ -132,24 +128,24 @@ ClippingRectangle {
         }
 
         Rectangle {
-            id: detailsDivider
             visible: detailsSlot.visible
             Layout.preferredWidth: 1
-            Layout.preferredHeight: 16
-            color: level.style.separator
-            opacity: 0.6
+            Layout.preferredHeight: 20
+            color: level.clamped > 0.95 && !level.muted ? Qt.alpha(level.style.textPrimary, 0.12) : level.style.separator
+            opacity: 0.8
         }
 
         Item {
             id: detailsSlot
             visible: level.detailsAction !== ""
-            Layout.preferredWidth: 26
-            Layout.preferredHeight: 30
+            Layout.preferredWidth: 36
+            Layout.fillHeight: true
             ChoiceButton {
                 id: detailsButton
                 anchors.fill: parent
                 objectName: level.icon + "-details"
                 style: level.style
+                color: detailsButton.hovered ? Qt.alpha(level.style.textPrimary, 0.06) : "transparent"
                 label: ""
                 iconKind: "chevron"
                 iconSize: 16

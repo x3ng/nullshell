@@ -280,7 +280,7 @@ PanelWindow {
         anchors.topMargin: Math.max(16, Math.round(parent.height * 0.18))
         width: Math.min(panel.maximumCardWidth, parent.width - 32)
         readonly property int inset: panel.style.panelPadding
-        readonly property int bottomInset: panel.activePage === panel.pageIndexes.overview ? 10 : inset
+        readonly property int bottomInset: panel.activePage === panel.pageIndexes.overview && overviewPage.hasFooter ? 10 : inset
         readonly property real contentHeight: panel.showingDetails ? controlDetails.naturalHeight
             : panel.searching ? searchResultsPage.naturalHeight
             : panel.homeTab === "desktop" ? desktopPage.naturalHeight
@@ -485,6 +485,8 @@ PanelWindow {
                     services: panel.services
                     actions: panel.actions
                     notifs: panel.notifs
+                    appearance: panel.appearance
+                    keyboard: panel.keyboard
                     searchModel: panel.searchModel
                     controls: panel.hyprControls
                     trayItems: panel.trayItems

@@ -22,60 +22,49 @@ Rectangle {
     Layout.fillWidth: true
     Layout.preferredWidth: 1
     Layout.minimumWidth: 0
-    implicitHeight: 56
+    implicitHeight: 52
     radius: entry.style.radiusCard
-    color: rowHover.hovered ? entry.style.surfaceHover : entry.style.cardSurface
-    border.width: detailsButton.activeFocus ? entry.style.focusWidth : 0
-    border.color: entry.style.focusInk
-
-    HoverHandler { id: rowHover }
+    // Whole-tile tonal surface: no nested colored square patch around the icon.
+    color: !entry.available ? entry.style.cardSurface
+        : entry.activeConnection ? (toggleButton.hovered || detailsButton.hovered ? entry.style.surfaceSelectedHover : entry.style.surfaceSelected)
+        : (toggleButton.hovered || detailsButton.hovered ? entry.style.surfaceHover : entry.style.cardSurface)
 
     RowLayout {
         anchors.fill: parent
-        anchors.leftMargin: 10
-        anchors.rightMargin: 8
-        spacing: 10
+        spacing: 0
 
+        // Main left region toggles the radio directly; clean icon + two-line label, no inner box.
         UtilityButton {
             id: toggleButton
             objectName: "quick-" + entry.action + "-toggle"
-            Layout.preferredWidth: 36
-            Layout.preferredHeight: 36
-            style: entry.style
-            label: ""
-            iconKind: entry.icon
-            iconSize: 18
-            color: !entry.available ? entry.style.controlSurface
-                : entry.activeConnection ? (toggleButton.hovered ? Qt.darker(entry.style.accent, 1.10) : entry.style.accent)
-                : entry.online ? (toggleButton.hovered ? entry.style.surfaceSelectedHover : entry.style.surfaceSelected)
-                : (toggleButton.hovered ? entry.style.surfaceHover : entry.style.controlSurface)
-            iconInk: !entry.available ? entry.style.textDisabled
-                : entry.activeConnection ? entry.style.accentInk
-                : entry.online ? entry.style.accent : entry.style.textMuted
-            checkable: true
-            Accessible.checked: entry.online
-            available: entry.available && entry.actions.available(entry.toggleAction)
-            tooltip: entry.toggleTooltip
-            onTriggered: entry.actions.execute(entry.toggleAction)
-        }
-
-        ChoiceButton {
-            id: detailsButton
-            objectName: "quick-" + entry.action + "-details"
             Layout.fillWidth: true
             Layout.minimumWidth: 0
             Layout.fillHeight: true
             style: entry.style
             color: "transparent"
-            border.width: 0
             label: ""
-            tooltip: "Open " + entry.title + " settings · " + (entry.error || entry.secondary || entry.detail)
-            Accessible.name: entry.title + ", " + entry.detail + (entry.secondary ? ", " + entry.secondary : "")
-            onTriggered: entry.actions.execute(entry.action)
+            iconKind: ""
+            checkable: true
+            Accessible.checked: entry.online
+            Accessible.name: entry.toggleTooltip + " · " + entry.detail + (entry.secondary ? ", " + entry.secondary : "")
+            available: entry.available && entry.actions.available(entry.toggleAction)
+            tooltip: entry.toggleTooltip
+            onTriggered: entry.actions.execute(entry.toggleAction)
 
             RowLayout {
                 anchors.fill: parent
-                spacing: 6
+                anchors.leftMargin: 14
+                anchors.rightMargin: 8
+                spacing: 12
+
+                StatusIcon {
+                    kind: entry.icon
+                    Layout.preferredWidth: 20
+                    Layout.preferredHeight: 20
+                    ink: !entry.available ? entry.style.textDisabled
+                        : entry.activeConnection || entry.online ? entry.style.accent
+                        : entry.style.textMuted
+                }
 
                 ColumnLayout {
                     Layout.fillWidth: true
@@ -105,18 +94,33 @@ Rectangle {
                             : entry.activeConnection ? entry.style.textSecondary : entry.style.textMuted
                         font.family: entry.style.fontFamily
                         font.pixelSize: entry.style.fontSizeCaption
-                        font.weight: entry.activeConnection ? Font.Medium : Font.Normal
                     }
                 }
-
-                StatusIcon {
-                    kind: "chevron"
-                    Layout.preferredWidth: 16
-                    Layout.preferredHeight: 16
-                    opacity: rowHover.hovered || detailsButton.activeFocus ? 0.9 : 0.45
-                    ink: entry.style.textMuted
-                }
             }
+        }
+
+        Rectangle {
+            Layout.preferredWidth: 1
+            Layout.preferredHeight: 24
+            color: entry.activeConnection ? Qt.alpha(entry.style.textPrimary, 0.12) : entry.style.separator
+            opacity: 0.8
+        }
+
+        // Trailing segment opens the network / Bluetooth device list.
+        ChoiceButton {
+            id: detailsButton
+            objectName: "quick-" + entry.action + "-details"
+            Layout.preferredWidth: 36
+            Layout.fillHeight: true
+            style: entry.style
+            color: detailsButton.hovered ? Qt.alpha(entry.style.textPrimary, 0.06) : "transparent"
+            label: ""
+            iconKind: "chevron"
+            iconSize: 16
+            iconInk: detailsButton.hovered ? entry.style.textPrimary : entry.style.textMuted
+            tooltip: "Open " + entry.title + " settings"
+            Accessible.name: "Open " + entry.title + " settings"
+            onTriggered: entry.actions.execute(entry.action)
         }
     }
 }

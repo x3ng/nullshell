@@ -183,15 +183,28 @@ ShellRoot {
         function tick(): void { fixture.titleRevision++; }
         function activateSelected(): void { panel.activate(panel.selectedIndex); }
         function footerGeometry(): string {
+            const strip = root.findItem(panel.contentItem, "workspace-footer");
             const entries = root.findItem(panel.contentItem, "footer-entries");
-            const tools = root.findItem(panel.contentItem, "footer-tools");
-            return JSON.stringify({width: entries.width, toolsX: tools.x, toolsWidth: tools.width});
+            const visibleChildren = (entries?.children || []).filter(c => c.visible && c.width > 0 && c.height > 0);
+            const minX = visibleChildren.length ? Math.min(...visibleChildren.map(c => c.x)) : 0;
+            const maxRight = visibleChildren.length ? Math.max(...visibleChildren.map(c => c.x + c.width)) : 0;
+            return JSON.stringify({
+                visible: strip?.visible ?? false,
+                width: entries?.width ?? 0,
+                leftMargin: minX,
+                rightMargin: (entries?.width ?? 0) - maxRight
+            });
         }
         function scrollOverview(bottom: bool): void {
             const view = root.findItem(panel.contentItem, "overview-scroll");
             if (view) view.contentY = bottom ? Math.max(0, view.contentHeight - view.height) : 0;
         }
         function action(name: string): void { fixture.execute(name); }
+        function footerState(permanent: bool, minutes: int, muted: bool): void {
+            fixture.setKeepAwake(permanent);
+            fixture.keepAwakeFor(minutes);
+            fixture.source.audio.muted = muted;
+        }
         function quickState(name: string): void {
             fixture.wifiBusy = fixture.bluetoothBusy = name === "busy";
             fixture.wifiAvailable = fixture.bluetoothAvailable = fixture.appearanceAvailable = name !== "unavailable";

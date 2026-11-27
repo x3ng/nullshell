@@ -83,6 +83,11 @@ def main():
             call("width", width)
             call("light", light)
             call("page", "overview")
+            crowded = width == "440"
+            call("scenario", "crowded" if crowded else "empty")
+            call("footerState", "false", "30" if crowded else "0", str(crowded).lower())
+            call("action", "power:power-saver" if crowded else "power:balanced")
+            call("action", "notifications-pause" if crowded else "notifications-resume")
             call("scrollOverview", "false")
             card = settle()["card"]
             search = json.loads(call("controlBounds", "launcher-search"))
@@ -99,14 +104,35 @@ def main():
             card = settle()["card"]
             notifications = json.loads(call("controlBounds", "overview-notifications"))
             footer = json.loads(call("controlBounds", "workspace-footer"))
-            above = footer["y"] - notifications["y"] - notifications["height"]
-            below = card["bottom"] - footer["y"] - footer["height"]
-            assert abs(above - below) <= 1 and 0 < above < top, (notifications, footer, card)
+            power = json.loads(call("controlBounds", "power-menu-button"))
+            assert power["y"] < notifications["y"], (power, notifications)
+            for name in ("footer-power-status", "footer-dnd-status", "footer-mic-status", "footer-awake-status"):
+                bounds = json.loads(call("controlBounds", name))
+                assert bool(bounds) == crowded, (name, bounds)
+            if crowded:
+                if args.keyboard:
+                    assert call("focusControl", "overview", "settings-idle") == "true"
+                    subprocess.run(["wtype", "-k", "Tab"], check=True, timeout=5)
+                    assert settle()["focusedItem"] == "power-menu-button"
+                above = footer["y"] - notifications["y"] - notifications["height"]
+                below = card["bottom"] - footer["y"] - footer["height"]
+                assert abs(above - below) <= 1 and 0 < above < top, (notifications, footer, card)
+                footer_geom = json.loads(call("footerGeometry"))
+                assert abs(footer_geom["leftMargin"] - footer_geom["rightMargin"]) <= 2, footer_geom
+            else:
+                # Pure dynamic footer collapses completely when workspaces, tray and active state are all empty.
+                assert footer == {}, footer
+                below = card["bottom"] - notifications["y"] - notifications["height"]
+                assert abs(below - top) <= 1, (notifications, card, top)
             screenshot("overview-footer-" + width + "-" + light)
             call("search", ">?")
             settle()
             assert json.loads(call("controlBounds", "launcher-search")) == search
             assert json.loads(call("controlBounds", "search-status")) == {}
+        call("action", "power:balanced")
+        call("action", "notifications-resume")
+        call("footerState", "true", "0", "false")
+        call("scenario", "normal")
         call("width", "620")
         call("light", "false")
         call("page", "overview")
@@ -336,9 +362,10 @@ def main():
         assert call("displayTopology", "2") == "true"
 
     def check_idle():
-        call("page", "session")
+        call("page", "overview")
+        call("footerState", "true", "0", "false")
         settle()
-        assert call("activateControl", "power-idle-settings") == "true"
+        assert call("activateControl", "footer-awake-status") == "true"
         s = settle()
         assert s["page"] == "detail:idle" and s["idleFields"] == {"dim":"2:30", "lock":"5:00"}
         for width, light in [("620", "false"), ("440", "true")]:
@@ -369,6 +396,11 @@ def main():
         screenshot("idle-active")
         assert call("activateControl", "idle-keep-awake") == "true"
         assert settle()["keepAwake"] == before
+        assert call("setToolField", "awake-duration", "37") == "true"
+        assert call("activateControl", "awake-duration-apply") == "true"
+        settle()
+        assert call("activateControl", "awake-duration-apply") == "true"
+        call("footerState", "true", "0", "false")
 
     with tempfile.TemporaryDirectory(prefix="nullshell-preview-test-") as temporary:
         def png_chunk(kind, data):
@@ -421,29 +453,27 @@ def main():
             screenshot("normal")
             check_overview_geometry()
 
-            # Verify redesigned overview structure: 2-up tiles, 2-up sliders, 4-up settings strip.
+            # Verify redesigned overview structure: 2-up tiles, 2-up sliders, 5-up quick-panels strip.
             names = ("quick-wifi-toggle", "quick-wifi-details", "quick-bluetooth-toggle", "quick-bluetooth-details",
-                "volume-details", "brightness-details", "settings-appearance", "settings-wallpaper",
-                "settings-displays", "settings-idle", "overview-notifications")
+                "volume-details", "settings-appearance", "settings-wallpaper",
+                "settings-displays", "settings-idle", "power-menu-button", "overview-notifications")
             bounds = {name: json.loads(call("controlBounds", name)) for name in names}
             for name, rect in bounds.items():
                 assert rect.get("width", 0) > 0 and rect.get("height", 0) > 0, (name, rect)
             assert abs(bounds["quick-wifi-details"]["y"] - bounds["quick-bluetooth-details"]["y"]) <= 1, bounds
             assert bounds["quick-wifi-details"]["x"] < bounds["quick-bluetooth-details"]["x"], bounds
-            assert abs(bounds["volume-details"]["y"] - bounds["brightness-details"]["y"]) <= 1, bounds
-            settings_xs = [bounds["settings-" + s]["x"] for s in ("appearance", "wallpaper", "displays", "idle")]
-            settings_ys = [bounds["settings-" + s]["y"] for s in ("appearance", "wallpaper", "displays", "idle")]
+            panel_strip = ("settings-appearance", "settings-wallpaper", "settings-displays", "settings-idle", "power-menu-button")
+            settings_xs = [bounds[name]["x"] for name in panel_strip]
+            settings_ys = [bounds[name]["y"] for name in panel_strip]
             assert settings_xs == sorted(settings_xs) and max(settings_ys) - min(settings_ys) <= 1, bounds
 
-            # Anchored footer keeps system tools flush right on single-row widths.
-            call("scenario", "empty")
+            # Centered dynamic footer balances margins across widths when populated.
             for width in ["440", "620"]:
                 call("width", width)
                 settle()
                 footer = json.loads(call("footerGeometry"))
-                assert abs(footer["toolsX"] + footer["toolsWidth"] - footer["width"]) <= 2, footer
+                assert footer["visible"] and abs(footer["leftMargin"] - footer["rightMargin"]) <= 2, footer
             call("width", "620")
-            call("scenario", "normal")
 
             for light, blur in [("false", "true"), ("true", "false")]:
                 call("light", light)
@@ -556,6 +586,7 @@ def main():
                 assert focused["focusY"] >= -1 and focused["focusY"] + focused["focusHeight"] <= focused["overviewHeight"] + 1, focused
                 subprocess.run(["wtype", "-k", "Return"], check=True, timeout=5)
                 assert state()["lastAction"] == "tray activated"
+                assert call("focusControl", "overview", "settings-idle") == "true"
                 subprocess.run(["wtype", "-k", "Tab"], check=True, timeout=5)
                 focused = settle()
                 assert focused["focusedItem"] == "power-menu-button", focused
@@ -614,10 +645,10 @@ def main():
             settle()
             assert call("activateControl", "power-menu-button") == "true"
             assert settle()["page"] == "detail:session"
-            assert call("setToolField", "awake-duration", "37") == "true"
-            assert call("activateControl", "awake-duration-apply") == "true"
-            settle()
-            assert call("activateControl", "awake-duration-apply") == "true"
+            assert call("activateControl", "power-profile-power-saver") == "true"
+            assert state()["lastAction"] == "power:power-saver"
+            assert call("activateControl", "power-profile-balanced") == "true"
+            assert state()["lastAction"] == "power:balanced"
             for action in ["logout", "reboot", "poweroff"]:
                 previous = state()["lastAction"]
                 assert call("activateControl", "power-action-" + action) == "true"

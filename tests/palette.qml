@@ -16,6 +16,9 @@ ShellRoot {
     function luminance(color: color): real {
         return 0.2126 * channel(color.r) + 0.7152 * channel(color.g) + 0.0722 * channel(color.b);
     }
+    function chroma(color: color): real {
+        return Math.max(color.r, color.g, color.b) - Math.min(color.r, color.g, color.b);
+    }
     function contrast(a: color, b: color): real {
         const x = luminance(a), y = luminance(b);
         return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05);
@@ -57,6 +60,11 @@ ShellRoot {
             atLeast(mode + " selected vs hover", contrast(t.surfaceSelected, t.surfaceHover), 1.04);
             atLeast(mode + " slider track", contrast(t.sliderTrack, t.panelSurface), 1.3);
             check(mode + " meter is not selection", !Qt.colorEqual(t.meterFill, t.surfaceSelected));
+            check(mode + " slider is not selection or hover", !Qt.colorEqual(t.sliderFill, t.surfaceSelected) && !Qt.colorEqual(t.sliderFill, t.surfaceHover));
+            // Hover stays neutral while selection carries unmistakable chromatic tint.
+            check(mode + " hover stays neutral", chroma(t.surfaceHover) <= 0.045);
+            atLeast(mode + " selected chroma", chroma(t.surfaceSelected), 0.15);
+            check(mode + " selected distinct from hover", chroma(t.surfaceSelected) >= chroma(t.surfaceHover) * 3.5);
             // A directory sits between the panel and the live cards above it.
             atLeast(mode + " directory above panel", contrast(t.surfaceDirectory, t.panelSurface), 1.03);
             atLeast(mode + " directory below raised", contrast(t.surfaceRaised, t.surfaceDirectory), 1.02);

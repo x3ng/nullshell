@@ -235,6 +235,12 @@ Canvas {
             c.moveTo(10, 15); c.lineTo(10, 17);
             c.moveTo(7, 17); c.lineTo(13, 17);
             c.stroke();
+            if (muted) {
+                c.beginPath();
+                c.moveTo(3.5, 3.5);
+                c.lineTo(16.5, 16.5);
+                c.stroke();
+            }
         } else if (kind === "headphones") {
             c.beginPath(); c.arc(10, 11, 7, Math.PI, Math.PI * 2); c.stroke();
             c.fillRect(2.5, 11, 3, 6);

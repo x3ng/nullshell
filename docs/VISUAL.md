@@ -18,9 +18,14 @@ boundary contrast for both modes against these roles.
 
 The home page uses a compact `620px` card width and distinct control shapes by
 function rather than uniform list rows: two side-by-side connectivity tiles with
-medallion toggles, two inset pill sliders for volume and brightness, a four-up
-quick-settings strip, a compact notification row with an unread count badge, and
-a footer that anchors workspaces left and tray/system tools right. Cards share
+whole-tile connection states, two level sliders for volume and brightness, a five-up
+quick-panels strip (`Appearance`, `Wallpaper`, `Displays`, `Idle`, `Power`), a
+compact notification row with an unread count badge, and a centered dynamic status
+footer (`Workspaces · Tray · Active State`) that hides completely when all three
+groups are empty. Active non-default session states (such as keep-awake, muted
+microphone, paused notifications, non-balanced power profile, screen keyboard or
+temporary appearance override) appear only while active as frameless status icons
+that open their owning page on click and reset on secondary click. Cards share
 `cardSurface` (which adapts to backdrop blur) and filled buttons share
 `controlSurface`, so individual views do not hardcode per-widget fills or inner
 wireframe borders.
