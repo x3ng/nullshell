@@ -3,6 +3,7 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Layouts
 import ".."
+import "DisplayGeometry.js" as Geometry
 
 ColumnLayout {
     id: pane
@@ -17,6 +18,9 @@ ColumnLayout {
     property int selected: 0
     property int seconds: 0
     property var numericEdits: ({})
+    // Frozen live values for the trial summary; editorOutputs may refresh mid-trial.
+    property var trialBaseline: []
+    property bool reloadAfterTrial: false
     property string lastPhase: "idle"
     property string outcome: ""
     readonly property var output: draft[selected] ?? null
@@ -24,11 +28,16 @@ ColumnLayout {
     readonly property bool busy: service.phase !== "idle"
     readonly property bool testing: service.phase === "preview"
     readonly property var changes: describeChanges(draft)
-    readonly property var trialChanges: describeChanges(service.editorPendingOutputs ?? [])
+    readonly property var trialChanges: describeChanges(service.editorPendingOutputs ?? [], trialBaseline)
     readonly property bool invalidNumbers: Object.keys(numericEdits).some(slot => numericValue(slot.split(":").pop(), numericEdits[slot]) === null)
     readonly property var independent: draft.filter(item => item.enabled && !item.mirror_of)
     readonly property bool validLayout: independent.length > 0 && draft.every(item =>
         !item.enabled || !item.mirror_of || independent.some(source => source.key === item.mirror_of))
+    readonly property var issues: Geometry.issues(draft)
+    readonly property var problemNames: issues.reduce((names, issue) => names.concat(issue.names), [])
+    readonly property string problem: issues.length
+        ? issues.map(issue => issue.text).join(" ")
+        : validLayout ? "" : "Keep at least one independent display enabled and a valid source for every mirror."
     readonly property var modes: availableModes()
     readonly property var mirrorChoices: [{label:"Extend desktop", key:""}].concat(independent
         .filter(item => item.name !== output?.name).map(item => ({label:"Mirror " + item.name, key:item.key})))
@@ -50,9 +59,10 @@ ColumnLayout {
     function sameMode(a, b) {
         return a.width === b.width && a.height === b.height && Math.abs(a.refresh - b.refresh) < 0.015;
     }
-    function describeChanges(outputs) {
+    function describeChanges(outputs, inventory) {
+        const source = inventory && inventory.length ? inventory : service.editorOutputs;
         return outputs.map(o => {
-            const live = service.editorOutputs.find(item => item.name === o.name)?.current;
+            const live = source.find(item => item.name === o.name)?.current;
             if (!live) return null;
             const rows = [];
             if (o.enabled !== live.enabled) rows.push({label:"Output", value:o.enabled ? "Enabled" : "Disabled"});
@@ -86,6 +96,28 @@ ColumnLayout {
         items[index] = Object.assign({}, items[index], fields);
         draft = items;
         outcome = "";
+    }
+    // Moves the reported displays to the nearest flush position; typed
+    // coordinates cannot be dragged, so overlaps need this explicit repair.
+    function tidy() {
+        const moved = Geometry.arrange(draft);
+        const names = Object.keys(moved);
+        if (!names.length) return;
+        const items = draft.slice();
+        for (const name of names) {
+            const index = items.findIndex(item => item.name === name);
+            if (index >= 0) items[index] = Object.assign({}, items[index], moved[name]);
+        }
+        const edits = Object.assign({}, numericEdits);
+        for (const name of names) { delete edits[name + ":x"]; delete edits[name + ":y"]; }
+        numericEdits = edits;
+        draft = items;
+        outcome = "";
+    }
+    function startTrial() {
+        if (busy || !validLayout || issues.length || !changes.length || invalidNumbers) return;
+        pane.trialBaseline = service.editorOutputs.map(item => ({name:item.name, current:Object.assign({}, item.current)}));
+        service.previewEditor(pane.draft);
     }
     function setMode(value) {
         const mode = typeof value === "string" ? modeParts(value) : value;
@@ -121,12 +153,22 @@ ColumnLayout {
     Component.onCompleted: { reset(); service.refreshEditor(); }
     Connections {
         target: pane.service
-        function onEditorOutputsChanged() { pane.reset(); }
+        // A late inventory must not discard an edit in progress.
+        function onEditorOutputsChanged() {
+            if (pane.reloadAfterTrial || (!pane.changes.length && !pane.invalidNumbers)) {
+                pane.reloadAfterTrial = false;
+                pane.reset();
+            } else pane.outcome = "Displays changed; discard edits to reload";
+        }
         function onEditorTopologyChanged() { pane.service.refreshEditor(); }
         function onPhaseChanged() {
+            if (pane.service.phase === "preview") Qt.callLater(() => revertButton.forceActiveFocus());
+            if (["confirm", "revert"].includes(pane.service.phase)) pane.reloadAfterTrial = true;
             if (pane.service.phase === "idle" && ["confirm", "revert"].includes(pane.lastPhase)) {
                 pane.outcome = pane.service.error ? "" : pane.lastPhase === "confirm" ? "Layout saved" : "Previous layout restored";
+                pane.trialBaseline = [];
                 pane.service.refreshEditor();
+                Qt.callLater(() => testButton.forceActiveFocus());
             }
             pane.lastPhase = pane.service.phase;
         }
@@ -164,13 +206,28 @@ ColumnLayout {
     }
     SettingsNotice {
         style: pane.style
-        visible: !!(pane.service.editorError || pane.service.error || pane.invalidNumbers || (pane.draft.length && !pane.validLayout))
+        visible: !!(pane.service.editorError || pane.service.error || pane.invalidNumbers
+            || (pane.draft.length && (pane.issues.length > 0 || !pane.validLayout)))
         iconKind: "warning"
-        ink: pane.style.danger
-        title: "Check display settings"
+        tone: "warning"
+        ink: pane.service.editorError || pane.service.error || pane.invalidNumbers
+            ? pane.style.danger : pane.style.accentWarm
+        title: pane.issues.length ? "Check display positions" : "Check display settings"
         detail: pane.service.editorError || pane.service.error || (pane.invalidNumbers
             ? "Use a scale from 0.25 to 8 and whole-number positions."
+            : pane.issues.length ? pane.problem
             : "Keep at least one independent display enabled and a valid source for every mirror.")
+        actions: ChoiceButton {
+            objectName: "displays-tidy"
+            Layout.preferredWidth: 96
+            style: pane.style
+            label: "Arrange"
+            tooltip: "Move the reported display to the nearest flush position"
+            filled: true
+            filledColor: pane.style.surfaceSelected
+            visible: pane.issues.length > 0 && !pane.busy
+            onTriggered: pane.tidy()
+        }
     }
 
     ColumnLayout {
@@ -180,6 +237,7 @@ ColumnLayout {
         SettingsNotice {
             style: pane.style
             iconKind: "clock"
+            tone: "warning"
             ink: pane.style.accentWarm
             title: pane.service.verified ? "Keep this layout?" : "Checking the new layout…"
             detail: pane.service.verified ? "The previous layout returns automatically if you do nothing." : "Waiting for Hyprland to verify the display mode."
@@ -239,17 +297,18 @@ ColumnLayout {
                 objectName: "display-arrangement"
                 Layout.fillWidth: true
                 Layout.fillHeight: editor.wide
-                Layout.preferredHeight: pane.detachedBodyHeight <= 0 ? (editor.wide ? 184 : 76)
+                Layout.preferredHeight: pane.detachedBodyHeight <= 0 ? (editor.wide ? 184 : 88)
                     : editor.wide ? Math.max(184, pane.detachedBodyHeight - 72)
                     : editor.roomy ? Math.max(184, pane.detachedBodyHeight - selectedDisplay.implicitHeight - 82)
                     : 112
                 style: pane.style
                 outputs: pane.draft
                 selected: pane.selected
+                problemNames: pane.problemNames
                 onOutputSelected: index => pane.selected = index
                 onOutputMoved: (index, x, y) => pane.place(index, x, y)
             }
-            FieldLabel { visible: editor.roomy; text: "Drag to arrange. Use X and Y for exact positions." }
+            FieldLabel { visible: editor.roomy; text: "Drag to arrange; edges snap. Use X and Y for exact positions." }
         }
         GroupCard {
             id: selectedDisplay
@@ -279,6 +338,8 @@ ColumnLayout {
                     selected: pane.output?.enabled ?? false
                     tone: "toggle"
                     filled: true
+                    Accessible.checkable: true
+                    Accessible.checked: pane.output?.enabled ?? false
                     onTriggered: pane.toggleOutput()
                 }
             }
@@ -359,9 +420,11 @@ ColumnLayout {
         visible: pane.footerVisible
         status: pane.testing ? "Reverts in " + pane.seconds + " s"
             : pane.outcome || (pane.busy ? "Working…" : pane.invalidNumbers ? "Check inputs"
+                : pane.issues.length ? "Check positions"
                 : pane.changes.length ? "Unsaved changes" : "Current layout")
-        warning: pane.invalidNumbers && !pane.testing
+        warning: (pane.invalidNumbers || pane.issues.length > 0) && !pane.testing
         ChoiceButton {
+            id: revertButton
             objectName: "displays-revert"
             Layout.fillWidth: true
             Layout.minimumWidth: 96
@@ -397,14 +460,16 @@ ColumnLayout {
             }
         }
         ChoiceButton {
+            id: testButton
             objectName: "displays-test"
             Layout.preferredWidth: 116
             visible: !pane.testing
             style: pane.style
             label: "Test layout"
             tone: "primary"
-            available: !pane.busy && pane.validLayout && pane.changes.length > 0 && !pane.invalidNumbers
-            onTriggered: pane.service.previewEditor(pane.draft)
+            available: !pane.busy && pane.validLayout && !pane.issues.length
+                && pane.changes.length > 0 && !pane.invalidNumbers
+            onTriggered: pane.startTrial()
         }
     }
 }

@@ -14,6 +14,10 @@ Rectangle {
     property bool available: true
     property bool expanded: false
     property string iconKind: ""
+    property bool showChevron: true
+    // Horizontal insets let rows inside a card align icons and chevrons with sibling controls.
+    property int leftInset: style.spaceMd
+    property int rightInset: style.spaceMd
     signal triggered()
     activeFocusOnTab: visible && available
     Accessible.role: selectionOnly ? Accessible.RadioButton : Accessible.Button
@@ -35,7 +39,10 @@ Rectangle {
     Behavior on color { ColorAnimation { duration: 120 } }
     RowLayout {
         anchors.fill: parent
-        anchors.margins: row.style.spaceMd
+        anchors.topMargin: row.style.spaceMd
+        anchors.bottomMargin: row.style.spaceMd
+        anchors.leftMargin: row.leftInset
+        anchors.rightMargin: row.rightInset
         spacing: row.style.spaceMd
         StatusIcon {
             visible: row.iconKind !== ""
@@ -70,7 +77,7 @@ Rectangle {
             }
         }
         StatusIcon {
-            visible: !row.selectionOnly || row.selected
+            visible: row.selectionOnly ? row.selected : row.showChevron
             kind: row.selected ? "check" : "chevron"
             Layout.preferredWidth: 20
             Layout.preferredHeight: 20

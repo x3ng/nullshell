@@ -80,6 +80,8 @@ Scope {
     readonly property int fontSizeSmall: 13
     readonly property int fontSizeBody: 14
     readonly property int fontSizeControl: 14
+    // Detail page titles; one step above card and notice titles.
+    readonly property int fontSizeTitle: 16
     readonly property int fontSizeHeading: 24
     readonly property string fontFamily: "Inter"
     readonly property real sectionLetterSpacing: 1.2

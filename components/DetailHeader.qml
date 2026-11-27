@@ -37,7 +37,7 @@ RowLayout {
             text: header.title
             color: header.style.textPrimary
             font.family: header.style.fontFamily
-            font.pixelSize: header.style.fontSizeBody
+            font.pixelSize: header.style.fontSizeTitle
             font.weight: Font.DemiBold
         }
         Text {

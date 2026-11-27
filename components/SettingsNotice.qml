@@ -11,14 +11,16 @@ Rectangle {
     property string detail: ""
     property string iconKind: ""
     property color ink: style.accent
+    // "neutral" is informational and borderless; "warning" outlines in the ink colour.
+    property string tone: "neutral"
     property alias actions: actionRow.data
 
     Layout.fillWidth: true
     implicitHeight: content.implicitHeight + 2 * style.spaceMd
     color: style.surfaceRaised
     radius: style.radiusCard
-    border.color: style.separator
-    border.width: 1
+    border.color: Qt.rgba(ink.r, ink.g, ink.b, 0.5)
+    border.width: tone === "neutral" ? 0 : 1
 
     RowLayout {
         id: content

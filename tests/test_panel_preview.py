@@ -199,6 +199,7 @@ def main():
         call("page", "displays")
         assert settle()["page"] == "detail:displays"
         assert call("activateControl", "displays-test") == "false", "A clean layout needs no trial"
+        assert json.loads(call("displayIssues")) == [], "The fixture layout must start flush"
         for width, light in [("740", "true"), ("740", "false"), ("440", "true"), ("440", "false")]:
             call("width", width)
             call("light", light)
@@ -209,6 +210,38 @@ def main():
             assert geometry["contentHeight"] <= geometry["viewportHeight"] + 1, geometry
             check_card_alignment(width == "740")
             screenshot("displays-editor-" + width + ("-light" if light == "true" else "-dark"))
+        call("width", "740")
+        call("light", "false")
+
+        # Dragging near a neighbour edge lands flush instead of on the raw pixel.
+        assert call("displayDrag", "DP-1", "1904", "-6") == "true", state()
+        assert [(o["x"], o["y"]) for o in state()["displayDraft"] if o["name"] == "DP-1"] == [(1920, 0)], state()
+        assert json.loads(call("displayIssues")) == [], state()
+
+        # While dragging, the magnet shows a guide line on the snapped edge.
+        assert call("displayDragPreview", "DP-1", "1912", "6") == "true", state()
+        assert state()["displayDragging"] is True, state()
+        screenshot("displays-snap-guide")
+        call("displayCancelDrag")
+
+        # A gap is reported where it happens and blocks the trial. Positions beyond
+        # the magnet distance are kept, so this stays a real detached layout.
+        assert call("displayDrag", "DP-1", "2400", "40") == "true", state()
+        issues = json.loads(call("displayIssues"))
+        assert [issue["kind"] for issue in issues] == ["detached"], issues
+        assert "DP-1" in issues[0]["names"], issues
+        assert call("activateControl", "displays-test") == "false", "A detached display must not be tested"
+        screenshot("displays-detached")
+
+        # Overlap is reported too; the Arrange action restores a flush layout.
+        assert call("displayDrag", "DP-1", "1500", "0") == "true", state()
+        assert [issue["kind"] for issue in json.loads(call("displayIssues"))] == ["overlap"], state()
+        assert call("activateControl", "displays-tidy") == "true", state()
+        assert json.loads(call("displayIssues")) == [], state()
+        assert [(o["x"], o["y"]) for o in state()["displayDraft"] if o["name"] == "DP-1"] == [(1920, 0)], state()
+
+        # Dragging selects the dragged display; return to the first one.
+        assert call("displaySelect", "0") == "true"
         assert call("activateControl", "displays-enabled") == "true"
         assert call("displaySelect", "1") == "true"
         assert call("activateControl", "displays-enabled") == "true"
@@ -217,20 +250,24 @@ def main():
         assert call("displaySelect", "0") == "true"
         assert call("activateControl", "displays-enabled") == "true"
         assert call("displayValue", "mode", "1280x720@60Hz") == "true"
-        assert call("displayValue", "x", "-80") == "true"
+        # 1280 / 1.25 = 1024 layout px, so x 896 ends flush at DP-1 (x 1920).
+        assert call("displayValue", "x", "896") == "true"
         if args.keyboard:
             assert call("focusControl", "displays", "displays-scale") == "true"
             subprocess.run(["wtype", "-M", "ctrl", "-k", "a", "-m", "ctrl", "1.25"], check=True, timeout=5)
         else:
             assert call("displayValue", "scale", "1.25") == "true"
+        assert json.loads(call("displayIssues")) == [], state()
         screenshot("displays-unsaved")
         assert call("activateControl", "displays-test") == "true"
         s = settle()
         assert s["displayPhase"] == "preview"
-        assert (s["displayDraft"][0]["width"], s["displayDraft"][0]["scale"], s["displayDraft"][0]["x"]) == (1280, 1.25, -80), s
+        assert (s["displaySubmitted"][0]["width"], s["displaySubmitted"][0]["scale"], s["displaySubmitted"][0]["x"]) == (1280, 1.25, 896), s
         assert s["displayTrialChanges"][0]["name"] == "eDP-1"
         changes = {row["label"]: row["value"] for row in s["displayTrialChanges"][0]["rows"]}
-        assert changes == {"Resolution": "1920 × 1080 → 1280 × 720", "Scale": "1× → 1.25×", "Position": "-80, 0"}, changes
+        assert changes == {"Resolution": "1920 × 1080 → 1280 × 720", "Scale": "1× → 1.25×", "Position": "896, 0"}, changes
+        # Entering the trial must leave a visible, deliberate focus target.
+        assert state()["focusedItem"] == "displays-revert", state()
         for control in ("displays-confirm", "displays-revert"):
             button = json.loads(call("controlBounds", control))
             assert button["width"] >= 90 and button["y"] + button["height"] <= s["card"]["bottom"] - 8, button
@@ -244,7 +281,11 @@ def main():
             assert call("activateControl", "displays-confirm") == "true"
         assert settle()["lastAction"] == "display-confirm"
         assert call("activateControl", "displays-test") == "false"
+        # Changing scale moves the right edge; the editor must refuse until re-arranged.
         assert call("displayValue", "scale", "1.5") == "true"
+        assert call("activateControl", "displays-test") == "false"
+        assert call("activateControl", "displays-tidy") == "true"
+        assert json.loads(call("displayIssues")) == [], state()
         assert call("activateControl", "displays-test") == "true"
         settle()
         assert call("activateControl", "displays-revert") == "true"

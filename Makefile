@@ -82,6 +82,7 @@ check-appearance: helper
 	python3 tests/test_appearance.py "$(CARGO_TARGET_DIR)/release/nullshell-helper"
 
 check-displays: helper
+	python3 tests/test_display_geometry.py
 	luajit tests/test_display_trial.lua adapters/DisplayTrial.lua
 	python3 tests/test_displays.py "$(CARGO_TARGET_DIR)/release/nullshell-helper"
 

@@ -27,6 +27,11 @@ Scope {
     property int checks: 0
     property bool verified: false
     property bool scanAgain: false
+    // A readback result is only valid for the topology it was requested on.
+    property int topologyEpoch: 0
+    property int readbackEpoch: -1
+    property double trialStartedAt: 0
+    property int previewWindow: 14000
     property string editorDraft: ""
     property var editorOutputs: []
     property var editorPendingOutputs: []
@@ -60,12 +65,19 @@ Scope {
     }
 
     function outputsChanged() {
+        // Advance the epoch before the flags so any in-flight readback is stale.
+        topologyEpoch += 1;
         if (phase === "preview") {
             verified = false;
             verifyAgain.restart();
         }
         if (phase === "idle") editorTopologyChanged();
         scheduleScan();
+    }
+    function readBack() {
+        if (readback.running) return;
+        readbackEpoch = topologyEpoch;
+        readback.running = true;
     }
 
     function scan(name) {
@@ -133,6 +145,7 @@ Scope {
         layout = null;
         verified = false;
         previewUntil = 0;
+        previewWindow = 14000;
         editorDraft = "";
         editorPendingOutputs = [];
         if (scanAgain) {
@@ -149,6 +162,7 @@ Scope {
 
     function startTrial() {
         token = String(Date.now()) + "-" + Math.floor(Math.random() * 1000000);
+        trialStartedAt = Date.now();
         phase = "apply";
         execute(["eval", luaModule + ".start(" + Commands.luaString(token) + ", "
             + Commands.luaString(fingerprint) + ", " + Commands.luaString(layout.topologyKey)
@@ -233,11 +247,11 @@ Scope {
     Timer {
         id: verifyAgain
         interval: 350
-        onTriggered: if (root.phase === "preview" && !readback.running) readback.running = true
+        onTriggered: if (root.phase === "preview") root.readBack()
     }
     Timer {
         id: previewDeadline
-        interval: 14000
+        interval: root.previewWindow
         onTriggered: {
             if (root.phase !== "preview") return;
             root.error = "Display trial was not confirmed; restoring the last confirmed layout";
@@ -325,7 +339,7 @@ Scope {
             if (root.phase === "adopt") {
                 if (ok && !readback.running) {
                     root.phase = "adopt-check";
-                    readback.running = true;
+                    root.readBack();
                 } else {
                     root.active = "";
                     root.idle(); // an unconfirmed suggestion never changes the layout
@@ -346,9 +360,12 @@ Scope {
                 return;
             }
             if (root.phase === "apply") {
-                root.phase = "preview";
-                root.previewUntil = Date.now() + previewDeadline.interval;
+                // Hyprland's 15 s watchdog started with the eval, so the shell's
+                // own deadline is measured from the same instant and keeps a margin.
+                root.previewUntil = root.trialStartedAt + 14000;
+                root.previewWindow = Math.max(1000, root.previewUntil - Date.now());
                 root.checks = 0;
+                root.phase = "preview";
                 previewDeadline.restart();
                 verifyAgain.restart();
                 if (root.editorDraft) root.editorTrialReady();
@@ -365,6 +382,17 @@ Scope {
         stdout: StdioCollector { id: readbackOutput }
         onExited: (code, status) => {
             if (root.phase !== "preview" && root.phase !== "adopt-check") return;
+            // A topology change invalidates this request; do not trust its snapshot.
+            if (root.readbackEpoch !== root.topologyEpoch) {
+                if (root.phase === "preview") {
+                    root.verified = false;
+                    root.verifyAgain.restart();
+                } else {
+                    root.active = "";
+                    root.idle();
+                }
+                return;
+            }
             let matches = false;
             if (code === 0 && status === 0) {
                 try { matches = root.liveMatches(JSON.parse(readbackOutput.text)); } catch (_) {}

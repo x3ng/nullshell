@@ -11,11 +11,21 @@ another profile manager or load another manager's generated rules alongside it.
 Once the Hyprland include and nullshell opt-in below are set, open the launcher
 and search for **Display settings**. Choose a connected output, pick a supported
 mode (resolution and refresh rate), set scale/orientation or enable mirroring.
-Drag the display cards to position them, or enter exact coordinates. Use
+Drag the display cards to position them; edges snap flush to a neighbour and
+align with its edges, or enter exact coordinates. Use
 **Test layout**, review the changes shown for each affected display, then choose
 **Keep changes** or **Revert**. The compositor will revert
 a trial that was not confirmed within 15 seconds. No JSON layout file is
 required for the graphical editor.
+
+Independent displays (enabled and not mirrored) must not overlap and must form
+one group joined by shared edges of positive length: offsets and L or T shapes
+are allowed, a corner-only touch or a gap is not. Sizes use the logical layout
+size, the mode rotated by orientation and divided by scale. The editor names
+the overlapping or detached display and keeps **Test layout** unavailable until
+the layout is valid; **Arrange** moves it to the nearest flush position. Changing
+resolution, scale or orientation can detach a neighbour in the same way. The
+helper does not yet enforce these placement rules for CLI profiles.
 
 ## Optional named profiles and CLI
 
@@ -98,7 +108,8 @@ There is no separate lid policy, and this does not change logind's behaviour.
 ## Tests
 
 `make check-displays` or `nix build .#checks.x86_64-linux.displays` runs the
-Rust helper and actual QML policy against synthetic output events, plus a Lua
+placement rules against synthetic layouts, the Rust
+helper and actual QML policy against synthetic output events, plus a Lua
 watchdog test. It never changes the host desktop. On a machine with a render
 node and the listed compositor tools, `python3 tests/test_displays_nested.py
 backend/target/debug/nullshell-helper` additionally verifies restoration without

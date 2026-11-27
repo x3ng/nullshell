@@ -235,6 +235,27 @@ ShellRoot {
             picker.activated(index);
             return true;
         }
+        // Drops a display at a layout position through the canvas drag handlers.
+        function displayDrag(name: string, x: int, y: int): bool {
+            const editor = root.control("display-editor");
+            const canvas = root.control("display-arrangement");
+            const index = editor ? editor.draft.findIndex(item => item.name === name) : -1;
+            if (!canvas || index < 0) return false;
+            canvas.dragTo(index, x, y, true);
+            return true;
+        }
+        function displayDragPreview(name: string, x: int, y: int): bool {
+            const editor = root.control("display-editor");
+            const canvas = root.control("display-arrangement");
+            const index = editor ? editor.draft.findIndex(item => item.name === name) : -1;
+            if (!canvas || index < 0) return false;
+            canvas.dragTo(index, x, y, false);
+            return true;
+        }
+        function displayCancelDrag(): void { root.control("display-arrangement")?.cancelDrag(); }
+        function displayIssues(): string {
+            return JSON.stringify(root.control("display-editor")?.issues ?? null);
+        }
         function idleValue(key: string, value: string): bool {
             const editor = root.control("idle-editor");
             if (!editor || !["dimSeconds", "lockSeconds", "displayOffSeconds"].includes(key)) return false;
@@ -302,7 +323,9 @@ ShellRoot {
                 blur: theme.backdropBlur, materialOpacity: panel.surfaceOpacity,
                 appearanceMode: fixture.selectedMode, location: fixture.locationStatus, overrideUntil: fixture.overrideUntil,
                 appearanceSettings: fixture.effectiveSettings, preferencesOverridden: fixture.preferencesOverridden,
-                displayPhase: displaysFixture.phase, displayDraft: displaysFixture.submitted,
+                displayPhase: displaysFixture.phase, displayDraft: root.control("display-editor")?.draft ?? [],
+                displaySubmitted: displaysFixture.submitted,
+                displayDragging: root.control("display-arrangement")?.dragging ?? false,
                 displayTrialChanges: root.control("display-editor")?.trialChanges ?? [],
                 idleTimers: idleFixture.values, idleOverridden: idleFixture.overridden,
                 idleFields: {dim:root.control("idle-dimSeconds")?.text, lock:root.control("idle-lockSeconds")?.text},

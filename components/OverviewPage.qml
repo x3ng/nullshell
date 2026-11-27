@@ -99,6 +99,8 @@ ColumnLayout {
                             icon: "brightness"
                             value: Math.max(0, page.services.brightness)
                             available: page.services.brightness >= 0
+                            detailsAction: "appearance"
+                            detailsTooltip: "Appearance settings"
                             onEdited: value => page.services.setBrightness(value)
                         }
                     }
@@ -127,6 +129,9 @@ ColumnLayout {
                                 style: page.style
                                 title: modelData.title
                                 iconKind: modelData.icon
+                                // Match the status rows above: chevrons share one right edge.
+                                leftInset: page.style.spaceSm
+                                rightInset: page.style.spaceXs
                                 available: page.actions.available(modelData.route)
                                 onTriggered: page.actions.execute(modelData.route)
                             }
@@ -149,18 +154,20 @@ ColumnLayout {
                     onTriggered: page.actions.execute("notifications")
                 }
                 Rectangle {
+                    id: mediaCard
+                    readonly property int coverSize: 44
                     Layout.fillWidth: true
-                    implicitHeight: 68
+                    implicitHeight: mediaCard.coverSize + 2 * page.style.spaceMd
                     visible: !!page.player
                     radius: page.style.radiusControl
                     color: page.style.surfaceRaised
                     RowLayout {
                         anchors.fill: parent
                         anchors.margins: page.style.spaceMd
-                        spacing: 12
+                        spacing: page.style.spaceMd
                         ClippingRectangle {
-                            Layout.preferredWidth: 42
-                            Layout.preferredHeight: 42
+                            Layout.preferredWidth: mediaCard.coverSize
+                            Layout.preferredHeight: mediaCard.coverSize
                             radius: page.style.radiusControl
                             color: page.style.surfaceHover
                             Image {
@@ -187,27 +194,31 @@ ColumnLayout {
                             style: page.style
                             title: page.player?.trackTitle || page.player?.identity || "Media"
                             subtitle: page.player?.trackArtist || page.player?.identity || ""
+                            // The card body is the link; the transport buttons sit where a chevron would.
+                            showChevron: false
+                            leftInset: page.style.spaceXs
+                            rightInset: page.style.spaceXs
                             onTriggered: page.actions.execute("media")
                         }
                         ChoiceButton {
-                            Layout.preferredWidth: 30
-                            Layout.preferredHeight: 34
+                            Layout.preferredWidth: page.style.compactControlHeight
+                            Layout.preferredHeight: page.style.compactControlHeight
                             style: page.style; label: ""; iconKind: "prev"; iconSize: 16
                             tooltip: "Previous track"
                             available: page.player?.canGoPrevious ?? false
                             onTriggered: page.player?.previous()
                         }
                         ChoiceButton {
-                            Layout.preferredWidth: 34
-                            Layout.preferredHeight: 34
+                            Layout.preferredWidth: page.style.compactControlHeight
+                            Layout.preferredHeight: page.style.compactControlHeight
                             style: page.style; label: ""; iconKind: page.player?.isPlaying ? "pause" : "play"
                             tooltip: page.player?.isPlaying ? "Pause" : "Play"
                             available: page.player?.canTogglePlaying ?? false
                             onTriggered: page.player?.togglePlaying()
                         }
                         ChoiceButton {
-                            Layout.preferredWidth: 30
-                            Layout.preferredHeight: 34
+                            Layout.preferredWidth: page.style.compactControlHeight
+                            Layout.preferredHeight: page.style.compactControlHeight
                             style: page.style; label: ""; iconKind: "next"; iconSize: 16
                             tooltip: "Next track"
                             available: page.player?.canGoNext ?? false
