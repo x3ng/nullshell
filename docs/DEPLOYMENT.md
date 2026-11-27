@@ -1,16 +1,22 @@
 # Deployment contract
 
 Installation does not start processes or install Quickshell user services.
-Configure the session to start each process once. For example, in Hyprland 0.57 Lua:
+Configure the session to start each process once, using Quickshell directly.
+For example, in Hyprland 0.57 Lua:
 
 ```lua
 hl.on("hyprland.start", function()
-  hl.exec_cmd("nullshell locker --no-duplicate")
-  hl.exec_cmd("nullshell polkit --no-duplicate")
-  hl.exec_cmd("nullshell desktop --no-duplicate")
+  hl.exec_cmd("quickshell -c nullshell/lock --no-duplicate")
+  hl.exec_cmd("quickshell -c nullshell/polkit --no-duplicate")
+  hl.exec_cmd("quickshell -c nullshell --no-duplicate")
   hl.exec_cmd("nullshell sleep-bridge")
 end)
 ```
+
+`nullshell desktop`, `locker`, `polkit` and `ipc` are optional shorthands for the
+same `quickshell -c` commands. `nullshell lock` and `nullshell sleep-bridge` are
+helpers for capabilities Quickshell does not provide (waiting for a confirmed
+compositor lock, and logind sleep coordination).
 
 Do not also run the old nullshell units, another notification owner, Polkit agent
 or hypridle. Quickshell prevents duplicate configurations with `--no-duplicate`;

@@ -116,8 +116,10 @@ provides dependencies/helper and the `nullshell` launcher without QML assets.
 It resolves this checkout for both direct startup and IPC. `quickshell -c nullshell`
 also works with dependencies on PATH, but must not run beside an existing desktop process.
 
-Desktop QML is watched by Quickshell. Work with isolated previews first: a live
-reload recreates notification/idle objects, even though persisted state survives.
+Desktop QML is watched by Quickshell, so editing this checkout takes effect on
+save. That is a supported way to work; revert with Git if an edit goes wrong. A
+live reload recreates notification/idle objects, while persisted state survives.
+The isolated previews let you iterate on layout without that reload.
 The locker and Polkit agent disable watching and must not be restarted to preview
 an edit. Inspect their dedicated previews; apply accepted changes on next login.
 The system greeter uses the independently deployed package snapshot.

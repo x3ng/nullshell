@@ -19,9 +19,9 @@
 - nullshell supplements upstream Quickshell; do not fork, shadow, or replace its
   commands, native services, configuration discovery, or lifecycle management.
   QML uses native APIs directly; helpers address demonstrated capability gaps.
-- Default installation installs software and dependencies only. Do not deploy
-  user QML/configuration, create configuration symlinks, migrate existing settings,
-  or update a checkout implicitly during installation or application startup.
+- Default installation installs software and dependencies only. The installer and
+  application startup never rewrite a checkout or user configuration behind the
+  user's back.
 - Consumers may explicitly choose Home Manager to manage their configuration.
   This is optional consumer policy, never an installation prerequisite. Do not
   prescribe a consumer repository, checkout path or deployment workflow.
@@ -52,13 +52,16 @@ boundary; inspect staged contents and new file names before each commit.
 
 ## Validation and commits
 
-- UI iteration must use working-tree previews before release packaging. Never
-  create tags, push trial layouts, update a consumer flake or switch the host
-  merely to see a visual change. See docs/DEVELOPMENT.md.
+- Editing a checkout in place, including the one the desktop runs from, is
+  allowed; no worktree, staging copy or deploy step is required. Reverting
+  with Git is an acceptable recovery. Saving desktop QML reloads it, which
+  recreates notification and idle objects; persisted state survives.
+- Use the isolated previews to iterate on layout without reloading the live
+  desktop. Never create tags, push trial layouts, update a consumer flake or
+  switch the host merely to see a visual change. See docs/DEVELOPMENT.md.
 - Inspect actual rendered screenshots at representative sizes and states before
   claiming a layout works. QML loading/offscreen checks are not visual acceptance.
-- If the relevant isolated preview is missing, build that development entry first;
-  do not use production deployment as its substitute.
+- If the relevant isolated preview is missing, build that development entry first.
 - Commits are reviewable checkpoints, not release events. Tag and update release
   consumers only at an explicitly agreed milestone after acceptance. Permission
   to run Home Manager switch does not establish visual acceptance.
