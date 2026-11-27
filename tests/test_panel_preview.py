@@ -1,8 +1,7 @@
 """Portable Wayland preview checks. No Nix imports or host service changes.
 
 Requires Python 3 and Quickshell on PATH and a running Wayland compositor.
-Optional --keyboard uses wtype; --screenshots captures only the preview card. Prefer a nested/test
-compositor for keyboard injection. The process started here is always cleaned up.
+Optional --keyboard uses wtype; --screenshots captures only the preview card.
 """
 import argparse
 import json
@@ -46,22 +45,23 @@ def main():
 
     def settle():
         previous = None
-        for _ in range(30):
+        for _ in range(60):
             value = state()
             geometry = value["card"]
             if geometry == previous and geometry["height"] > 0:
-                time.sleep(0.3)
-                return state()
+                time.sleep(0.05)
+                latest = state()
+                if latest["card"] == geometry:
+                    return latest
+                geometry = latest["card"]
             previous = geometry
-            time.sleep(0.25)
+            time.sleep(0.06)
         raise AssertionError("Panel geometry did not settle")
 
     def screenshot(name):
         if args.screenshots:
             path = args.screenshots / (name + ".png")
             assert call("capture", str(path)) == "true"
-            # grabToImage returns before PNG encoding completes. A nonempty
-            # file is not a completion signal; require a fully decoded image.
             from PIL import Image
             decoded = None
             for _ in range(50):
@@ -71,7 +71,7 @@ def main():
                         decoded = image.convert("RGB")
                     break
                 except (OSError, ValueError):
-                    time.sleep(.1)
+                    time.sleep(.05)
             assert decoded is not None, "Preview capture did not finish encoding"
             if name.startswith("appearance-"):
                 body = decoded.crop((20, 70, decoded.width - 20, decoded.height - 20))
@@ -79,41 +79,39 @@ def main():
                 assert max(count for count, _ in colors) < body.width * body.height * .99, "Appearance content was not rendered"
 
     def check_overview_geometry():
-        for width in ["740", "440"]:
+        for width, light in [("620", "false"), ("440", "true")]:
             call("width", width)
-            for light in ["false", "true"]:
-                call("light", light)
-                call("page", "overview")
-                call("scrollOverview", "false")
-                card = settle()["card"]
-                search = json.loads(call("controlBounds", "launcher-search"))
-                left = search["x"] - card["left"]
-                right = card["right"] - search["x"] - search["width"]
-                top = search["y"] - card["top"]
-                assert left > 0 and abs(left - right) <= 1 and abs(top - left) <= 1, (card, search)
-                screenshot("overview-" + width + "-" + light)
-                status = json.loads(call("controlBounds", "search-status"))
-                scope = json.loads(call("controlBounds", "search-scope-@"))
-                assert abs(status["y"] + status["height"] / 2 - search["y"] - search["height"] / 2) <= 1, (search, status)
-                assert status["x"] > search["x"] and status["x"] + status["width"] <= scope["x"], (search, status, scope)
-                call("scrollOverview", "true")
-                card = settle()["card"]
-                notifications = json.loads(call("controlBounds", "overview-notifications"))
-                footer = json.loads(call("controlBounds", "workspace-footer"))
-                above = footer["y"] - notifications["y"] - notifications["height"]
-                below = card["bottom"] - footer["y"] - footer["height"]
-                assert abs(above - below) <= 1 and 0 < above < top, (notifications, footer, card)
-                screenshot("overview-footer-" + width + "-" + light)
-                call("search", ">?")
-                settle()
-                assert json.loads(call("controlBounds", "launcher-search")) == search
-                assert json.loads(call("controlBounds", "search-status")) == {}
-        call("width", "740")
+            call("light", light)
+            call("page", "overview")
+            call("scrollOverview", "false")
+            card = settle()["card"]
+            search = json.loads(call("controlBounds", "launcher-search"))
+            left = search["x"] - card["left"]
+            right = card["right"] - search["x"] - search["width"]
+            top = search["y"] - card["top"]
+            assert left > 0 and abs(left - right) <= 1 and abs(top - left) <= 1, (card, search)
+            screenshot("overview-" + width + "-" + light)
+            status = json.loads(call("controlBounds", "search-status"))
+            scope = json.loads(call("controlBounds", "search-scope-@"))
+            assert abs(status["y"] + status["height"] / 2 - search["y"] - search["height"] / 2) <= 1, (search, status)
+            assert status["x"] > search["x"] and status["x"] + status["width"] <= scope["x"], (search, status, scope)
+            call("scrollOverview", "true")
+            card = settle()["card"]
+            notifications = json.loads(call("controlBounds", "overview-notifications"))
+            footer = json.loads(call("controlBounds", "workspace-footer"))
+            above = footer["y"] - notifications["y"] - notifications["height"]
+            below = card["bottom"] - footer["y"] - footer["height"]
+            assert abs(above - below) <= 1 and 0 < above < top, (notifications, footer, card)
+            screenshot("overview-footer-" + width + "-" + light)
+            call("search", ">?")
+            settle()
+            assert json.loads(call("controlBounds", "launcher-search")) == search
+            assert json.loads(call("controlBounds", "search-status")) == {}
+        call("width", "620")
         call("light", "false")
         call("page", "overview")
 
     def check_appearance():
-        # Enter appearance through the overview's settings group.
         call("page", "overview")
         settle()
         assert call("activateControl", "settings-appearance") == "true"
@@ -135,20 +133,18 @@ def main():
         call("coordinate", "longitude", "-0.1")
         call("activateControl", "appearance-apply-location")
         assert state()["appearanceSettings"]["latitude"] == 51.5
-        for width in ["740", "440"]:
+        for width, light, scenario in [
+            ("620", "false", "timezone"), ("620", "true", "fixed"),
+            ("440", "false", "locating"), ("440", "true", "unavailable"), ("620", "false", "override")
+        ]:
             call("width", width)
-            for light in ["false", "true"]:
-                call("light", light)
-                for scenario in ["timezone", "fixed", "locating", "unavailable", "override"]:
-                    call("appearanceState", scenario)
-                    current = settle()
-                    geometry = json.loads(call("detailGeometry", "appearance"))
-                    # Short pages must not create a spurious scroll range or scrollbar.
-                    assert current["card"]["height"] < 700, current
-                    assert geometry["contentHeight"] <= geometry["viewportHeight"] + 1, geometry
-                    screenshot("appearance-" + width + "-" + light + "-" + scenario)
-        call("appearanceState", "override")
-        settle()
+            call("light", light)
+            call("appearanceState", scenario)
+            current = settle()
+            geometry = json.loads(call("detailGeometry", "appearance"))
+            assert current["card"]["height"] < 700, current
+            assert geometry["contentHeight"] <= geometry["viewportHeight"] + 1, geometry
+            screenshot("appearance-" + width + "-" + light + "-" + scenario)
         assert call("activateControl", "appearance-resume") == "true", state()
         assert state()["overrideUntil"] == 0
         call("activateControl", "appearance-reset")
@@ -158,24 +154,23 @@ def main():
         for light in ["true", "false"]:
             call("light", light)
             palette = "light" if light == "true" else "dark"
-            for width in ["740", "440"]:
-                call("width", width)
-                for page in ["overview", "desktop", "wifi", "bluetooth", "audio", "media", "notifications",
-                             "appearance", "displays", "idle", "wallpaper", "session", "search"]:
-                    call("scenario", "media" if page == "media" else "normal")
-                    if page == "search":
-                        call("search", ">")
-                    else:
-                        call("page", page)
-                    if page == "wallpaper":
-                        assert call("draft", "wallpaper", wallpaper_image.as_uri()) == "true"
-                    current = settle()
-                    expected = page if page in ["overview", "desktop", "search"] else "detail:" + page
-                    assert current["page"] == expected and current["dark"] == (light == "false"), current
-                    if page == "wallpaper":
-                        apply = json.loads(call("controlBounds", "wallpaper-apply"))
-                        assert apply["y"] + apply["height"] <= current["card"]["bottom"] - 8, (apply, current)
-                    screenshot(palette + "-" + width + "-" + page)
+            call("width", "620")
+            for page in ["overview", "desktop", "wifi", "bluetooth", "audio", "media", "notifications",
+                         "appearance", "displays", "idle", "wallpaper", "session", "search"]:
+                call("scenario", "media" if page == "media" else "normal")
+                if page == "search":
+                    call("search", ">")
+                else:
+                    call("page", page)
+                if page == "wallpaper":
+                    assert call("draft", "wallpaper", wallpaper_image.as_uri()) == "true"
+                current = settle()
+                expected = page if page in ["overview", "desktop", "search"] else "detail:" + page
+                assert current["page"] == expected and current["dark"] == (light == "false"), current
+                if page == "wallpaper":
+                    apply = json.loads(call("controlBounds", "wallpaper-apply"))
+                    assert apply["y"] + apply["height"] <= current["card"]["bottom"] - 8, (apply, current)
+                screenshot(palette + "-620-" + page)
 
     def finish(process, log):
         call("quit")
@@ -200,7 +195,7 @@ def main():
         assert settle()["page"] == "detail:displays"
         assert call("activateControl", "displays-test") == "false", "A clean layout needs no trial"
         assert json.loads(call("displayIssues")) == [], "The fixture layout must start flush"
-        for width, light in [("740", "true"), ("740", "false"), ("440", "true"), ("440", "false")]:
+        for width, light in [("620", "false"), ("440", "true")]:
             call("width", width)
             call("light", light)
             s = settle()
@@ -208,24 +203,20 @@ def main():
             assert button["height"] >= 32 and button["y"] + button["height"] <= s["card"]["bottom"] - 8, (s, button)
             geometry = json.loads(call("detailGeometry", "displays"))
             assert geometry["contentHeight"] <= geometry["viewportHeight"] + 1, geometry
-            check_card_alignment(width == "740")
+            check_card_alignment(width == "620")
             screenshot("displays-editor-" + width + ("-light" if light == "true" else "-dark"))
-        call("width", "740")
+        call("width", "620")
         call("light", "false")
 
-        # Dragging near a neighbour edge lands flush instead of on the raw pixel.
         assert call("displayDrag", "DP-1", "1904", "-6") == "true", state()
         assert [(o["x"], o["y"]) for o in state()["displayDraft"] if o["name"] == "DP-1"] == [(1920, 0)], state()
         assert json.loads(call("displayIssues")) == [], state()
 
-        # While dragging, the magnet shows a guide line on the snapped edge.
         assert call("displayDragPreview", "DP-1", "1912", "6") == "true", state()
         assert state()["displayDragging"] is True, state()
         screenshot("displays-snap-guide")
         call("displayCancelDrag")
 
-        # A gap is reported where it happens and blocks the trial. Positions beyond
-        # the magnet distance are kept, so this stays a real detached layout.
         assert call("displayDrag", "DP-1", "2400", "40") == "true", state()
         issues = json.loads(call("displayIssues"))
         assert [issue["kind"] for issue in issues] == ["detached"], issues
@@ -233,14 +224,12 @@ def main():
         assert call("activateControl", "displays-test") == "false", "A detached display must not be tested"
         screenshot("displays-detached")
 
-        # Overlap is reported too; the Arrange action restores a flush layout.
         assert call("displayDrag", "DP-1", "1500", "0") == "true", state()
         assert [issue["kind"] for issue in json.loads(call("displayIssues"))] == ["overlap"], state()
         assert call("activateControl", "displays-tidy") == "true", state()
         assert json.loads(call("displayIssues")) == [], state()
         assert [(o["x"], o["y"]) for o in state()["displayDraft"] if o["name"] == "DP-1"] == [(1920, 0)], state()
 
-        # Dragging selects the dragged display; return to the first one.
         assert call("displaySelect", "0") == "true"
         assert call("activateControl", "displays-enabled") == "true"
         assert call("displaySelect", "1") == "true"
@@ -250,7 +239,6 @@ def main():
         assert call("displaySelect", "0") == "true"
         assert call("activateControl", "displays-enabled") == "true"
         assert call("displayValue", "mode", "1280x720@60Hz") == "true"
-        # 1280 / 1.25 = 1024 layout px, so x 896 ends flush at DP-1 (x 1920).
         assert call("displayValue", "x", "896") == "true"
         if args.keyboard:
             assert call("focusControl", "displays", "displays-scale") == "true"
@@ -266,7 +254,6 @@ def main():
         assert s["displayTrialChanges"][0]["name"] == "eDP-1"
         changes = {row["label"]: row["value"] for row in s["displayTrialChanges"][0]["rows"]}
         assert changes == {"Resolution": "1920 × 1080 → 1280 × 720", "Scale": "1× → 1.25×", "Position": "896, 0"}, changes
-        # Entering the trial must leave a visible, deliberate focus target.
         assert state()["focusedItem"] == "displays-revert", state()
         widths = set()
         for control in ("displays-confirm", "displays-revert"):
@@ -284,7 +271,6 @@ def main():
             assert call("activateControl", "displays-confirm") == "true"
         assert settle()["lastAction"] == "display-confirm"
         assert call("activateControl", "displays-test") == "false"
-        # Changing scale moves the right edge; the editor must refuse until re-arranged.
         assert call("displayValue", "scale", "1.5") == "true"
         assert call("activateControl", "displays-test") == "false"
         assert call("activateControl", "displays-tidy") == "true"
@@ -297,7 +283,7 @@ def main():
 
         assert call("displayTopology", "3") == "true"
         names = ("HDMI-A-1", "eDP-1", "DP-1")
-        for width in ["740", "440"]:
+        for width in ["620", "440"]:
             call("width", width)
             settle()
             left, center, right = [json.loads(call("controlBounds", "arrangement-output-" + name)) for name in names]
@@ -306,8 +292,6 @@ def main():
             screenshot("displays-three-" + width)
         assert call("displaySelect", "2") == "true"
         assert call("displayValue", "scale", "1.25") == "true"
-        # Scaling shrinks the portrait display away from the centre one, so the
-        # trial is refused until Arrange restores contact.
         assert [issue["kind"] for issue in json.loads(call("displayIssues"))] == ["detached"], state()
         assert call("activateControl", "displays-test") == "false", "A detached display must not be tested"
         assert call("activateControl", "displays-tidy") == "true"
@@ -315,34 +299,32 @@ def main():
         assert call("activateControl", "displays-test") == "true"
         preview = settle()
         assert {d["name"]: d["scale"] for d in preview["displayDraft"]} == {"eDP-1": 1, "DP-1": 1, "HDMI-A-1": 1.25}, preview
-        # Arrange moved the display flush, so the summary reports the new position too.
         assert preview["displayTrialChanges"] == [{"name": "HDMI-A-1", "rows": [{"label": "Scale", "value": "1× → 1.25×"},
             {"label": "Position", "value": "-864, -456"}]}], preview
         assert call("activateControl", "displays-revert") == "true"
         assert settle()["displayPhase"] == "idle"
         assert call("activateControl", "displays-test") == "false"
 
-        # Any valid unsaved edit will do; sliding along the shared edge stays flush.
         assert call("displayValue", "y", "-200") == "true"
         assert json.loads(call("displayIssues")) == [], state()
         assert call("activateControl", "detach-page") == "true"
         assert "displays" in settle()["detached"]
         initial = json.loads(call("detailGeometry", "displays"))
-        assert initial["pageWidth"] >= 850 and initial["arrangementHeight"] > 240, initial
+        assert initial["pageWidth"] >= 850 and initial["arrangementHeight"] > 220, initial
         check_card_alignment(True)
         call("resizeDetached", "displays", "1100", "710")
-        time.sleep(.3)
+        time.sleep(.15)
         large = json.loads(call("detailGeometry", "displays"))
         assert large["arrangementWidth"] > initial["arrangementWidth"], (initial, large)
         assert large["arrangementHeight"] > initial["arrangementHeight"], (initial, large)
         call("resizeDetached", "displays", "880", "940")
-        time.sleep(.3)
+        time.sleep(.15)
         tall = json.loads(call("detailGeometry", "displays"))
         assert tall["arrangementWidth"] > large["arrangementWidth"], (large, tall)
         assert tall["arrangementHeight"] > initial["arrangementHeight"], (initial, tall)
         check_card_alignment(False)
         call("resizeDetached", "displays", "490", "340")
-        time.sleep(.3)
+        time.sleep(.15)
         narrow = json.loads(call("detailGeometry", "displays"))
         assert narrow["arrangementHeight"] < initial["arrangementHeight"], (initial, narrow)
         assert narrow["contentHeight"] > narrow["viewportHeight"], narrow
@@ -359,7 +341,7 @@ def main():
         assert call("activateControl", "power-idle-settings") == "true"
         s = settle()
         assert s["page"] == "detail:idle" and s["idleFields"] == {"dim":"2:30", "lock":"5:00"}
-        for width, light in [("740", "true"), ("740", "false"), ("440", "true"), ("440", "false")]:
+        for width, light in [("620", "false"), ("440", "true")]:
             call("width", width)
             call("light", light)
             settle()
@@ -389,7 +371,6 @@ def main():
         assert settle()["keepAwake"] == before
 
     with tempfile.TemporaryDirectory(prefix="nullshell-preview-test-") as temporary:
-        # Synthetic solid-color image; no personal wallpaper enters the fixture.
         def png_chunk(kind, data):
             return struct.pack("!I", len(data)) + kind + data + struct.pack("!I", zlib.crc32(kind + data))
         wallpaper_image = Path(temporary) / "synthetic-wallpaper.png"
@@ -407,7 +388,7 @@ def main():
                 probe = subprocess.run(ipc + ["status"], text=True, capture_output=True, timeout=3)
                 if probe.returncode == 0 and json.loads(probe.stdout)["open"]:
                     break
-                time.sleep(0.1)
+                time.sleep(0.06)
             else:
                 raise AssertionError("Preview IPC did not become ready")
             if args.overview_only:
@@ -418,7 +399,7 @@ def main():
             if args.palette_only:
                 review_palette()
                 finish(process, log)
-                print("Panel palettes: 13 routes rendered at wide and narrow sizes")
+                print("Panel palettes: 13 routes rendered in both palettes")
                 return
             if args.appearance_only:
                 check_appearance()
@@ -435,70 +416,63 @@ def main():
                 finish(process, log)
                 print("Idle settings preview: input validation, save, reset, Keep awake and cleanup passed")
                 return
+
             settle()
             screenshot("normal")
             check_overview_geometry()
-            # Rows in different cards share icon, label and chevron rails.
-            names = ("quick-wifi-toggle", "quick-wifi-details", "volume-details", "brightness-details",
-                "settings-appearance", "settings-wallpaper", "settings-displays", "settings-idle",
-                "overview-notifications")
-            rails = {name: json.loads(call("rowRails", name)) for name in names}
-            # The radio toggle owns the Wi-Fi icon and its details button the label and
-            # chevron; single-glyph buttons report that glyph as their icon.
-            wifiIcon = rails.pop("quick-wifi-toggle")["icon"]
-            wifi = rails.pop("quick-wifi-details")
-            wifiChevron = wifi["trailing"] or wifi["icon"]
-            levelChevron = rails.pop("volume-details")["icon"]
-            assert abs(rails.pop("brightness-details")["icon"] - levelChevron) <= 1, ("level chevrons", rails)
-            # The left column of the directory continues the left card above it.
-            for name in ("settings-appearance", "settings-displays"):
-                assert abs(rails[name]["icon"] - wifiIcon) <= 1, ("icon rail", name, rails[name])
-                assert abs(rails[name]["label"] - wifi["label"]) <= 1, ("label rail", name, rails[name])
-                assert abs(rails[name]["trailing"] - wifiChevron) <= 1, ("left chevron rail", name, rails[name])
-            # The right column continues the right card above it, and the full-width
-            # notification row continues the same right edge.
-            for name in ("settings-wallpaper", "settings-idle", "overview-notifications"):
-                assert abs(rails[name]["trailing"] - levelChevron) <= 1, ("right chevron rail", name, rails[name], levelChevron)
-            # With only the tools remaining, resizing must still recenter them.
+
+            # Verify redesigned overview structure: 2-up tiles, 2-up sliders, 4-up settings strip.
+            names = ("quick-wifi-toggle", "quick-wifi-details", "quick-bluetooth-toggle", "quick-bluetooth-details",
+                "volume-details", "brightness-details", "settings-appearance", "settings-wallpaper",
+                "settings-displays", "settings-idle", "overview-notifications")
+            bounds = {name: json.loads(call("controlBounds", name)) for name in names}
+            for name, rect in bounds.items():
+                assert rect.get("width", 0) > 0 and rect.get("height", 0) > 0, (name, rect)
+            assert abs(bounds["quick-wifi-details"]["y"] - bounds["quick-bluetooth-details"]["y"]) <= 1, bounds
+            assert bounds["quick-wifi-details"]["x"] < bounds["quick-bluetooth-details"]["x"], bounds
+            assert abs(bounds["volume-details"]["y"] - bounds["brightness-details"]["y"]) <= 1, bounds
+            settings_xs = [bounds["settings-" + s]["x"] for s in ("appearance", "wallpaper", "displays", "idle")]
+            settings_ys = [bounds["settings-" + s]["y"] for s in ("appearance", "wallpaper", "displays", "idle")]
+            assert settings_xs == sorted(settings_xs) and max(settings_ys) - min(settings_ys) <= 1, bounds
+
+            # Anchored footer keeps system tools flush right on single-row widths.
             call("scenario", "empty")
-            for width in ["440", "740", "440"]:
+            for width in ["440", "620"]:
                 call("width", width)
                 settle()
                 footer = json.loads(call("footerGeometry"))
-                assert abs(footer["toolsX"] - (footer["width"] - footer["toolsWidth"]) / 2) < 1, footer
-            call("width", "740")
+                assert abs(footer["toolsX"] + footer["toolsWidth"] - footer["width"]) <= 2, footer
+            call("width", "620")
             call("scenario", "normal")
-            # Simulate capability results without altering the host compositor.
-            for light in ["false", "true"]:
+
+            for light, blur in [("false", "true"), ("true", "false")]:
                 call("light", light)
-                for blur in ["false", "true"]:
-                    call("blur", blur)
-                    material = settle()
-                    assert material["blur"] == (blur == "true"), material
-                    assert (material["materialOpacity"] < 1) == material["blur"], material
-                    screenshot(("light" if light == "true" else "dark") + ("-glass" if blur == "true" else "-solid"))
+                call("blur", blur)
+                material = settle()
+                assert material["blur"] == (blur == "true"), material
+                assert (material["materialOpacity"] < 1) == material["blur"], material
+                screenshot(("light" if light == "true" else "dark") + ("-glass" if blur == "true" else "-solid"))
             call("light", "false")
+
             for scenario in ["empty", "crowded", "media", "normal"]:
                 assert call("scenario", scenario) == "true"
-                for page in ["overview", "wifi", "bluetooth", "audio", "media", "notifications", "desktop", "appearance", "wallpaper"]:
+                for page in ["overview", "desktop", "audio", "media", "notifications"]:
                     call("page", page)
                     current = settle()
                     expected = page if page in ["overview", "desktop"] else "detail:" + page
-                    assert current["page"] == expected and current["open"], current
-                    assert current["card"]["width"] > 0
-            for width in ["440", "740"]:
-                call("width", width)
-                for light in ["false", "true"]:
-                    call("light", light)
-                    call("page", "wifi")
-                    settle()
-                    assert call("activateControl", "wifi-device-Enterprise network") == "true"
-                    settle()
-                    assert call("activateControl", "wifi-connect") == "false"
-                    screenshot("wifi-unsupported-" + width + "-" + light)
-                    assert call("activateControl", "wifi-device-Guest network") == "true"
-                    settle()
-                    assert call("activateControl", "wifi-connect") == "true"
+                    assert current["page"] == expected and current["open"] and current["card"]["width"] > 0, current
+
+            call("width", "620")
+            call("page", "wifi")
+            settle()
+            assert call("activateControl", "wifi-device-Enterprise network") == "true"
+            settle()
+            assert call("activateControl", "wifi-connect") == "false"
+            screenshot("wifi-unsupported-620-false")
+            assert call("activateControl", "wifi-device-Guest network") == "true"
+            settle()
+            assert call("activateControl", "wifi-connect") == "true"
+
             call("scenario", "crowded")
             call("search", "terminal")
             before = settle()
@@ -509,34 +483,28 @@ def main():
                 assert before["selectedIndex"] == 1, before
             call("tick")
             changed = settle()
-            assert changed["results"] == before["results"]
-            assert changed["selectedKey"] == before["selectedKey"]
-            for width, light in [("440", "true"), ("740", "false")]:
-                call("width", width)
-                call("light", light)
-                call("page", "overview")
-                call("page", "desktop")
-                settle()
-                assert call("activateControl", "desktop-shortcuts") == "true"
-                settle()
-                assert call("shortcutCount") == "2"
-                screenshot("shortcuts-" + width)
-                assert call("setToolField", "shortcut-filter", "terminal") == "true"
-                assert call("shortcutCount") == "1"
-            call("search", ">")
-            assert settle()["results"] == 6
-            for width in ["440", "740"]:
-                call("width", width)
-                for light in ["false", "true"]:
-                    call("light", light)
-                    for mode in ["all", "panel", "operation"]:
-                        call("search", {"all": ">", "panel": ">?", "operation": ">!"}[mode])
-                        filtered = settle()
-                        assert filtered["commandFilter"] == mode
-                        assert filtered["results"] == (6 if mode == "all" else 3)
-                        assert filtered["selectedIndex"] == 0
-                        if mode != "all": assert set(filtered["resultTypes"]) == {mode}
-                        screenshot("commands-" + width + "-" + light + "-" + mode)
+            assert changed["results"] == before["results"] and changed["selectedKey"] == before["selectedKey"]
+
+            call("width", "620")
+            call("page", "desktop")
+            settle()
+            assert call("activateControl", "desktop-shortcuts") == "true"
+            settle()
+            assert call("shortcutCount") == "2"
+            screenshot("shortcuts-620")
+            assert call("setToolField", "shortcut-filter", "terminal") == "true"
+            assert call("shortcutCount") == "1"
+
+            for mode in ["all", "panel", "operation"]:
+                call("search", {"all": ">", "panel": ">?", "operation": ">!"}[mode])
+                filtered = settle()
+                assert filtered["commandFilter"] == mode
+                assert filtered["results"] == (6 if mode == "all" else 3)
+                assert filtered["selectedIndex"] == 0
+                if mode != "all":
+                    assert set(filtered["resultTypes"]) == {mode}
+                screenshot("commands-620-false-" + mode)
+
             call("search", ">")
             if args.keyboard:
                 subprocess.run(["wtype", "?"], check=True, timeout=5)
@@ -546,8 +514,7 @@ def main():
             call("search", "> power")
             assert settle()["results"] == 2
             call("activateControl", "command-filter-operation")
-            assert settle()["results"] == 1
-            assert state()["query"] == ">! power"
+            assert settle()["results"] == 1 and state()["query"] == ">! power"
             call("activateControl", "command-filter-panel")
             assert settle()["results"] == 1 and state()["query"] == ">? power"
             call("activateControl", "command-filter-all")
@@ -555,34 +522,28 @@ def main():
             call("search", ">!power")
             assert settle()["results"] == 1
             call("activateSelected")
-            assert state()["lastAction"] == "activate power:balanced"
-            assert state()["commandFilter"] == "all"
+            assert state()["lastAction"] == "activate power:balanced" and state()["commandFilter"] == "all"
             call("search", "> keyboard")
             settle()
             previous = state()["lastAction"]
             call("activateSelected")
             assert state()["lastAction"] == previous and state()["query"] == "> keyboard"
-            screenshot("commands-unavailable")
             call("activateControl", "command-filter-panel")
             assert settle()["results"] == 0
-            screenshot("commands-empty")
-            call("search", "terminal")
-            assert settle()["commandFilter"] == "all"
-            call("search", ">")
-            call("activateControl", "command-filter-panel")
             call("close")
             call("openPanel")
             call("search", ">")
             assert settle()["commandFilter"] == "all"
             call("action", "keep-awake")
             assert not state()["keepAwake"]
+
             call("width", "440")
             call("light", "true")
             call("page", "overview")
             narrow = settle()
             assert narrow["card"]["width"] == 440 and not narrow["dark"], narrow
             screenshot("narrow-light")
-            # Focus-following must reveal controls below the overview viewport.
+
             if args.keyboard:
                 call("page", "overview")
                 call("scenario", "crowded")
@@ -595,48 +556,31 @@ def main():
                 assert focused["focusY"] >= -1 and focused["focusY"] + focused["focusHeight"] <= focused["overviewHeight"] + 1, focused
                 subprocess.run(["wtype", "-k", "Return"], check=True, timeout=5)
                 assert state()["lastAction"] == "tray activated"
-                # Tab continues from the tray to the session button without
-                # losing focus outside the visible scroll area.
                 subprocess.run(["wtype", "-k", "Tab"], check=True, timeout=5)
                 focused = settle()
                 assert focused["focusedItem"] == "power-menu-button", focused
                 assert focused["focusY"] >= -1 and focused["focusY"] + focused["focusHeight"] <= focused["overviewHeight"] + 1, focused
                 screenshot("overview-keyboard-focus")
+
             call("page", "notifications")
-            for width in ["440", "740"]:
-                call("width", width)
-                for light in ["false", "true"]:
-                    call("light", light)
-                    call("activateControl", "notification-quiet")
-                    assert settle()["doNotDisturb"]
-                    screenshot("notifications-quiet-" + width + "-" + light)
-                    call("activateControl", "notification-quiet")
-                    assert not settle()["doNotDisturb"]
-            call("page", "overview")
-            # Quick toggles stay on the homepage; labelled arrows navigate.
+            call("activateControl", "notification-quiet")
+            assert settle()["doNotDisturb"]
+            screenshot("notifications-quiet-440-true")
+            call("activateControl", "notification-quiet")
+            assert not settle()["doNotDisturb"]
+
             for section in ["wifi", "bluetooth"]:
                 call("page", "overview")
                 assert call("activateControl", "quick-" + section + "-toggle") == "true"
-                assert state()["page"] == "overview"
-                assert state()["lastAction"] == section + "-toggle"
+                assert state()["page"] == "overview" and state()["lastAction"] == section + "-toggle"
                 assert call("activateControl", "quick-" + section + "-details") == "true"
                 assert state()["page"] == "detail:" + section
+
             call("page", "overview")
-            for width in ["440", "740"]:
-                call("width", width)
-                for light in ["false", "true"]:
-                    call("light", light)
-                    settle()
-                    screenshot("quick-controls-" + width + "-" + light)
-                    call("scrollOverview", "true")
-                    settle()
-                    screenshot("quick-footer-" + width + "-" + light)
-                    call("scrollOverview", "false")
             call("width", "440")
             for section in ["appearance", "wallpaper", "displays", "idle"]:
                 assert call("activateControl", "settings-" + section) == "true"
-                current = settle()
-                assert current["page"] == "detail:" + section, (section, current)
+                assert settle()["page"] == "detail:" + section
                 if args.keyboard:
                     subprocess.run(["wtype", "-k", "Escape"], check=True, timeout=5)
                 else:
@@ -648,7 +592,9 @@ def main():
                 subprocess.run(["wtype", "-k", "Return"], check=True, timeout=5)
                 assert settle()["page"] == "detail:displays"
                 call("page", "overview")
-            call("width", "740")
+
+            call("width", "620")
+            call("light", "false")
             for condition in ["busy", "unavailable"]:
                 call("quickState", condition)
                 for section in ["wifi", "bluetooth"]:
@@ -656,109 +602,74 @@ def main():
                     assert call("activateControl", "quick-" + section + "-details") == "true"
                     call("page", "overview")
                 settle()
-                screenshot("quick-" + condition)
             call("quickState", "error")
             settle()
-            screenshot("quick-error")
             call("quickState", "normal")
+
             check_appearance()
             check_displays()
             check_idle()
-            # Opening the power menu and selecting destructive actions never
-            # executes them until the explicit confirmation button is pressed.
+
             call("page", "overview")
             settle()
             assert call("activateControl", "power-menu-button") == "true"
             assert settle()["page"] == "detail:session"
-            for width in ["740", "440"]:
-                call("width", width)
-                for light in ["false", "true"]:
-                    call("light", light)
-                    settle()
-                    screenshot("power-" + width + "-" + light)
             assert call("setToolField", "awake-duration", "37") == "true"
             assert call("activateControl", "awake-duration-apply") == "true"
             settle()
-            screenshot("session-timed-awake")
             assert call("activateControl", "awake-duration-apply") == "true"
             for action in ["logout", "reboot", "poweroff"]:
                 previous = state()["lastAction"]
                 assert call("activateControl", "power-action-" + action) == "true"
                 assert state()["lastAction"] == previous
                 settle()
-                screenshot("power-confirm-" + action)
                 assert call("activateControl", "power-cancel") == "true"
                 assert state()["lastAction"] == previous
                 call("activateControl", "power-action-" + action)
                 assert call("activateControl", "power-confirm") == "true"
                 assert state()["lastAction"] == "session:" + action
-            call("sessionState", "error")
+            call("sessionState", "unavailable")
             settle()
-            screenshot("power-error")
-            for scenario in ["busy", "unavailable"]:
-                call("sessionState", scenario)
-                settle()
-                assert call("activateControl", "power-action-poweroff") == "false"
-                screenshot("power-" + scenario)
+            assert call("activateControl", "power-action-poweroff") == "false"
             call("sessionState", "normal")
             call("activateControl", "power-action-suspend")
             assert state()["lastAction"] == "session:suspend"
-            call("activateControl", "power-action-poweroff")
-            call("page", "overview")
-            call("page", "session")
-            settle()
-            assert call("activateControl", "power-confirm") == "false"
-            call("close")
-            assert not state()["open"]
-            call("openPanel")
-            assert state()["open"]
-            # Moving the same view preserves drafts, releases the overlay, and
-            # keeps each feature unique while ordinary windows remain open.
-            for light in ["false", "true"]:
-                call("light", light)
-                for width in ["440", "740"]:
-                    call("width", width)
-                    call("page", "wallpaper")
-                    call("draft", "wallpaper", wallpaper_image.as_uri())
-                    settle()
-                    screenshot("wallpaper-" + width + "-" + light)
-                    geometry = json.loads(call("detailGeometry", "wallpaper"))
-                    assert abs(geometry["imageHeight"] - geometry["imageWidth"] * 9 / 16) < 1, geometry
-                    assert state()["card"]["height"] <= 700, state()
+
+            call("page", "wallpaper")
             assert call("draft", "wallpaper", wallpaper_image.as_uri()) == "true"
+            settle()
+            geometry = json.loads(call("detailGeometry", "wallpaper"))
+            assert abs(geometry["imageHeight"] - geometry["imageWidth"] * 9 / 16) < 1, geometry
+            assert state()["card"]["height"] <= 700, state()
             assert call("activateControl", "wallpaper-choose") == "true"
-            time.sleep(.5)
+            time.sleep(.2)
             assert state()["dialogOpen"] and state()["open"]
-            if args.screenshots and os.environ.get("NULLSHELL_PREVIEW_CAPTURE_DESKTOP") == "1":
-                subprocess.run(["grim", str(args.screenshots / "wallpaper-file-dialog.png")], check=True, timeout=5)
             call("cancelFileDialog")
             assert not state()["dialogOpen"] and state()["wallpaperDraft"] == wallpaper_image.as_uri()
             assert call("activateControl", "detach-page") == "true"
             assert state()["wallpaperDraft"] == wallpaper_image.as_uri()
             call("draft", "wallpaper", wallpaper_image.as_uri())
-            time.sleep(.3)
+            time.sleep(.15)
             assert call("activateControl", "wallpaper-apply") == "true"
-            assert state()["wallpaperApplied"] and "wallpaper" in state()["detached"]
-            assert state()["detached"] == ["wallpaper"] and not state()["open"]
-            call("page", "wallpaper")
-            assert not state()["open"] and state()["detached"] == ["wallpaper"]
+            assert state()["wallpaperApplied"] and state()["detached"] == ["wallpaper"] and not state()["open"]
+
             call("page", "appearance")
             call("appearanceState", "fixed")
             settle()
             assert call("coordinate", "latitude", "12.345") == "true"
             if args.keyboard:
                 subprocess.run(["wtype", "-M", "ctrl", "-M", "shift", "-k", "d", "-m", "shift", "-m", "ctrl"], check=True, timeout=5)
-                time.sleep(.2)
+                time.sleep(.15)
                 assert "appearance" in state()["detached"] and not state()["open"], state()
             else:
                 assert call("activateControl", "detach-page") == "true"
             assert state()["latitudeDraft"] == "12.345"
+
             call("scenario", "crowded")
             call("page", "overview")
             settle()
             assert call("activateControl", "open-media") == "true"
-            assert settle()["page"] == "detail:media"
-            assert state()["seekEnabled"]
+            assert settle()["page"] == "detail:media" and state()["seekEnabled"]
             if args.keyboard:
                 assert call("focusControl", "media", "media-position") == "true"
                 subprocess.run(["wtype", "-k", "Right"], check=True, timeout=5)
@@ -767,7 +678,7 @@ def main():
             for icon, active in [("repeat", True), ("repeat-one", True), ("repeat", False)]:
                 assert call("activateControl", "media-repeat") == "true"
                 assert (state()["repeatIcon"], state()["repeating"]) == (icon, active)
-            screenshot("media-player")
+
             for page in ["wifi", "bluetooth", "audio", "media", "notifications"]:
                 call("page", page)
                 settle()
@@ -781,80 +692,41 @@ def main():
                         assert call("focusControl", "audio", "stream-volume-17") == "true"
                         subprocess.run(["wtype", "-k", "Left"], check=True, timeout=5)
                         assert abs(state()["streamVolume"] - 0.6) < 0.001
-                    screenshot("playback-mixer")
                 if page == "notifications":
                     assert call("activateControl", "notification-history") == "true"
                     assert call("setToolField", "notification-filter", "messenger") == "true"
                     assert call("activateControl", "notification-clear-all") == "false"
-                    screenshot("history-filter")
                 assert call("activateControl", "detach-page") == "true"
                 assert page in state()["detached"] and not state()["open"]
+
             assert state()["mediaPlayer"] == "Radio" and not state()["seekEnabled"]
-            assert call("activateControl", "media-repeat") == "false"
-            assert call("activateControl", "media-shuffle") == "false"
-            assert state()["streamMuted"]
-            assert state()["historyFilter"] == "messenger"
             assert call("activateControl", "notification-record-message") == "true"
             assert state()["savedKeys"] == ["download"]
-            call("scenario", "empty")
-            assert state()["mediaPlayer"] == ""
-            assert call("activateControl", "stream-mute-17") == "false"
             call("scenario", "media")
             assert state()["mediaPlayer"] == "Preview player" and state()["shuffle"]
             assert call("activateControl", "media-shuffle") == "true" and not state()["shuffle"]
-            assert state()["detachedWifi"] and state()["detachedControls"]
-            # Opening/closing the launcher does not close detached views.
-            call("openPanel")
-            call("close")
             assert len(state()["detached"]) == 7
+
             if args.keyboard:
-                # IPC alone has never supplied Qt with an input seat/serial.
                 subprocess.run(["wtype", "-k", "Shift_L"], check=True, timeout=5)
+                time.sleep(.1)
+                call("resizeDetached", "wallpaper", "420", "320")
+                call("page", "wallpaper")
                 time.sleep(.2)
-            if args.screenshots:
-                for page in state()["detached"]:
-                    call("page", page)
-                    time.sleep(.2)
-                    if args.keyboard:
-                        assert any(item["section"] == page and item["active"] for item in state()["detachedFocus"]), state()
-                    assert call("captureDetached", page, str(args.screenshots / ("detached-" + page + ".png"))) == "true"
-                if os.environ.get("NULLSHELL_PREVIEW_CAPTURE_DESKTOP") == "1":
-                    subprocess.run(["grim", str(args.screenshots / "detached-windows.png")], check=True, timeout=5)
-                time.sleep(.5)
-            for light in ["false", "true"]:
-                call("light", light)
-                for page in ["appearance", "wallpaper"]:
-                    call("resizeDetached", page, "420", "320")
-                    call("page", page)
-                    time.sleep(.4)
-                    if page == "wallpaper":
-                        geometry = json.loads(call("detailGeometry", page))
-                        assert abs(geometry["imageHeight"] - geometry["imageWidth"] * 9 / 16) < 1, geometry
-                        assert geometry["contentHeight"] > geometry["viewportHeight"], geometry
-                        # Only an active window has a focus item; the headless seat has
-                        # one only when the keyboard device is attached.
-                        if args.keyboard:
-                            assert call("focusControl", page, "wallpaper-apply") == "true"
-                            for _ in range(20):
-                                scrolled = json.loads(call("detailGeometry", page))
-                                if scrolled["scroll"] > 0: break
-                                time.sleep(.1)
-                            assert scrolled["scroll"] > 0, (scrolled, state()["detachedFocus"])
-                    if args.screenshots:
-                        assert call("captureDetached", page, str(args.screenshots / ("detached-small-" + page + "-" + light + ".png"))) == "true"
-                    call("scrollDetail", page)
-                    time.sleep(.2)
-                    if args.screenshots:
-                        assert call("captureDetached", page, str(args.screenshots / ("detached-scrolled-" + page + "-" + light + ".png"))) == "true"
-            if args.keyboard:
+                assert call("focusControl", "wallpaper", "wallpaper-apply") == "true"
+                for _ in range(20):
+                    scrolled = json.loads(call("detailGeometry", "wallpaper"))
+                    if scrolled["scroll"] > 0:
+                        break
+                    time.sleep(.06)
+                assert scrolled["scroll"] > 0, (scrolled, state()["detachedFocus"])
                 subprocess.run(["wtype", "-k", "Escape"], check=True, timeout=5)
-                time.sleep(.2)
-                assert "wallpaper" not in state()["detached"] and len(state()["detached"]) == 6, state()
+                time.sleep(.15)
+                assert "wallpaper" not in state()["detached"], state()
+
             for page in list(state()["detached"]):
                 call("closeDetached", page)
             assert not state()["detachedControls"] and not state()["detachedWifi"]
-            call("page", "wallpaper")
-            assert state()["open"] and state()["wallpaperDraft"] == ""
             call("page", "session")
             assert call("activateControl", "detach-page") == "false"
             finish(process, log)

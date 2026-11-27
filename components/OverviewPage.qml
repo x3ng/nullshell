@@ -5,8 +5,8 @@ import QtQuick.Layouts
 import Quickshell.Widgets
 import ".."
 
-// Quick actions are separate from the labelled detail-navigation targets.
-// Full lists and less frequent commands remain in details and global search.
+// Primary Super+Q hub: 2-up status medallions, 2-up thick pill sliders,
+// 4-up compact settings strip, active media/notifications, and anchored footer.
 ColumnLayout {
     id: page
     required property Theme style
@@ -23,6 +23,7 @@ ColumnLayout {
     readonly property var system: services.controls
     readonly property var player: services.player
     readonly property var sink: services.sink
+    readonly property int pendingCount: notifs.current.length
     property var displayedWorkspaces: []
     property var displayedWindows: []
 
@@ -39,11 +40,13 @@ ColumnLayout {
         restoreMode: Binding.RestoreNone
     }
     onPanelOpenChanged: if (panelOpen) viewport.contentY = 0
+
     Item {
         Layout.fillWidth: true
         Layout.fillHeight: true
         Layout.minimumHeight: 0
         implicitHeight: page.naturalHeight
+
         FocusFlickable {
             id: viewport
             objectName: "overview-scroll"
@@ -51,134 +54,109 @@ ColumnLayout {
             contentWidth: width
             contentHeight: content.implicitHeight
             followFocus: page.panelOpen
+
             ColumnLayout {
                 id: content
                 width: viewport.width
-                spacing: page.style.spaceMd
+                spacing: 10
+
+                // 1. Dual connectivity tiles with medallion toggles
+                ConnectivitySummary {
+                    Layout.fillWidth: true
+                    singleColumn: content.width < 440
+                    style: page.style
+                    actions: page.actions
+                    system: page.system
+                }
+
+                // 2. Dual thick-pill hardware sliders (Volume & Brightness)
                 GridLayout {
                     Layout.fillWidth: true
-                    columns: content.width >= 540 ? 2 : 1
-                    columnSpacing: page.style.spaceMd
-                    rowSpacing: page.style.spaceMd
-                    GroupCard {
-                        Layout.fillWidth: true
-                        Layout.preferredWidth: 1
+                    columns: content.width >= 440 ? 2 : 1
+                    columnSpacing: 10
+                    rowSpacing: 8
+
+                    OverviewLevelControl {
                         style: page.style
-                        contentSpacing: 2
-                        ConnectivitySummary {
+                        actions: page.actions
+                        title: "Volume"
+                        icon: "volume"
+                        value: page.sink?.audio?.volume ?? 0
+                        available: !!page.sink?.audio
+                        muted: page.sink?.audio?.muted ?? false
+                        action: "output-mute"
+                        detailsAction: "audio"
+                        detailsTooltip: "Audio devices and microphone"
+                        onEdited: value => page.services.setVolume(value)
+                    }
+
+                    OverviewLevelControl {
+                        style: page.style
+                        actions: page.actions
+                        title: "Brightness"
+                        icon: "brightness"
+                        value: Math.max(0, page.services.brightness)
+                        available: page.services.brightness >= 0
+                        detailsAction: "appearance"
+                        detailsTooltip: "Appearance settings"
+                        onEdited: value => page.services.setBrightness(value)
+                    }
+                }
+
+                // 3. 4-up compact quick-settings strip (no redundant chevrons)
+                GridLayout {
+                    Layout.fillWidth: true
+                    columns: content.width >= 460 ? 4 : 2
+                    columnSpacing: 8
+                    rowSpacing: 8
+
+                    Repeater {
+                        model: [
+                            {route: "appearance", title: "Appearance", icon: "appearance"},
+                            {route: "wallpaper", title: "Wallpaper", icon: "wallpaper"},
+                            {route: "displays", title: "Displays", icon: "display"},
+                            {route: "idle", title: "Idle & lock", icon: "lock"}
+                        ]
+                        delegate: ChoiceButton {
+                            id: settingPill
+                            required property var modelData
+                            objectName: "settings-" + modelData.route
                             Layout.fillWidth: true
-                            singleColumn: true
-                            rowSpacing: 2
+                            Layout.minimumWidth: 0
+                            Layout.preferredWidth: 1
+                            Layout.preferredHeight: 38
                             style: page.style
-                            actions: page.actions
-                            system: page.system
-                        }
-                    }
-                    GroupCard {
-                        Layout.fillWidth: true
-                        Layout.preferredWidth: 1
-                        style: page.style
-                        contentSpacing: 2
-                        OverviewLevelControl {
-                            style: page.style
-                            actions: page.actions
-                            title: "Volume"
-                            icon: "volume"
-                            value: page.sink?.audio?.volume ?? 0
-                            available: !!page.sink?.audio
-                            muted: page.sink?.audio?.muted ?? false
-                            action: "output-mute"
-                            detailsAction: "audio"
-                            detailsTooltip: "Audio devices and microphone"
-                            onEdited: value => page.services.setVolume(value)
-                        }
-                        OverviewLevelControl {
-                            style: page.style
-                            actions: page.actions
-                            title: "Brightness"
-                            icon: "brightness"
-                            value: Math.max(0, page.services.brightness)
-                            available: page.services.brightness >= 0
-                            detailsAction: "appearance"
-                            detailsTooltip: "Appearance settings"
-                            onEdited: value => page.services.setBrightness(value)
+                            cardFilled: true
+                            label: modelData.title
+                            iconKind: modelData.icon
+                            iconSize: 16
+                            textSize: page.style.fontSizeLabel
+                            available: page.actions.available(modelData.route)
+                            onTriggered: page.actions.execute(modelData.route)
                         }
                     }
                 }
-                GroupCard {
-                    Layout.fillWidth: true
-                    style: page.style
-                    GridLayout {
-                        Layout.fillWidth: true
-                        // Same breakpoint and column geometry as the two-card grid
-                        // above: two card paddings plus their gap, so icons, labels
-                        // and chevrons share rails with the block above.
-                        columns: content.width >= 540 ? 2 : 1
-                        rowSpacing: 2
-                        columnSpacing: 3 * page.style.spaceMd
-                        Repeater {
-                            model: [
-                                {route: "appearance", title: "Appearance", icon: "appearance"},
-                                {route: "wallpaper", title: "Wallpaper", icon: "wallpaper"},
-                                {route: "displays", title: "Displays", icon: "display"},
-                                {route: "idle", title: "Idle and lock", icon: "lock"}
-                            ]
-                            delegate: DeviceRow {
-                                required property var modelData
-                                objectName: "settings-" + modelData.route
-                                Layout.fillWidth: true
-                                Layout.minimumWidth: 0
-                                Layout.preferredWidth: 1
-                                style: page.style
-                                title: modelData.title
-                                iconKind: modelData.icon
-                                // Same rails as the status rows above: icon centre 32,
-                                // label 64 and chevron column from the card edge.
-                                leftInset: 0
-                                rightInset: page.style.spaceXs
-                                iconSlot: 40
-                                available: page.actions.available(modelData.route)
-                                onTriggered: page.actions.execute(modelData.route)
-                            }
-                        }
-                    }
-                }
-                DeviceRow {
-                    id: notificationEntry
-                    objectName: "overview-notifications"
-                    Layout.fillWidth: true
-                    style: page.style
-                    iconKind: "bell"
-                    title: page.notifs.current.length
-                        ? String(page.notifs.current[0].summary || "Notification").replace(/\s+/g, " ")
-                        : "No pending notifications"
-                    Accessible.name: page.notifs.current.length
-                        ? page.notifs.current.length + " pending notifications. Latest: " + notificationEntry.title
-                        : notificationEntry.title + ". Open notification history"
-                    expanded: true
-                    // Its own card: icon centre 32, label 64 and chevron 16 from the edge, like the cards above.
-                    leftInset: page.style.spaceMd
-                    rightInset: page.style.spaceLg
-                    iconSlot: 40
-                    onTriggered: page.actions.execute("notifications")
-                }
+
+                // 4. Active media card (only shown when a player exists)
                 Rectangle {
                     id: mediaCard
-                    readonly property int coverSize: 44
+                    readonly property int coverSize: 42
                     Layout.fillWidth: true
-                    implicitHeight: mediaCard.coverSize + 2 * page.style.spaceMd
+                    implicitHeight: mediaCard.coverSize + 20
                     visible: !!page.player
                     radius: page.style.radiusCard
                     color: page.style.cardSurface
+
                     RowLayout {
                         anchors.fill: parent
-                        anchors.margins: page.style.spaceMd
-                        spacing: page.style.spaceMd
+                        anchors.margins: 10
+                        spacing: 10
+
                         ClippingRectangle {
                             Layout.preferredWidth: mediaCard.coverSize
                             Layout.preferredHeight: mediaCard.coverSize
                             radius: page.style.radiusControl
-                            color: page.style.surfaceHover
+                            color: page.style.controlSurface
                             Image {
                                 id: cover
                                 anchors.fill: parent
@@ -195,6 +173,7 @@ ColumnLayout {
                                 ink: page.style.textMuted
                             }
                         }
+
                         DeviceRow {
                             objectName: "open-media"
                             Layout.fillWidth: true
@@ -203,12 +182,12 @@ ColumnLayout {
                             style: page.style
                             title: page.player?.trackTitle || page.player?.identity || "Media"
                             subtitle: page.player?.trackArtist || page.player?.identity || ""
-                            // The card body is the link; the transport buttons sit where a chevron would.
                             showChevron: false
-                            leftInset: page.style.spaceXs
-                            rightInset: page.style.spaceXs
+                            leftInset: 4
+                            rightInset: 4
                             onTriggered: page.actions.execute("media")
                         }
+
                         ChoiceButton {
                             Layout.preferredWidth: page.style.compactControlHeight
                             Layout.preferredHeight: page.style.compactControlHeight
@@ -220,7 +199,10 @@ ColumnLayout {
                         ChoiceButton {
                             Layout.preferredWidth: page.style.compactControlHeight
                             Layout.preferredHeight: page.style.compactControlHeight
-                            style: page.style; label: ""; iconKind: page.player?.isPlaying ? "pause" : "play"
+                            style: page.style
+                            filled: true
+                            label: ""; iconKind: page.player?.isPlaying ? "pause" : "play"
+                            iconSize: 16
                             tooltip: page.player?.isPlaying ? "Pause" : "Play"
                             available: page.player?.canTogglePlaying ?? false
                             onTriggered: page.player?.togglePlaying()
@@ -235,6 +217,86 @@ ColumnLayout {
                         }
                     }
                 }
+
+                // 5. Compact notification banner row with unread count pill
+                ChoiceButton {
+                    id: notificationEntry
+                    objectName: "overview-notifications"
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: page.pendingCount > 0 ? 40 : 36
+                    style: page.style
+                    cardFilled: true
+                    label: ""
+                    readonly property string summaryText: page.pendingCount > 0
+                        ? String(page.notifs.current[0].summary || "Notification").replace(/\s+/g, " ")
+                        : "Notifications"
+                    Accessible.name: page.pendingCount > 0
+                        ? page.pendingCount + " pending notifications. Latest: " + notificationEntry.summaryText
+                        : "No pending notifications. Open notification history"
+                    onTriggered: page.actions.execute("notifications")
+
+                    RowLayout {
+                        anchors.fill: parent
+                        anchors.leftMargin: 12
+                        anchors.rightMargin: 10
+                        spacing: 8
+
+                        StatusIcon {
+                            kind: page.notifs.doNotDisturb ? "bell-off" : "bell"
+                            Layout.preferredWidth: 16
+                            Layout.preferredHeight: 16
+                            ink: page.notifs.doNotDisturb ? page.style.accentWarm
+                                : page.pendingCount > 0 ? page.style.accent : page.style.textMuted
+                        }
+
+                        Text {
+                            Layout.fillWidth: true
+                            Layout.minimumWidth: 0
+                            text: notificationEntry.summaryText
+                            textFormat: Text.PlainText
+                            elide: Text.ElideRight
+                            color: page.pendingCount > 0 ? page.style.textPrimary : page.style.textMuted
+                            font.family: page.style.fontFamily
+                            font.pixelSize: page.style.fontSizeSmall
+                            font.weight: page.pendingCount > 0 ? Font.Medium : Font.Normal
+                        }
+
+                        Rectangle {
+                            visible: page.pendingCount > 0
+                            Layout.preferredHeight: 18
+                            Layout.preferredWidth: Math.max(18, countLabel.implicitWidth + 10)
+                            radius: 9
+                            color: page.style.surfaceSelected
+                            Text {
+                                id: countLabel
+                                anchors.centerIn: parent
+                                text: String(page.pendingCount)
+                                color: page.style.accent
+                                font.family: page.style.fontFamily
+                                font.pixelSize: page.style.fontSizeCaption
+                                font.weight: Font.Bold
+                            }
+                        }
+
+                        Text {
+                            visible: page.pendingCount === 0
+                            text: page.notifs.doNotDisturb ? "Paused" : "Quiet"
+                            color: page.notifs.doNotDisturb ? page.style.accentWarm : page.style.textMuted
+                            font.family: page.style.fontFamily
+                            font.pixelSize: page.style.fontSizeCaption
+                        }
+
+                        StatusIcon {
+                            kind: "chevron"
+                            Layout.preferredWidth: 16
+                            Layout.preferredHeight: 16
+                            ink: page.style.textMuted
+                            opacity: 0.7
+                        }
+                    }
+                }
+
+                // 6. Anchored workspace & system tools footer
                 WorkspaceStrip {
                     id: navigationStrip
                     objectName: "workspace-footer"

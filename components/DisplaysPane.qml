@@ -275,7 +275,7 @@ ColumnLayout {
 
     GridLayout {
         id: editor
-        readonly property bool roomy: width >= 600
+        readonly property bool roomy: width >= 520
         readonly property bool wide: roomy && pane.detachedBodyHeight <= width * 0.83
         Layout.fillWidth: true
         visible: pane.service.enabled && !!pane.output && !pane.testing

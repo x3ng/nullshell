@@ -19,8 +19,9 @@ Rectangle {
     property color iconInk: tone === "toggle" && selected ? style.accent : contentInk
     property bool available: true
     property bool filled: false
-    // Shared semantic fill for buttons and segmented tabs.
-    property color filledColor: style.controlSurface
+    property bool cardFilled: false
+    // Shared semantic fill for buttons, segmented tabs and card-level pills.
+    property color filledColor: cardFilled ? style.cardSurface : style.controlSurface
     property int textSize: style.fontSizeSmall
     property int contentAlignment: Qt.AlignHCenter
     // Optional leading glyph. With a label it sits left of the text
@@ -50,7 +51,7 @@ Rectangle {
     readonly property bool hovered: mouse.containsMouse && available
     color: tone === "primary" ? (!available ? style.surfaceHover : hovered ? Qt.darker(style.accent, 1.10) : style.accent)
         : selected ? (hovered ? style.surfaceSelectedHover : style.surfaceSelected)
-        : (hovered ? style.surfaceHover : filled ? choice.filledColor : "transparent")
+        : (hovered ? style.surfaceHover : (filled || cardFilled) ? choice.filledColor : "transparent")
     border.width: activeFocus ? style.focusWidth : 0
     border.color: tone === "primary" && available ? style.accentInk : style.focusInk
     opacity: available || tone === "primary" ? 1 : 0.55
@@ -77,7 +78,7 @@ Rectangle {
         anchors.left: choice.contentAlignment === Qt.AlignLeft ? parent.left : undefined
         anchors.leftMargin: choice.style.spaceMd
         width: Math.min(implicitWidth, Math.max(0, choice.width - 2 * (choice.contentAlignment === Qt.AlignLeft ? choice.style.spaceMd : choice.style.spaceSm)))
-        spacing: choice.contentAlignment === Qt.AlignLeft ? choice.style.spaceMd : choice.style.spaceXs
+        spacing: choice.contentAlignment === Qt.AlignLeft ? choice.style.spaceMd : 6
         visible: choice.iconKind !== "" && choice.label !== ""
 
         StatusIcon {
@@ -97,7 +98,7 @@ Rectangle {
             color: choice.contentInk
             font.family: choice.style.fontFamily
             font.pixelSize: choice.textSize
-            font.weight: choice.selected || choice.tone === "primary" ? Font.DemiBold : Font.Normal
+            font.weight: choice.selected || choice.tone === "primary" ? Font.DemiBold : Font.Medium
         }
     }
 

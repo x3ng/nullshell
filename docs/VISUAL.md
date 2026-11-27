@@ -16,9 +16,11 @@ than the selection fill. Dividers are decorative; inputs use a stronger
 `fieldOutline` so fields can be found. `tests/test_palette.py` checks text and
 boundary contrast for both modes against these roles.
 
-Rows on the home page share rails across cards: leading icon centre, label start
-and chevron column line up between the status cards, the settings directory and
-the notification row, at both two-column and single-column widths. Cards share
+The home page uses a compact `620px` card width and distinct control shapes by
+function rather than uniform list rows: two side-by-side connectivity tiles with
+medallion toggles, two inset pill sliders for volume and brightness, a four-up
+quick-settings strip, a compact notification row with an unread count badge, and
+a footer that anchors workspaces left and tray/system tools right. Cards share
 `cardSurface` (which adapts to backdrop blur) and filled buttons share
 `controlSurface`, so individual views do not hardcode per-widget fills or inner
 wireframe borders.

@@ -15,24 +15,39 @@ Item {
     property var trayItems: []
     property Component toolsComponent: null
     signal menuRequested(var owner, real right, real top)
-    // Within a group, between groups, and between wrapped rows.
-    readonly property int itemGap: style.spaceXs
-    readonly property int groupGap: style.spaceMd
-    readonly property int rowGap: style.spaceXs
-    // The parent owns space to the separator and outer edge.
-    implicitHeight: Math.max(style.stripHeight - 2 * style.spaceMd, footer.implicitHeight)
+
+    readonly property int itemGap: 4
+    readonly property int groupGap: 10
+    readonly property int rowGap: 4
+    readonly property int dividerGap: 8
+
+    implicitHeight: divider.height + dividerGap + Math.max(32, footer.implicitHeight)
+
+    Rectangle {
+        id: divider
+        anchors.top: parent.top
+        anchors.left: parent.left
+        anchors.right: parent.right
+        height: 1
+        color: strip.style.separator
+        opacity: 0.75
+    }
+
     Item {
         id: footer
         anchors.left: parent.left
         anchors.right: parent.right
-        anchors.top: parent.top
+        anchors.top: divider.bottom
+        anchors.topMargin: strip.dividerGap
         implicitHeight: entries.implicitHeight
+
         Item {
             id: entries
             objectName: "footer-entries"
             width: parent.width
-            // Flow only centers its bounding box. Pack and center each row so
-            // the last, shorter row stays balanced as workspaces come and go.
+
+            // Single row: anchor workspaces left, tray + system tools right so the
+            // footer frames the panel edges cleanly. Overflowing narrow rows wrap neatly.
             readonly property var rows: {
                 const result = [];
                 let row = {items: [], width: 0, height: 0};
@@ -51,8 +66,35 @@ Item {
                 if (row.items.length) result.push(row);
                 return result;
             }
+
             implicitHeight: rows.reduce((height, row) => height + row.height, 0) + Math.max(0, rows.length - 1) * strip.rowGap
+
             function arrange() {
+                if (rows.length === 1) {
+                    const row = rows[0];
+                    const leftItems = row.items.filter(cell => cell.item.group === "workspace");
+                    const rightItems = row.items.filter(cell => cell.item.group !== "workspace");
+                    let leftX = 0;
+                    for (const cell of leftItems) {
+                        cell.item.x = leftX;
+                        cell.item.y = (row.height - cell.item.height) / 2;
+                        leftX += cell.item.width + strip.itemGap;
+                    }
+                    let rightWidth = 0;
+                    for (let i = 0; i < rightItems.length; i++) {
+                        if (i > 0) rightWidth += rightItems[i - 1].item.group === rightItems[i].item.group ? strip.itemGap : strip.groupGap;
+                        rightWidth += rightItems[i].item.width;
+                    }
+                    let rightX = Math.max(leftX, width - rightWidth);
+                    for (let i = 0; i < rightItems.length; i++) {
+                        const cell = rightItems[i];
+                        if (i > 0) rightX += rightItems[i - 1].item.group === cell.item.group ? strip.itemGap : strip.groupGap;
+                        cell.item.x = rightX;
+                        cell.item.y = (row.height - cell.item.height) / 2;
+                        rightX += cell.item.width;
+                    }
+                    return;
+                }
                 let top = 0;
                 for (const row of rows) {
                     for (const cell of row.items) {
@@ -62,9 +104,11 @@ Item {
                     top += row.height + strip.rowGap;
                 }
             }
+
             onRowsChanged: arrange()
             onWidthChanged: arrange()
             Component.onCompleted: arrange()
+
             Repeater {
                 model: strip.workspaces
                 ChoiceButton {
@@ -73,34 +117,34 @@ Item {
                     required property var modelData
                     readonly property bool special: modelData.special || String(modelData.address).startsWith("special:")
                     readonly property var apps: strip.windows.filter(w => w.workspaceAddress === modelData.address)
-                    // Identifiable icons are shown; windows without one collapse into a
-                    // single generic glyph and a count instead of a run of identical boxes.
                     readonly property var known: apps.filter(w => strip.searchModel.desktopIconSource(strip.searchModel.desktopEntryFor(w)) !== "")
                     readonly property var shown: known.slice(0, 3)
                     readonly property int generic: apps.length - shown.length
-                    width: contents.implicitWidth + 2 * strip.style.spaceSm
-                    height: 32
+                    width: Math.max(30, contents.implicitWidth + 16)
+                    height: 30
                     style: strip.style
                     label: ""
                     tone: "toggle"
+                    cardFilled: true
                     selected: modelData.address === strip.controls.focusedWorkspaceAddress
                     available: strip.controls.available && !strip.controls.busy
                     tooltip: (special ? "Special workspace " : "Workspace ") + String(modelData.name).replace(/^special:/, "") + " · " + apps.length + (apps.length === 1 ? " window" : " windows")
                     Accessible.name: tooltip
                     onTriggered: strip.controls.focusWorkspace(modelData.address)
+
                     Row {
                         id: contents
                         anchors.centerIn: parent
-                        spacing: 4
+                        spacing: 5
                         Text {
-                            height: 28
+                            height: 26
                             verticalAlignment: Text.AlignVCenter
                             text: chip.special ? "$" : String(chip.modelData.name)
                             textFormat: Text.PlainText
                             font.family: strip.style.fontFamily
-                            font.pixelSize: strip.style.fontSizeSmall
-                            font.weight: Font.Medium
-                            color: chip.selected ? strip.style.textPrimary : strip.style.textSecondary
+                            font.pixelSize: strip.style.fontSizeLabel
+                            font.weight: chip.selected ? Font.Bold : Font.DemiBold
+                            color: chip.selected ? strip.style.accent : strip.style.textSecondary
                             width: Math.min(implicitWidth, 64)
                             elide: Text.ElideRight
                         }
@@ -108,37 +152,37 @@ Item {
                             model: chip.shown
                             Item {
                                 required property var modelData
-                                width: 16; height: 28
+                                width: 15; height: 26
                                 IconImage {
                                     anchors.centerIn: parent
-                                    implicitSize: 16
+                                    implicitSize: 15
                                     source: strip.searchModel.desktopIconSource(strip.searchModel.desktopEntryFor(modelData))
                                 }
                             }
                         }
                         Item {
                             visible: chip.generic > 0
-                            width: 14; height: 28
+                            width: 13; height: 26
                             StatusIcon {
                                 anchors.centerIn: parent
-                                width: 14; height: 14
+                                width: 13; height: 13
                                 kind: "window"
                                 ink: strip.style.textMuted
                             }
                         }
                         Text {
-                            // Count the windows not shown as an icon; one generic window needs no number.
                             visible: chip.generic > 1 || (chip.generic > 0 && chip.shown.length > 0)
-                            height: 28
+                            height: 26
                             verticalAlignment: Text.AlignVCenter
                             text: chip.shown.length ? "+" + chip.generic : String(chip.generic)
                             color: strip.style.textMuted
                             font.family: strip.style.fontFamily
-                            font.pixelSize: strip.style.fontSizeLabel
+                            font.pixelSize: strip.style.fontSizeCaption
                         }
                     }
                 }
             }
+
             Repeater {
                 model: strip.trayItems
                 Rectangle {
@@ -170,9 +214,8 @@ Item {
                             openMenu(); event.accepted = true;
                         }
                     }
-                    width: 32; height: 32
+                    width: 30; height: 30
                     radius: strip.style.radiusControl
-                    // Hover uses the full target, like neighbouring footer controls.
                     color: trayMouse.containsMouse ? strip.style.surfaceHover : "transparent"
                     IconImage {
                         id: trayIcon
@@ -187,7 +230,8 @@ Item {
                         text: (trayItem.modelData.title || trayItem.modelData.id || "?").slice(0, 1)
                         color: strip.style.textSecondary
                         font.family: strip.style.fontFamily
-                        font.pixelSize: strip.style.fontSizeBody
+                        font.pixelSize: strip.style.fontSizeSmall
+                        font.weight: Font.Medium
                     }
                     MouseArea {
                         id: trayMouse
@@ -208,6 +252,7 @@ Item {
                     }
                 }
             }
+
             Loader {
                 id: toolsLoader
                 objectName: "footer-tools"

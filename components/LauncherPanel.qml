@@ -280,7 +280,7 @@ PanelWindow {
         anchors.topMargin: Math.max(16, Math.round(parent.height * 0.18))
         width: Math.min(panel.maximumCardWidth, parent.width - 32)
         readonly property int inset: panel.style.panelPadding
-        readonly property int bottomInset: panel.activePage === panel.pageIndexes.overview ? panel.style.spaceMd : inset
+        readonly property int bottomInset: panel.activePage === panel.pageIndexes.overview ? 10 : inset
         readonly property real contentHeight: panel.showingDetails ? controlDetails.naturalHeight
             : panel.searching ? searchResultsPage.naturalHeight
             : panel.homeTab === "desktop" ? desktopPage.naturalHeight
@@ -410,10 +410,10 @@ PanelWindow {
                                 id: scopeHint
                                 required property var modelData
                                 readonly property var hint: modelData || ({prefix: "", label: "", shortLabel: "", filter: ""})
-                                readonly property bool showLabel: panel.commandScope || searchStrip.width >= 560
+                                readonly property bool showLabel: panel.commandScope || searchStrip.width >= 500
                                 objectName: panel.commandScope ? "command-filter-" + hint.filter : "search-scope-" + hint.prefix
                                 Layout.preferredHeight: 28
-                                Layout.preferredWidth: Math.max(28, hintRow.implicitWidth + 2 * panel.style.spaceSm)
+                                Layout.preferredWidth: Math.max(26, hintRow.implicitWidth + 12)
                                 compact: true
                                 style: panel.style
                                 label: ""
@@ -425,20 +425,30 @@ PanelWindow {
                                 Row {
                                     id: hintRow
                                     anchors.centerIn: parent
-                                    spacing: 4
-                                    Text {
-                                        text: scopeHint.hint.prefix
-                                        color: panel.style.accent
-                                        font.family: panel.style.fontFamily
-                                        font.pixelSize: panel.style.fontSizeLabel
-                                        font.weight: Font.DemiBold
+                                    spacing: 5
+                                    Rectangle {
+                                        width: Math.max(18, prefixText.implicitWidth + 8)
+                                        height: 18
+                                        anchors.verticalCenter: parent.verticalCenter
+                                        radius: panel.style.radiusSmall
+                                        color: panel.style.keycapSurface
+                                        Text {
+                                            id: prefixText
+                                            anchors.centerIn: parent
+                                            text: scopeHint.hint.prefix
+                                            color: panel.style.accent
+                                            font.family: panel.style.fontFamily
+                                            font.pixelSize: panel.style.fontSizeCaption
+                                            font.weight: Font.Bold
+                                        }
                                     }
                                     Text {
                                         visible: scopeHint.showLabel
+                                        anchors.verticalCenter: parent.verticalCenter
                                         text: scopeHint.hint.shortLabel || scopeHint.hint.label
                                         color: scopeHint.hovered ? panel.style.textPrimary : panel.style.textMuted
                                         font.family: panel.style.fontFamily
-                                        font.pixelSize: panel.style.fontSizeLabel
+                                        font.pixelSize: panel.style.fontSizeCaption
                                         font.weight: Font.Medium
                                     }
                                 }

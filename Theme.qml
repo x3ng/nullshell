@@ -16,8 +16,8 @@ Scope {
     // Palette sync: the values below are mirrored in adapters/Hyprland.lua
     // (borders, groupbar). Keep both files in step when changing a colour;
     // accent is intentionally darker in Hyprland borders than in the shell.
-    readonly property int panelPadding: 24
-    readonly property int panelGap: 16
+    readonly property int panelPadding: 18
+    readonly property int panelGap: 12
     // Shared spacing scale; one-off optical adjustments stay literal.
     readonly property int spaceXs: 4
     readonly property int spaceSm: 8
@@ -25,10 +25,10 @@ Scope {
     readonly property int spaceLg: 16
     readonly property int compactControlHeight: 32
     readonly property int controlHeight: 36
-    readonly property int fieldHeight: 40
+    readonly property int fieldHeight: 42
     readonly property int maximumPanelHeight: 700
-    // Stable width for tabs, search and details; height adapts to content.
-    readonly property int maximumPanelWidth: 740
+    // Compact width keeps status tiles, sliders and footer dense without dead space.
+    readonly property int maximumPanelWidth: 620
     readonly property int maximumTooltipWidth: 320
     readonly property int tooltipDelay: 500
     // Full header/footer band: a 32px control with 12px on each side.
@@ -89,6 +89,10 @@ Scope {
     readonly property color accent: colors.accent || (darkMode ? "#88aee8" : "#2b62b2")
     readonly property color focusInk: colors.focusInk || (darkMode ? "#a8c8f8" : "#2457a3")
     readonly property color sliderTrack: colors.sliderTrack || (darkMode ? "#3a4350" : "#cfd8e5")
+    // Embedded pill sliders and subtle keycap hints.
+    readonly property color sliderFill: colors.sliderFill || (darkMode ? "#354b6e" : "#cfe0f8")
+    readonly property color sliderMutedFill: colors.sliderMutedFill || (darkMode ? "#2f3643" : "#dde4ee")
+    readonly property color keycapSurface: colors.keycapSurface || Qt.alpha(textPrimary, darkMode ? 0.09 : 0.07)
     // Level fills (mixer streams) are not selection.
     readonly property color meterFill: colors.meterFill || (darkMode ? "#2a3545" : "#e3ecf7")
     readonly property color accentInk: colors.accentInk || (darkMode ? "#122036" : "#ffffff")

@@ -11,23 +11,25 @@ RowLayout {
     spacing: 4
     UtilityButton {
         objectName: "power-menu-button"
-        Layout.preferredWidth: 32
-        Layout.preferredHeight: 32
+        Layout.preferredWidth: 30
+        Layout.preferredHeight: 30
         style: tools.style
+        cardFilled: true
         label: ""
         iconKind: "power"
-        iconSize: 18
+        iconSize: 16
         tooltip: "Power and session"
         onTriggered: tools.actions.execute("session")
     }
     UtilityButton {
         id: awakeButton
-        Layout.preferredWidth: 32
-        Layout.preferredHeight: 32
+        Layout.preferredWidth: 30
+        Layout.preferredHeight: 30
         style: tools.style
+        cardFilled: true
         label: ""
         iconKind: "coffee"
-        iconSize: 18
+        iconSize: 16
         checkable: true
         selected: tools.services.keepAwake
         tooltip: tools.services.keepAwakeUntil > 0
