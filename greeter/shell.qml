@@ -45,6 +45,7 @@ ShellRoot {
             return;
         }
         if (awaitingReply) {
+            if (!secret.length) return;
             awaitingReply = false;
             busy = true;
             Greetd.respond(secret);
@@ -53,7 +54,7 @@ ShellRoot {
         }
         if (Greetd.state !== GreetdState.Inactive) return;
         pendingSecret = secret;
-        hasPendingSecret = true;
+        hasPendingSecret = secret.length > 0;
         authenticatedUser = user;
         busy = true;
         status = "";
@@ -186,6 +187,14 @@ ShellRoot {
             keyboardLayout: loginInfo.keyboardLayout
             capsLock: loginInfo.capsLock
             onKeyboardStatusRequested: loginInfo.refreshKeyboard()
+            onDismissMessageRequested: {
+                if (root.busy) return;
+                if (root.awaitingReply) {
+                    root.awaitingReply = false;
+                    Greetd.cancelSession();
+                }
+                root.status = "";
+            }
             showPowerActions: true
             onSelectSession: id => catalog.choose(id)
             onPowerRequested: action => Quickshell.execDetached(["systemctl", action])

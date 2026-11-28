@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Effects
 import Quickshell
 import Quickshell.Io
+import Quickshell.Hyprland
 import Quickshell.Services.Pam
 import Quickshell.Wayland
 
@@ -14,20 +15,33 @@ ShellRoot {
     property bool hasPendingSecret: false
     property string pendingSecret: ""
     property string status: ""
+    property string selectedScreenName: ""
+    readonly property bool hyprland: Quickshell.env("HYPRLAND_INSTANCE_SIGNATURE") !== ""
+    readonly property string primaryScreenName: {
+        if (selectedScreenName && Quickshell.screens.some(s => s.name === selectedScreenName))
+            return selectedScreenName;
+        const focused = hyprland ? (Hyprland.focusedMonitor?.name ?? "") : "";
+        if (focused && Quickshell.screens.some(s => s.name === focused))
+            return focused;
+        return Quickshell.screens[0]?.name ?? "";
+    }
     readonly property var style: loginTheme
     signal clearInput()
 
     function submit(userName, secret) {
         if (busy) return;
         if (awaitingReply) {
+            if (!secret.length) return;
             awaitingReply = false;
             busy = true;
             pam.respond(secret);
             clearInput();
             return;
         }
+        // Only queue a secret when non-empty so PAM modules like fprintd/u2f can
+        // prompt without immediately feeding an empty password to pam_unix.
         pendingSecret = secret;
-        hasPendingSecret = true;
+        hasPendingSecret = secret.length > 0;
         busy = true;
         status = "";
         if (!pam.start()) {
@@ -40,6 +54,7 @@ ShellRoot {
 
     WallpaperState { id: wallpaperState; synchronous: true }
     LoginInfo { id: loginInfo; active: locker.locked }
+    SystemClock { id: secondaryClock; precision: SystemClock.Minutes; enabled: locker.locked && Quickshell.screens.length > 1 }
 
     // Hold decoded images in Qt's process-local cache before a lock request.
     // Native size avoids a second decode when lock-surface geometry arrives.
@@ -71,6 +86,7 @@ ShellRoot {
         function lock(): string {
             if (!locker.locked) {
                 root.status = "";
+                root.selectedScreenName = "";
                 root.clearInput();
                 locker.locked = true;
             }
@@ -110,6 +126,7 @@ ShellRoot {
             root.clearInput();
             if (result === PamResult.Success) {
                 locker.locked = false;
+                root.selectedScreenName = "";
                 root.status = "";
             } else {
                 root.status = "Authentication failed";
@@ -117,6 +134,7 @@ ShellRoot {
         }
         onError: error => {
             root.busy = false;
+            root.awaitingReply = false;
             root.pendingSecret = "";
             root.hasPendingSecret = false;
             root.clearInput();
@@ -130,7 +148,11 @@ ShellRoot {
 
         WlSessionLockSurface {
             id: lockSurface
+            readonly property bool primarySurface: !lockSurface.screen
+                || Quickshell.screens.length <= 1
+                || lockSurface.screen.name === root.primaryScreenName
             color: loginTheme.panelSurface
+            onPrimarySurfaceChanged: if (primarySurface) Qt.callLater(loginView.focusInput)
 
             WallpaperImage {
                 anchors.fill: parent
@@ -151,9 +173,46 @@ ShellRoot {
             }
             Rectangle { anchors.fill: parent; color: loginTheme.wallpaperScrim }
 
+            // Secondary monitors display calm time/date and bring the auth card over on click.
+            Item {
+                anchors.fill: parent
+                visible: !lockSurface.primarySurface
+
+                Column {
+                    anchors.centerIn: parent
+                    spacing: 6
+                    opacity: 0.88
+
+                    Text {
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        text: Qt.formatDateTime(secondaryClock.date, "HH:mm")
+                        color: loginTheme.textPrimary
+                        font.family: loginTheme.fontFamily
+                        font.pixelSize: 44
+                        font.weight: Font.Bold
+                    }
+                    Text {
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        text: Qt.formatDateTime(secondaryClock.date, "dddd, MMMM d")
+                        color: loginTheme.textSecondary
+                        font.family: loginTheme.fontFamily
+                        font.pixelSize: 15
+                        font.weight: Font.Medium
+                    }
+                }
+
+                MouseArea {
+                    anchors.fill: parent
+                    onPressed: {
+                        if (lockSurface.screen) root.selectedScreenName = lockSurface.screen.name;
+                    }
+                }
+            }
+
             LoginView {
                 id: loginView
                 anchors.fill: parent
+                visible: lockSurface.primarySurface
                 theme: root.style
                 transparentBackground: true
                 cardOpacity: loginTheme.frostedOpacity
@@ -166,13 +225,14 @@ ShellRoot {
                 keyboardLayout: loginInfo.keyboardLayout
                 capsLock: loginInfo.capsLock
                 onKeyboardStatusRequested: loginInfo.refreshKeyboard()
+                onDismissMessageRequested: if (!root.busy) root.status = ""
                 onSubmit: (userName, secret) => root.submit(userName, secret)
-                Component.onCompleted: Qt.callLater(focusInput)
+                Component.onCompleted: if (lockSurface.primarySurface) Qt.callLater(focusInput)
                 Connections {
                     target: root
                     function onClearInput() {
                         loginView.clearSecret();
-                        loginView.focusInput();
+                        if (lockSurface.primarySurface) loginView.focusInput();
                     }
                 }
             }

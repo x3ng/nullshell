@@ -67,6 +67,18 @@ with tempfile.TemporaryDirectory(prefix="ns-login-info-") as directory:
             subprocess.run(["wtype", "-k", "Caps_Lock"], check=True, timeout=5)
             time.sleep(.2)
             assert json.loads(call("infoStatus"))["keyboardRefreshes"] > before
+            call("mode", "false")
+            call("size", "1100", "640")
+            call("light", "true")
+            call("power", "true")
+            time.sleep(.2)
+            assert json.loads(call("infoStatus"))["powerOpen"]
+            power_shot = args.screenshots / "greeter-1100-true-power.png"
+            assert call("capture", str(power_shot)) == "true"
+            time.sleep(.15)
+            subprocess.run(["wtype", "-k", "Escape"], check=True, timeout=5)
+            time.sleep(.2)
+            assert not json.loads(call("infoStatus"))["powerOpen"]
         call("quit")
         process.wait(timeout=5)
         assert process.returncode == 0

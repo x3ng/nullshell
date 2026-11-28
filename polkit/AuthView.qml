@@ -44,9 +44,11 @@ MaterialSurface {
     }
     component Action: Button {
         property bool primary: false
-        implicitHeight: 42
+        implicitHeight: 40
+        hoverEnabled: true
         font.family: root.theme.fontFamily
-        font.pixelSize: 14
+        font.pixelSize: root.theme.fontSizeControl
+        font.weight: primary ? Font.DemiBold : Font.Medium
         contentItem: Text {
             text: parent.text
             font: parent.font
@@ -55,11 +57,13 @@ MaterialSurface {
             verticalAlignment: Text.AlignVCenter
         }
         background: Rectangle {
-            radius: root.theme.radiusInput
-            color: parent.primary ? root.theme.accent : root.theme.surfaceRaised
-            opacity: parent.enabled ? (parent.down ? 0.75 : 1) : 0.45
-            border.width: parent.activeFocus ? 1 : 0
-            border.color: root.theme.accent
+            radius: root.theme.radiusControl
+            color: parent.primary
+                ? (parent.hovered && parent.enabled ? Qt.darker(root.theme.accent, 1.08) : root.theme.accent)
+                : (parent.hovered && parent.enabled ? root.theme.surfaceHover : root.theme.controlSurface)
+            opacity: parent.enabled ? (parent.down ? 0.82 : 1) : 0.45
+            border.width: parent.activeFocus ? root.theme.focusWidth : 0
+            border.color: parent.primary ? root.theme.accentInk : root.theme.focusInk
         }
     }
 

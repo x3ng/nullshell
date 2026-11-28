@@ -1,10 +1,13 @@
 import QtQuick
+import Qt.labs.folderlistmodel
 import Quickshell
 import Quickshell.Io
 import Quickshell.Hyprland
 import Quickshell.Services.UPower
 
 // Read-only login/lock information. No session, authentication or power actions.
+// Under Hyprland, queries hyprctl for layout and Caps Lock; under Cage/other
+// Wayland hosts (e.g. greetd), falls back to standard Linux sysfs LEDs.
 Scope {
     id: root
     property bool active: false
@@ -22,12 +25,14 @@ Scope {
 
     function clearKeyboard() { keyboardLayout = ""; capsLock = false; }
     function refreshKeyboard() {
-        if (active && hyprland) refresh.restart();
+        if (!active) return;
+        if (hyprland) refresh.restart();
+        else sysfsRefresh.restart();
     }
     onActiveChanged: {
         clearKeyboard();
         if (active) refreshKeyboard();
-        else { refresh.stop(); if (probe.running) probe.kill(); }
+        else { refresh.stop(); sysfsRefresh.stop(); if (probe.running) probe.kill(); }
     }
     Component.onCompleted: refreshKeyboard()
     Connections {
@@ -62,4 +67,43 @@ Scope {
         }
     }
     Timer { interval: 2000; running: probe.running; onTriggered: { root.clearKeyboard(); probe.kill(); } }
+
+    // Non-Hyprland fallback (Cage greeter, Sway, etc.): inspect Linux Caps Lock LEDs directly.
+    FolderListModel {
+        id: ledsFolder
+        folder: root.active && !root.hyprland ? "file:///sys/class/leds" : ""
+        nameFilters: ["*capslock*"]
+        showDirs: true
+        showFiles: false
+        showDotAndDotDot: false
+        onStatusChanged: if (status === FolderListModel.Ready && root.active && !root.hyprland) sysfsRefresh.restart()
+    }
+    Component {
+        id: ledReader
+        FileView {
+            id: view
+            property string ledPath: ""
+            path: ledPath
+            printErrors: false
+            onLoaded: {
+                if (root.active && !root.hyprland && text().trim() !== "0" && text().trim() !== "")
+                    root.capsLock = true;
+                view.destroy();
+            }
+            onLoadFailed: view.destroy()
+        }
+    }
+    Timer {
+        id: sysfsRefresh
+        interval: 60
+        onTriggered: {
+            if (!root.active || root.hyprland) return;
+            root.capsLock = false;
+            for (let i = 0; i < ledsFolder.count; i++) {
+                let dir = ledsFolder.get(i, "filePath");
+                if (dir.startsWith("file://")) dir = dir.slice(7);
+                ledReader.createObject(root, {ledPath: dir + "/brightness"});
+            }
+        }
+    }
 }

@@ -264,6 +264,24 @@ Canvas {
             c.closePath();
             c.stroke();
             c.beginPath(); c.arc(10, 10, 2.5, 0, Math.PI * 2); c.fill();
+            if (muted) {
+                c.beginPath();
+                c.moveTo(3.5, 3.5);
+                c.lineTo(16.5, 16.5);
+                c.stroke();
+            }
+        } else if (kind === "arrow-right") {
+            c.beginPath();
+            c.moveTo(4, 10); c.lineTo(16, 10);
+            c.moveTo(11, 5.5); c.lineTo(16, 10); c.lineTo(11, 14.5);
+            c.stroke();
+        } else if (kind === "user") {
+            c.beginPath(); c.arc(10, 7, 3.2, 0, Math.PI * 2); c.stroke();
+            c.beginPath();
+            c.moveTo(4.2, 16.5);
+            c.quadraticCurveTo(4.8, 12.2, 10, 12.2);
+            c.quadraticCurveTo(15.2, 12.2, 15.8, 16.5);
+            c.stroke();
         } else if (kind === "leaf") {
             c.beginPath();
             c.moveTo(10, 17);

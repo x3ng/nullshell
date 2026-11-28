@@ -31,6 +31,7 @@ ShellRoot {
         function infoStatus(): string {
             return JSON.stringify({battery: loginView.batteryText, low: loginView.batteryLow,
                 keyboard: loginView.keyboardLayout, caps: loginView.capsLock, lock: preview.lockMode,
+                powerOpen: loginView.powerMenuOpen, sessionsOpen: loginView.sessionPickerOpen,
                 width: loginView.width, height: loginView.height, keyboardRefreshes: preview.keyboardRefreshes});
         }
         function appearanceStatus(): string {
