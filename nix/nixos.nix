@@ -91,12 +91,9 @@ in
           message = "nullshell greeter appearance.directory must be a dedicated absolute path without whitespace or tmpfiles specifiers.";
         }
       ];
-      # Root owns the 0711 slot container; each ordinary user gets an isolated
-      # 2750 <user>:greeter directory without configuring usernames.
-      systemd.tmpfiles.rules = [
-        "d ${appearance.directory} 0711 root root -"
-        "d ${appearance.directory}/users 0711 root root -"
-      ];
+      # nullshell-appearance-slots provisions the 0711 root container (migrating
+      # any legacy single-user 2750 directory in place) and 2750 <user>:greeter
+      # per-user slots without configuring usernames.
       systemd.services.nullshell-appearance-slots = {
         description = "Provision per-user nullshell greeter appearance slots";
         wantedBy = [ "multi-user.target" ];
@@ -111,7 +108,7 @@ in
         serviceConfig = {
           Type = "oneshot";
           RemainAfterExit = true;
-          ExecStart = "${packages.helper}/bin/nullshell-helper ensure-appearance-slot --root ${lib.escapeShellArg appearance.directory} --local";
+          ExecStart = "${packages.helper}/bin/nullshell-helper ensure-appearance-slot --create --root ${lib.escapeShellArg appearance.directory} --local";
         };
       };
       systemd.services."user@".serviceConfig.ExecStartPre = [

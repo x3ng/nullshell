@@ -74,6 +74,15 @@ pkgs.testers.runNixOSTest {
     assert machine.succeed("stat -c '%U %G %a' /var/lib/test-relocated-theme/users").strip() == "root root 711"
     assert machine.succeed("stat -c '%U %G %a' /var/lib/test-relocated-theme/users/preview").strip() == "preview greeter 2750"
     assert machine.succeed("stat -c '%U %G %a' /var/lib/test-relocated-theme/users/unrelated").strip() == "unrelated greeter 2750"
+    # Verify seamless in-place migration from a legacy single-user 2750 directory.
+    machine.succeed("install -d -m 2750 -o preview -g greeter /var/lib/test-legacy-theme")
+    machine.succeed("install -m 0640 -o preview -g greeter /dev/null /var/lib/test-legacy-theme/theme.json")
+    machine.succeed("ln -s /etc/passwd /var/lib/test-legacy-theme/wallpaper.json")
+    machine.succeed("nullshell-helper ensure-appearance-slot --create --root /var/lib/test-legacy-theme --local")
+    assert machine.succeed("stat -c '%U %G %a' /var/lib/test-legacy-theme").strip() == "root root 711"
+    assert machine.succeed("stat -c '%U %G %a' /var/lib/test-legacy-theme/users/preview/theme.json").strip() == "preview greeter 640"
+    machine.fail("test -e /var/lib/test-legacy-theme/theme.json")
+    machine.fail("test -e /var/lib/test-legacy-theme/users/preview/wallpaper.json")
     # Export into the per-user slot without any username configured in NixOS.
     colors = dict.fromkeys("backdrop panelSurface backgroundSurface surfaceRaised surfaceHover surfaceSelected materialEdge materialShadow wallpaperScrim inputSurface outline separator textPrimary textSecondary textMuted accent accentInk danger accentWarm".split(), "#eeeeee")
     snapshot = json.dumps(dict(version=1, mode="light", colors=colors))

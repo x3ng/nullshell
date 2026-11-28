@@ -267,34 +267,131 @@ fn normalize_slot_file(
     fchown_fchmod(&file_fd, uid, gid, mode)
 }
 
-pub fn ensure_slot(args: &[String]) -> Result<(), Box<dyn std::error::Error>> {
-    let (root_path, target) = match args {
-        [target] => (DEFAULT_APPEARANCE_ROOT, target.as_str()),
-        [flag, root, target] if flag == "--root" => (root.as_str(), target.as_str()),
-        _ => {
-            return Err(
-                "Usage: nullshell-helper ensure-appearance-slot [--root DIR] (<UID> | --local)"
-                    .into(),
-            );
+fn migrate_legacy_file(root_fd: &OwnedFd, slot_fd: &OwnedFd, name: &str) -> io::Result<()> {
+    let c_name = CString::new(name).map_err(|_| io::Error::from(io::ErrorKind::InvalidInput))?;
+    let mut st = unsafe { std::mem::zeroed::<libc::stat>() };
+    if unsafe {
+        libc::fstatat(
+            root_fd.as_raw_fd(),
+            c_name.as_ptr(),
+            &mut st,
+            libc::AT_SYMLINK_NOFOLLOW,
+        )
+    } < 0
+    {
+        let err = io::Error::last_os_error();
+        return if err.kind() == io::ErrorKind::NotFound {
+            Ok(())
+        } else {
+            Err(err)
+        };
+    }
+    if (st.st_mode & libc::S_IFMT) == libc::S_IFREG {
+        if unsafe {
+            libc::renameat(
+                root_fd.as_raw_fd(),
+                c_name.as_ptr(),
+                slot_fd.as_raw_fd(),
+                c_name.as_ptr(),
+            )
+        } < 0
+        {
+            return Err(io::Error::last_os_error());
         }
+    } else {
+        let _ = unsafe { libc::unlinkat(root_fd.as_raw_fd(), c_name.as_ptr(), 0) };
+    }
+    Ok(())
+}
+
+pub fn ensure_slot(args: &[String]) -> Result<(), Box<dyn std::error::Error>> {
+    let mut create_root = false;
+    let mut root_path = DEFAULT_APPEARANCE_ROOT;
+    let mut target: Option<&str> = None;
+    let mut i = 0;
+    while i < args.len() {
+        match args[i].as_str() {
+            "--create" => {
+                create_root = true;
+                i += 1;
+            }
+            "--root" if i + 1 < args.len() => {
+                root_path = args[i + 1].as_str();
+                i += 2;
+            }
+            value if target.is_none() => {
+                target = Some(value);
+                i += 1;
+            }
+            _ => {
+                target = None;
+                break;
+            }
+        }
+    }
+    let Some(target) = target else {
+        return Err(
+            "Usage: nullshell-helper ensure-appearance-slot [--create] [--root DIR] (<UID> | --local)"
+                .into(),
+        );
     };
-    if !Path::new(root_path).is_absolute() {
+    let root_p = Path::new(root_path);
+    let (Some(parent_p), Some(root_name)) =
+        (root_p.parent(), root_p.file_name().and_then(|n| n.to_str()))
+    else {
+        return Err("Appearance root directory must be a non-root absolute path".into());
+    };
+    if !root_p.is_absolute() {
         return Err("Appearance root directory must be an absolute path".into());
     }
-    let root_fd = match open_dir_nofollow(None, root_path) {
+    let Some(greeter_gid) = lookup_group_gid("greeter")? else {
+        return Ok(());
+    };
+    let parent_str = parent_p
+        .to_str()
+        .ok_or("Invalid UTF-8 in appearance parent path")?;
+    let parent_fd = match open_dir_nofollow(None, parent_str) {
+        Ok(fd) => fd,
+        Err(e) if !create_root && e.kind() == io::ErrorKind::NotFound => return Ok(()),
+        Err(e) => return Err(e.into()),
+    };
+    let parent_stat = fstat_fd(&parent_fd)?;
+    if parent_stat.st_uid != 0 || (parent_stat.st_mode & 0o022) != 0 {
+        return Err(
+            "Appearance parent directory must be owned by root without group/other write".into(),
+        );
+    }
+    if create_root {
+        mkdirat_if_absent(&parent_fd, root_name, 0o711)?;
+    }
+    let root_fd = match open_dir_nofollow(Some(&parent_fd), root_name) {
         Ok(fd) => fd,
         Err(e) if e.kind() == io::ErrorKind::NotFound => return Ok(()),
         Err(e) => return Err(e.into()),
     };
     let root_stat = fstat_fd(&root_fd)?;
-    if root_stat.st_uid != 0 || (root_stat.st_mode & 0o022) != 0 {
-        return Err(
-            "Appearance root must be owned by root without group/other write access".into(),
-        );
+    let mut legacy_owner: Option<(u32, String)> = None;
+    if root_stat.st_uid == 0 {
+        if (root_stat.st_mode & 0o022) != 0 {
+            return Err(
+                "Appearance root must be owned by root without group/other write access".into(),
+            );
+        }
+        fchown_fchmod(&root_fd, 0, 0, 0o711)?;
+    } else if (root_stat.st_mode & 0o002) == 0 {
+        // Reclaim a legacy single-user 2750 <user>:greeter directory in place before migrating.
+        if let Some(name) = lookup_passwd_uid(root_stat.st_uid)? {
+            if eligible_slot_account(root_stat.st_uid, &name) {
+                fchown_fchmod(&root_fd, 0, 0, 0o711)?;
+                legacy_owner = Some((root_stat.st_uid, name));
+            }
+        }
+        if legacy_owner.is_none() {
+            return Err("Appearance root has unexpected non-root owner".into());
+        }
+    } else {
+        return Err("Appearance root must not be world-writable".into());
     }
-    let Some(greeter_gid) = lookup_group_gid("greeter")? else {
-        return Ok(());
-    };
     mkdirat_if_absent(&root_fd, "users", 0o711)?;
     let users_fd = open_dir_nofollow(Some(&root_fd), "users")?;
     let users_stat = fstat_fd(&users_fd)?;
@@ -302,6 +399,22 @@ pub fn ensure_slot(args: &[String]) -> Result<(), Box<dyn std::error::Error>> {
         return Err("Appearance users directory must be owned by root".into());
     }
     fchown_fchmod(&users_fd, 0, 0, 0o711)?;
+
+    if let Some((legacy_uid, legacy_name)) = legacy_owner {
+        mkdirat_if_absent(&users_fd, &legacy_name, 0o2750)?;
+        let slot_fd = open_dir_nofollow(Some(&users_fd), &legacy_name)?;
+        fchown_fchmod(&slot_fd, legacy_uid, greeter_gid, 0o2750)?;
+        for entry in [
+            "theme.json",
+            "wallpaper.json",
+            "wallpaper-0.img",
+            "wallpaper-1.img",
+            ".appearance.lock",
+            ".wallpaper.lock",
+        ] {
+            migrate_legacy_file(&root_fd, &slot_fd, entry)?;
+        }
+    }
 
     let accounts = if target == "--local" {
         parse_passwd_accounts(BufReader::new(fs::File::open("/etc/passwd")?))

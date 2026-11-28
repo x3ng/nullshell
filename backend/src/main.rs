@@ -17,7 +17,7 @@ Commands:
   sleep-bridge [--lock-command JSON_ARGV] [--resume-command JSON_ARGV]
   appearance-export [--optional] SHARED_FILE  Publish a validated greeter colour snapshot
   wallpaper-export [--optional] SHARED_FILE   Publish a validated greeter wallpaper
-  ensure-appearance-slot [--root DIR] (<UID>|--local)  Provision 2750 per-user greeter slots
+  ensure-appearance-slot [--create] [--root DIR] (<UID>|--local)  Provision 2750 per-user greeter slots
   location                         Request coarse IP coordinates from BeaconDB
   timezone                         Resolve a timezone to representative coordinates offline
   displays outputs                 List connected Hyprland outputs and profile keys
