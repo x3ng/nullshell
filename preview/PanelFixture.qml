@@ -263,6 +263,8 @@ Scope {
         body: "Preview conversation", time: Date.now(), urgency: 1
     }]
     function entryActions(entry) { return []; }
+    function entryAppIcon(entry) { return entry?.appIcon || ""; }
+    function entryContentImage(entry) { return entry?.contentImage || ""; }
     function activationLabel(entry) { return ""; }
     function activateEntry(entry) { lastAction = "notification"; return false; }
     function invokeEntryAction(entry, action) { return false; }

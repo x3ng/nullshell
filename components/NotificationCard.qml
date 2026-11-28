@@ -2,6 +2,7 @@ pragma ComponentBehavior: Bound
 
 import QtQuick
 import QtQuick.Layouts
+import Quickshell
 import Quickshell.Widgets
 import Quickshell.Services.Notifications
 import ".."
@@ -13,13 +14,22 @@ MaterialSurface {
     required property Theme style
     required property var entry
     property var actions: []
+    property string appIconOverride: ""
+    property string contentImageOverride: ""
     property string activationLabel: ""
     property bool compact: false
     property bool expandable: true
     property bool expanded: false
     property int maximumBodyHeight: 220
     readonly property bool critical: entry.urgency === NotificationUrgency.Critical
-    readonly property bool hasMore: summaryText.truncated || bodyText.truncated || attachment.visible
+    readonly property string resolvedAppIcon: NotificationUtils.imageSource(
+        appIconOverride || entry.appIcon || entry.image || contentImageOverride || entry.contentImage,
+        name => Quickshell.iconPath(name, true)
+    )
+    readonly property string resolvedAttachment: NotificationUtils.attachmentSource(
+        contentImageOverride || entry.contentImage
+    )
+    readonly property bool hasMore: summaryText.truncated || bodyText.truncated || attachmentFrame.visible
     readonly property bool hovered: hover.hovered
     readonly property var buttons: Array.from(actions).filter(a => a.identifier !== "default")
     readonly property int pad: compact ? style.spaceSm : style.spaceMd
@@ -72,7 +82,7 @@ MaterialSurface {
                     anchors.fill: parent
                     anchors.margins: 3
                     implicitSize: 26
-                    source: NotificationUtils.imageSource(card.entry.appIcon || card.entry.image)
+                    source: card.resolvedAppIcon
                     visible: source !== "" && status === Image.Ready
                 }
                 StatusIcon {
@@ -149,16 +159,22 @@ MaterialSurface {
                 font.pixelSize: card.compact ? card.style.fontSizeSmall : card.style.fontSizeBody
             }
         }
-        Image {
-            id: attachment
+        ClippingRectangle {
+            id: attachmentFrame
             Layout.fillWidth: true
-            Layout.preferredHeight: card.expanded ? 140 : 64
-            visible: !card.compact && source !== "" && status === Image.Ready
-            source: NotificationUtils.imageSource(card.entry.contentImage)
-            sourceSize: Qt.size(800, 280)
-            fillMode: Image.PreserveAspectFit
-            horizontalAlignment: Image.AlignLeft
-            asynchronous: true
+            Layout.preferredHeight: card.expanded ? 148 : 72
+            visible: !card.compact && attachment.source !== "" && attachment.status === Image.Ready
+            radius: card.style.radiusControl
+            color: card.style.controlSurface
+
+            Image {
+                id: attachment
+                anchors.fill: parent
+                source: card.resolvedAttachment
+                sourceSize: Qt.size(800, 320)
+                fillMode: card.expanded ? Image.PreserveAspectFit : Image.PreserveAspectCrop
+                asynchronous: true
+            }
         }
         Flow {
             id: actionFlow

@@ -103,7 +103,7 @@ Scope {
     function desktopIconSource(entry) {
         var icon = entry?.icon ?? "";
         if (!icon) return "";
-        return icon.startsWith("/") ? "file://" + icon : "image://icon/" + icon;
+        return icon.startsWith("/") ? "file://" + icon : Quickshell.iconPath(icon, true);
     }
 
     function launchApplication(entry, forceTerminal = false) {

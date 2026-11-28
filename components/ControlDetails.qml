@@ -347,6 +347,8 @@ Rectangle {
                                 entry: modelData
                                 compact: false
                                 actions: detail.notifs.entryActions(entry)
+                                appIconOverride: detail.notifs.entryAppIcon(entry)
+                                contentImageOverride: detail.notifs.entryContentImage(entry)
                                 activationLabel: detail.notifs.activationLabel(entry)
                                 onActivated: { if (detail.notifs.activateEntry(entry)) detail.closePanelRequested(); }
                                 onActionRequested: action => { if (detail.notifs.invokeEntryAction(entry, action)) detail.closePanelRequested(); }

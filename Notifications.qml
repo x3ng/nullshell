@@ -373,6 +373,12 @@ Scope {
     function entryActions(entry) {
         return Array.from(liveEntry(entry)?.actions || []);
     }
+    function entryAppIcon(entry) {
+        return liveEntry(entry)?.appIcon || entry?.appIcon || "";
+    }
+    function entryContentImage(entry) {
+        return liveEntry(entry)?.contentImage || entry?.contentImage || "";
+    }
     function entryApplication(entry) {
         return entry?.desktopEntry ? DesktopEntries.heuristicLookup(entry.desktopEntry) : null;
     }

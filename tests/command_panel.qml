@@ -3,6 +3,7 @@ import Quickshell
 import Quickshell.Io
 import "SearchMatch.js" as Match
 import "ConfigRules.js" as Rules
+import "components/NotificationUtils.js" as NotificationUtils
 import "preview"
 import "adapters"
 
@@ -96,6 +97,16 @@ ShellRoot {
             try { Rules.parse(JSON.stringify(Object.assign({version: 1}, value))); } catch (_) { rejected = true; }
             check(rejected, "Invalid policy accepted");
         }
+        check(NotificationUtils.imageSource("image://icon//tmp/.tmp9HiLUa/.tmpxZhuTB.png")
+            === "file:///tmp/.tmp9HiLUa/.tmpxZhuTB.png", "Unwrap Quickshell icon-wrapped file path");
+        check(NotificationUtils.attachmentSource("image://icon//tmp/shot.png") === "file:///tmp/shot.png",
+            "Attachment file URL");
+        check(NotificationUtils.attachmentSource("image://icon/firefox") === "",
+            "Symbolic theme icon must not render as body attachment");
+        check(NotificationUtils.imageSource("missing-icon", () => "") === "",
+            "Missing theme icon returns empty instead of missing-texture checkerboard");
+        check(NotificationUtils.savedImage("image://qsimage/12") === "",
+            "Live qsimage is not persisted to disk");
         console.log("COMMAND_RULES_OK");
     }
 }
