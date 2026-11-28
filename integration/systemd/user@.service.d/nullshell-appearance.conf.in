@@ -1,0 +1,2 @@
+[Service]
+ExecStartPre=-@HELPER@ ensure-appearance-slot %i

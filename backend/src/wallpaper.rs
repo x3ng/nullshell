@@ -30,11 +30,18 @@ fn raster(bytes: &[u8]) -> bool {
         || (bytes.len() >= 12 && &bytes[..4] == b"RIFF" && &bytes[8..12] == b"WEBP")
 }
 
-pub fn run(paths: &[String]) -> Result<(), Box<dyn std::error::Error>> {
-    if paths.len() != 1 {
-        return Err("Usage: nullshell-helper wallpaper-export SHARED_FILE < request.json".into());
-    }
-    let path = Path::new(&paths[0]);
+pub fn run(args: &[String]) -> Result<(), Box<dyn std::error::Error>> {
+    let (optional, target) = match args {
+        [path] => (false, path.as_str()),
+        [flag, path] if flag == "--optional" => (true, path.as_str()),
+        _ => {
+            return Err(
+                "Usage: nullshell-helper wallpaper-export [--optional] SHARED_FILE < request.json"
+                    .into(),
+            );
+        }
+    };
+    let path = Path::new(target);
     if !path.is_absolute() || path.file_name().is_none() {
         return Err("Expected absolute wallpaper descriptor path".into());
     }
@@ -49,14 +56,19 @@ pub fn run(paths: &[String]) -> Result<(), Box<dyn std::error::Error>> {
         return Err("Invalid wallpaper request".into());
     }
     // Never create a privileged/shared directory. Lock serializes export and cleanup.
-    let lock = OpenOptions::new()
+    let lock = match OpenOptions::new()
         .read(true)
         .write(true)
         .create(true)
         .truncate(false)
         .mode(0o600)
         .custom_flags(libc::O_NOFOLLOW)
-        .open(parent.join(".wallpaper.lock"))?;
+        .open(parent.join(".wallpaper.lock"))
+    {
+        Ok(file) => file,
+        Err(e) if optional && e.kind() == io::ErrorKind::NotFound => return Ok(()),
+        Err(e) => return Err(e.into()),
+    };
     lock.lock()?;
     let old: Option<Snapshot> = File::open(path)
         .ok()
@@ -173,6 +185,7 @@ fn atomic_write(path: &Path, bytes: &[u8]) -> io::Result<()> {
         .write(true)
         .create_new(true)
         .mode(0o600)
+        .custom_flags(libc::O_NOFOLLOW)
         .open(&pending)?;
     let result = (|| {
         file.write_all(bytes)?;

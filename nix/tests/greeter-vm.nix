@@ -21,8 +21,7 @@ let
     exec > /run/nullshell-greeter-test/greeter.log 2>&1
     export XDG_RUNTIME_DIR=/run/nullshell-greeter-test
     export NULLSHELL_GREETER_OVERRIDE_DIR=/var/lib/test-greeter-ui
-    export NULLSHELL_APPEARANCE_FILE=/var/lib/test-relocated-theme/theme.json
-    export NULLSHELL_WALLPAPER_FILE=/var/lib/test-relocated-theme/wallpaper.json
+    export NULLSHELL_APPEARANCE_DIR=/var/lib/test-relocated-theme
     export NULLSHELL_GREETER_STATE_FILE=/var/lib/nullshell-greeter/last-login.json
     export XDG_DATA_DIRS=/run/nullshell-greeter-test/sessions/share
     mkdir -p "$XDG_DATA_DIRS/wayland-sessions"
@@ -40,7 +39,6 @@ pkgs.testers.runNixOSTest {
     programs.nullshell.greeter = {
       enable = true;
       interfaceDirectory = "/var/lib/test-greeter-ui";
-      appearance.sourceUser = "preview";
       appearance.directory = "/var/lib/test-relocated-theme";
     };
     services.greetd.settings.default_session.command = lib.mkForce "${startGreeter}";
@@ -64,6 +62,7 @@ pkgs.testers.runNixOSTest {
     from datetime import timedelta
 
     machine.start()
+    machine.wait_for_unit("nullshell-appearance-slots.service")
     machine.wait_for_unit("greetd.service")
     machine.wait_until_succeeds("test -S /run/nullshell-greeter-test/wayland-0", timeout=timedelta(seconds=30))
     try:
@@ -71,17 +70,22 @@ pkgs.testers.runNixOSTest {
     except Exception:
         print(machine.succeed("cat /run/nullshell-greeter-test/greeter.log"))
         raise
-    # Export as the selected ordinary user, including under a private umask.
+    assert machine.succeed("stat -c '%U %G %a' /var/lib/test-relocated-theme").strip() == "root root 711"
+    assert machine.succeed("stat -c '%U %G %a' /var/lib/test-relocated-theme/users").strip() == "root root 711"
+    assert machine.succeed("stat -c '%U %G %a' /var/lib/test-relocated-theme/users/preview").strip() == "preview greeter 2750"
+    assert machine.succeed("stat -c '%U %G %a' /var/lib/test-relocated-theme/users/unrelated").strip() == "unrelated greeter 2750"
+    # Export into the per-user slot without any username configured in NixOS.
     colors = dict.fromkeys("backdrop panelSurface backgroundSurface surfaceRaised surfaceHover surfaceSelected materialEdge materialShadow wallpaperScrim inputSurface outline separator textPrimary textSecondary textMuted accent accentInk danger accentWarm".split(), "#eeeeee")
     snapshot = json.dumps(dict(version=1, mode="light", colors=colors))
     def export_theme():
-        command = "umask 077; printf %s " + shlex.quote(snapshot) + " | nullshell-helper appearance-export /var/lib/test-relocated-theme/theme.json"
+        command = "umask 077; printf %s " + shlex.quote(snapshot) + " | nullshell-helper appearance-export /var/lib/test-relocated-theme/users/preview/theme.json"
         machine.succeed("su -s /bin/sh preview -c " + shlex.quote(command))
     export_theme()
-    assert machine.succeed("stat -c '%U %G %a' /var/lib/test-relocated-theme/theme.json").strip() == "preview greeter 640"
-    machine.succeed("su -s /bin/sh greeter -c 'cat /var/lib/test-relocated-theme/theme.json'")
-    machine.fail("su -s /bin/sh greeter -c 'test -w /var/lib/test-relocated-theme'")
-    machine.fail("su -s /bin/sh unrelated -c 'cat /var/lib/test-relocated-theme/theme.json'")
+    assert machine.succeed("stat -c '%U %G %a' /var/lib/test-relocated-theme/users/preview/theme.json").strip() == "preview greeter 640"
+    machine.succeed("su -s /bin/sh greeter -c 'cat /var/lib/test-relocated-theme/users/preview/theme.json'")
+    machine.fail("su -s /bin/sh greeter -c 'test -w /var/lib/test-relocated-theme/users/preview'")
+    machine.fail("su -s /bin/sh preview -c 'ls /var/lib/test-relocated-theme/users'")
+    machine.fail("su -s /bin/sh unrelated -c 'cat /var/lib/test-relocated-theme/users/preview/theme.json'")
     machine.fail("su -s /bin/sh preview -c 'test -w /var/lib/nullshell-greeter'")
     def type_into_greeter(arguments):
         machine.succeed("su -s /bin/sh greeter -c " + shlex.quote(

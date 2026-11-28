@@ -8,9 +8,8 @@ let
   cfg = config.programs.nullshell;
   packages = import ./packages.nix { inherit pkgs; };
   appearance = cfg.greeter.appearance;
-  appearanceFile = "${appearance.directory}/theme.json";
-  wallpaperFile = "${appearance.directory}/wallpaper.json";
-  syncAppearance = cfg.greeter.enable && appearance.sourceUser != null;
+  syncAppearance = cfg.greeter.enable && appearance.enable;
+  appearanceEnvValue = if syncAppearance then appearance.directory else "off";
   greeterInstaller = pkgs.writeShellApplication {
     name = "nullshell-install-greeter";
     runtimeInputs = [
@@ -26,8 +25,7 @@ let
   greeterSession = pkgs.writeShellScript "nullshell-greeter-session" ''
     umask 077
     export NULLSHELL_GREETER_OVERRIDE_DIR=${lib.escapeShellArg cfg.greeter.interfaceDirectory}
-    ${lib.optionalString syncAppearance "export NULLSHELL_APPEARANCE_FILE=${lib.escapeShellArg appearanceFile}"}
-    ${lib.optionalString syncAppearance "export NULLSHELL_WALLPAPER_FILE=${lib.escapeShellArg wallpaperFile}"}
+    export NULLSHELL_APPEARANCE_DIR=${lib.escapeShellArg appearanceEnvValue}
     export NULLSHELL_GREETER_STATE_FILE=/var/lib/nullshell-greeter/last-login.json
     export XDG_CACHE_HOME=/var/cache/nullshell-greeter
     # greetd starts outside the user's session environment. Add the NixOS
@@ -48,15 +46,15 @@ in
         description = "Root-managed optional QML override. Absent installation uses the packaged interface.";
       };
       appearance = {
-        sourceUser = lib.mkOption {
-          type = lib.types.nullOr lib.types.str;
-          default = null;
-          description = "Account allowed to publish its appearance for the greeter; null disables synchronization.";
-        };
+        enable =
+          lib.mkEnableOption "per-user desktop theme and wallpaper synchronization with the greeter"
+          // {
+            default = true;
+          };
         directory = lib.mkOption {
           type = lib.types.str;
           default = "/var/lib/nullshell-appearance";
-          description = "Dedicated mutable theme directory, separate from greeter authentication state.";
+          description = "Dedicated per-user theme slot root, separate from greeter authentication state.";
         };
       };
       package = lib.mkOption {
@@ -86,12 +84,6 @@ in
       assertions = [
         {
           assertion =
-            builtins.hasAttr appearance.sourceUser config.users.users
-            && config.users.users.${appearance.sourceUser}.isNormalUser;
-          message = "nullshell greeter appearance.sourceUser must name a configured normal user.";
-        }
-        {
-          assertion =
             lib.hasPrefix "/" appearance.directory
             && builtins.match ".*[[:space:]%].*" appearance.directory == null
             && appearance.directory != "/"
@@ -99,27 +91,42 @@ in
           message = "nullshell greeter appearance.directory must be a dedicated absolute path without whitespace or tmpfiles specifiers.";
         }
       ];
-      # Root controls the greeter's launch path; only the selected user writes
-      # theme data. setgid + explicit 0640 exports give greeter read access.
+      # Root owns the 0711 slot container; each ordinary user gets an isolated
+      # 2750 <user>:greeter directory without configuring usernames.
       systemd.tmpfiles.rules = [
-        "d ${appearance.directory} 2750 ${appearance.sourceUser} greeter -"
-      ]
-      ++ map (name: "z ${appearance.directory}/${name} 0640 ${appearance.sourceUser} greeter -") [
-        "theme.json"
-        "wallpaper.json"
-        "wallpaper-0.img"
-        "wallpaper-1.img"
-      ]
-      ++ map (name: "z ${appearance.directory}/${name} 0600 ${appearance.sourceUser} greeter -") [
-        ".appearance.lock"
-        ".wallpaper.lock"
+        "d ${appearance.directory} 0711 root root -"
+        "d ${appearance.directory}/users 0711 root root -"
       ];
-      environment.sessionVariables = {
-        NULLSHELL_APPEARANCE_SOURCE_USER = appearance.sourceUser;
-        NULLSHELL_APPEARANCE_EXPORT_FILE = appearanceFile;
-        NULLSHELL_WALLPAPER_EXPORT_FILE = wallpaperFile;
+      systemd.services.nullshell-appearance-slots = {
+        description = "Provision per-user nullshell greeter appearance slots";
+        wantedBy = [ "multi-user.target" ];
+        after = [
+          "systemd-tmpfiles-setup.service"
+          "systemd-tmpfiles-resetup.service"
+        ];
+        before = [
+          "greetd.service"
+          "systemd-user-sessions.service"
+        ];
+        serviceConfig = {
+          Type = "oneshot";
+          RemainAfterExit = true;
+          ExecStart = "${packages.helper}/bin/nullshell-helper ensure-appearance-slot --root ${lib.escapeShellArg appearance.directory} --local";
+        };
       };
+      systemd.services."user@".serviceConfig.ExecStartPre = [
+        "-${packages.helper}/bin/nullshell-helper ensure-appearance-slot --root ${lib.escapeShellArg appearance.directory} %i"
+      ];
     })
+    (lib.mkIf
+      (
+        cfg.greeter.enable
+        && (!appearance.enable || appearance.directory != "/var/lib/nullshell-appearance")
+      )
+      {
+        environment.sessionVariables.NULLSHELL_APPEARANCE_DIR = appearanceEnvValue;
+      }
+    )
     (lib.mkIf cfg.greeter.enable {
       environment.systemPackages = [ greeterInstaller ];
       assertions = [

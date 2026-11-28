@@ -7,9 +7,11 @@ Scope {
     id: root
     required property var theme
     property bool ready: false
-    // Installation supplies these together. Permissions, not USER, enforce access.
-    property string exportPath: Quickshell.env("NULLSHELL_APPEARANCE_SOURCE_USER") === Quickshell.env("USER")
-        ? Quickshell.env("NULLSHELL_APPEARANCE_EXPORT_FILE") : ""
+    // Export to the per-user 2750 slot when provisioned; explicit file paths remain supported.
+    readonly property string explicitFile: Quickshell.env("NULLSHELL_APPEARANCE_EXPORT_FILE") || ""
+    readonly property string baseDir: Quickshell.env("NULLSHELL_APPEARANCE_DIR") || "/var/lib/nullshell-appearance"
+    property string exportPath: explicitFile
+        || Rules.slotFile(baseDir, Quickshell.env("USER") || "", "theme.json")
     readonly property string contents: Rules.capture(theme)
     property string error: ""
     property string pending: ""
@@ -24,7 +26,9 @@ Scope {
         try { Rules.parse(contents); }
         catch (e) { error = String(e); return; }
         pending = contents;
-        writer.command = ["nullshell-helper", "appearance-export", exportPath];
+        writer.command = explicitFile
+            ? ["nullshell-helper", "appearance-export", exportPath]
+            : ["nullshell-helper", "appearance-export", "--optional", exportPath];
         writer.running = true;
     }
 

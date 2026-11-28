@@ -9,6 +9,8 @@ Item {
     property real cardOpacity: root.frosted ? root.theme.frostedOpacity : 1
     property bool frosted: false
     property string userName: ""
+    readonly property string effectiveUserName: editableUser ? userInput.text.trim() : userName.trim()
+    onUserNameChanged: if (userInput.text !== root.userName) userInput.text = root.userName
     property bool editableUser: false
     property string message: ""
     property bool busy: false

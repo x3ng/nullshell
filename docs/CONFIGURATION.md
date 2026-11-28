@@ -157,35 +157,38 @@ Optional NixOS integration:
 ```nix
 programs.nullshell.greeter = {
   enable = true;
-  appearance.sourceUser = desktopUser; # your existing account declaration
+  # appearance.enable = true; # default
   # appearance.directory = "/var/lib/nullshell-appearance";
 };
 ```
 
-`sourceUser = null` (default) disables cross-account export. The module creates a
-setgid directory owned by the source user with greeter group read/traverse access
-(2750), and supplies its path to both processes. The source user can replace theme
-data; greeter cannot write it. It is separate from the greeter-owned authentication
-state directory. No user's HOME is exposed to greeter, and no personal name/path is
-embedded in QML. Changing the source account requires updating the account option
-and activating the system configuration; changing the user's XDG directories does
-not alter the greeter's read interface. Moving the shared directory starts with a
-fresh snapshot when the desktop next publishes.
+No username needs to be configured. When `greeter.appearance.enable` is true (the
+default when `greeter.enable = true`), the system provisions a `0711 root:root`
+container at `/var/lib/nullshell-appearance/users` and a `2750 <user>:greeter`
+slot directory for each ordinary local account (`1000 <= uid < 60000`) via
+`nullshell-appearance-slots.service` and a `user@.service` `ExecStartPre` hook.
+Each user can replace only their own slot's theme/wallpaper data; `greeter` has
+read-only group access (`0640`), and other ordinary users cannot list or read peer
+slots. No user's `HOME` is exposed to `greeter`, and no personal name or path is
+embedded in QML or system configuration.
 
-Portable installations use the same interface:
+Portable installations (e.g. Arch Linux) use the exact same systemd and tmpfiles
+units via `make install-greeter-system`:
 
-- Supply `NULLSHELL_APPEARANCE_SOURCE_USER` and
-  `NULLSHELL_APPEARANCE_EXPORT_FILE` to the desktop environment. Export is enabled
-  only when `USER` matches the designated source. Filesystem permissions enforce
-  access; the environment comparison is not authorization.
-- Supply `NULLSHELL_APPEARANCE_FILE` to greeter with the same destination.
-- Provision a dedicated directory owned by that user, setgid to a group readable
-  by greeter, mode 2750. Do not grant access to the greeter's login state directory.
-- The ordinary-user `nullshell-helper appearance-export SHARED_FILE`
-  reads a bounded JSON snapshot from stdin, validates it and atomically writes
-  shared mode 0640. It does not create the shared directory,
-  change ownership, elevate privileges or start a service. The helper and QML
-  must be deployed together for this protocol addition.
+- `tmpfiles.d/nullshell-greeter.conf` creates `/var/lib/nullshell-greeter` (`0700`),
+  `/var/cache/nullshell-greeter` (`0700`) and `/var/lib/nullshell-appearance/users`
+  (`0711 root:root`).
+- `nullshell-appearance-slots.service` and `user@.service.d/nullshell-appearance.conf`
+  invoke `nullshell-helper ensure-appearance-slot` (`--local` before `greetd` and
+  `%i` before user session startup) to maintain `2750 <user>:greeter` per-user slots
+  using `openat` + `O_NOFOLLOW` without a resident root daemon.
+- The desktop automatically exports to `/var/lib/nullshell-appearance/users/$USER/`
+  when that slot exists (`--optional` skips silently on hosts without a greeter).
+  `NULLSHELL_APPEARANCE_DIR` relocates the slot root (`"off"` disables export), and
+  `NULLSHELL_APPEARANCE_EXPORT_FILE` / `NULLSHELL_APPEARANCE_FILE` remain available
+  for isolated previews and single-file overrides.
+- Greeter follows the `rememberedUser` from `last-login.json` on startup and updates
+  dynamically when a different username is entered in the login field.
 
 The desktop reports export failure through `nullshell ipc appearance status`.
 Updates are coalesced; a failed export retries on the next colour/mode change or
@@ -234,13 +237,13 @@ fixed pending file. Clearing publishes null first, then removes both managed
 slots; unrelated files and original images are never removed. Separate advisory
 locks serialize each domain's writers without a daemon.
 
-Portable setup additionally supplies `NULLSHELL_WALLPAPER_EXPORT_FILE` to the
-source user's session and `NULLSHELL_WALLPAPER_FILE` to greeter. The NixOS module
-sets both from the same configured directory. The ordinary-user command is
-`nullshell-helper wallpaper-export SHARED_FILE`, accepting
+Portable and NixOS setups share the same `/var/lib/nullshell-appearance/users/<user>/wallpaper.json`
+slot convention alongside `theme.json` (`NULLSHELL_WALLPAPER_EXPORT_FILE` and
+`NULLSHELL_WALLPAPER_FILE` remain available as explicit single-file overrides).
+The ordinary-user command is `nullshell-helper wallpaper-export [--optional] SHARED_FILE`, accepting
 `{"version":1,"source":"/absolute/local/image.png","fit":"cover"}` on stdin.
 An empty source clears the published wallpaper. No shared directory is created
-by the helper. Descriptors and images are 0640 even under umask 077.
+by the exporter. Descriptors and images are 0640 even under umask 077.
 
 Appearance, wallpaper and executable greeter QML are three different domains:
 

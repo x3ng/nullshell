@@ -1,0 +1,14 @@
+[Unit]
+Description=Provision per-user nullshell greeter appearance slots
+DefaultDependencies=no
+After=systemd-tmpfiles-setup.service
+Before=greetd.service systemd-user-sessions.service
+ConditionPathExists=/var/lib/nullshell-appearance
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=@HELPER@ ensure-appearance-slot --local
+
+[Install]
+WantedBy=multi-user.target

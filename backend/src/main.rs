@@ -15,8 +15,9 @@ const HELP: &str = "Usage: nullshell-helper <command>
 Commands:
   bluetooth-agent ADDRESS hciN [--session-bus]
   sleep-bridge [--lock-command JSON_ARGV] [--resume-command JSON_ARGV]
-  appearance-export SHARED_FILE    Publish a validated greeter colour snapshot
-  wallpaper-export SHARED_FILE     Publish a validated greeter wallpaper
+  appearance-export [--optional] SHARED_FILE  Publish a validated greeter colour snapshot
+  wallpaper-export [--optional] SHARED_FILE   Publish a validated greeter wallpaper
+  ensure-appearance-slot [--root DIR] (<UID>|--local)  Provision 2750 per-user greeter slots
   location                         Request coarse IP coordinates from BeaconDB
   timezone                         Resolve a timezone to representative coordinates offline
   displays outputs                 List connected Hyprland outputs and profile keys
@@ -55,6 +56,9 @@ async fn main() -> ExitCode {
         }
         ("wallpaper-export", args) => {
             wallpaper::run(args).map_err(|e| format!("Wallpaper export: {e}"))
+        }
+        ("ensure-appearance-slot", args) => {
+            appearance::ensure_slot(args).map_err(|e| format!("Appearance slot: {e}"))
         }
         // Keep coordinates and provider details out of session logs.
         ("location", []) => location::run()

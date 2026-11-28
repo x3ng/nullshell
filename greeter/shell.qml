@@ -1,4 +1,5 @@
 import ".."
+import "../AppearanceRules.js" as AppearanceRules
 import QtQuick
 import QtQuick.Window
 import Quickshell
@@ -121,9 +122,14 @@ ShellRoot {
         }
     }
 
+    readonly property string appearanceDir: Quickshell.env("NULLSHELL_APPEARANCE_DIR")
+        || "/var/lib/nullshell-appearance"
+    readonly property string activeSlotUser: loginView.effectiveUserName || rememberedUser
+
     AppearanceSnapshot {
         id: appearance
         path: Quickshell.env("NULLSHELL_APPEARANCE_FILE")
+            || AppearanceRules.slotFile(root.appearanceDir, root.activeSlotUser, "theme.json")
     }
     Theme { id: loginTheme; darkMode: appearance.darkMode; colors: appearance.colors }
     SessionCatalog { id: catalog }
@@ -164,6 +170,8 @@ ShellRoot {
         GreeterWallpaper {
             id: background
             anchors.fill: parent
+            snapshotPath: Quickshell.env("NULLSHELL_WALLPAPER_FILE")
+                || AppearanceRules.slotFile(root.appearanceDir, root.activeSlotUser, "wallpaper.json")
             fallbackColor: root.style.backgroundSurface
         }
         Rectangle {

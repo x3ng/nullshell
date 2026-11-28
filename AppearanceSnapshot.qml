@@ -6,11 +6,20 @@ import "AppearanceRules.js" as Rules
 Scope {
     id: root
     property string path: ""
+    property string loadedPath: ""
     property var snapshot: null
     readonly property bool valid: snapshot !== null
     readonly property bool darkMode: !valid || snapshot.mode === "dark"
     readonly property var colors: valid ? snapshot.colors : ({})
     property string error: ""
+
+    onPathChanged: {
+        if (loadedPath !== "" && path !== loadedPath) {
+            snapshot = null;
+            loadedPath = "";
+            error = "";
+        }
+    }
 
     FileView {
         path: root.path
@@ -21,6 +30,7 @@ Scope {
         onLoaded: {
             try {
                 root.snapshot = Rules.parse(text());
+                root.loadedPath = root.path;
                 root.error = "";
             } catch (e) {
                 root.error = String(e);

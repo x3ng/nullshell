@@ -5,8 +5,17 @@ import Quickshell.Io
 WallpaperImage {
     id: root
     property string snapshotPath: Quickshell.env("NULLSHELL_WALLPAPER_FILE")
+    property string loadedPath: ""
     property var snapshot: null
     property string error: ""
+
+    onSnapshotPathChanged: {
+        if (loadedPath !== "" && snapshotPath !== loadedPath) {
+            snapshot = null;
+            loadedPath = "";
+            error = "";
+        }
+    }
     source: {
         if (!snapshot || !snapshot.image) return "";
         const folder = snapshotPath.slice(0, snapshotPath.lastIndexOf("/") + 1);
@@ -32,6 +41,7 @@ WallpaperImage {
                         || !["cover", "contain", "stretch"].includes(value.fit))
                     throw new Error("Invalid wallpaper descriptor");
                 root.snapshot = value;
+                root.loadedPath = root.snapshotPath;
                 root.error = "";
             } catch (e) { root.error = String(e); }
         }

@@ -1,6 +1,7 @@
 import QtQuick
 import Quickshell
 import Quickshell.Io
+import "AppearanceRules.js" as Rules
 
 Scope {
     id: root
@@ -14,8 +15,10 @@ Scope {
         }
         return value;
     }
-    readonly property string destination: Quickshell.env("NULLSHELL_APPEARANCE_SOURCE_USER") === Quickshell.env("USER")
-        ? Quickshell.env("NULLSHELL_WALLPAPER_EXPORT_FILE") : ""
+    readonly property string explicitFile: Quickshell.env("NULLSHELL_WALLPAPER_EXPORT_FILE") || ""
+    readonly property string baseDir: Quickshell.env("NULLSHELL_APPEARANCE_DIR") || "/var/lib/nullshell-appearance"
+    readonly property string destination: explicitFile
+        || Rules.slotFile(baseDir, Quickshell.env("USER") || "", "wallpaper.json")
     readonly property string contents: JSON.stringify({version: 1, source: source, fit: selection.fit})
     property int sourceGeneration: 0
     readonly property string requestKey: contents + ":" + sourceGeneration
@@ -44,7 +47,9 @@ Scope {
     }
     Process {
         id: writer
-        command: ["nullshell-helper", "wallpaper-export", root.destination]
+        command: root.explicitFile
+            ? ["nullshell-helper", "wallpaper-export", root.destination]
+            : ["nullshell-helper", "wallpaper-export", "--optional", root.destination]
         stdinEnabled: true
         onStarted: { write(root.pending); stdinEnabled = false; }
         stderr: StdioCollector {

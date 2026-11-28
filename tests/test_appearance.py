@@ -32,8 +32,9 @@ with tempfile.TemporaryDirectory(prefix="ns-theme-", dir="/tmp") as directory:
     (tools / "nullshell-helper").symlink_to(HELPER)
     runtime = base / "runtime"
     runtime.mkdir(mode=0o700)
-    shared = base / "relocated shared directory" / "theme.json"
-    shared.parent.mkdir()
+    slot_root = base / "relocated shared directory"
+    shared = slot_root / "users" / "fixture-user" / "theme.json"
+    shared.parent.mkdir(parents=True)
     wallpaper_file = shared.parent / "wallpaper.json"
     image_file = base / "synthetic image.png"
     image_file.write_bytes(png(30, 60, 90))
@@ -42,18 +43,30 @@ with tempfile.TemporaryDirectory(prefix="ns-theme-", dir="/tmp") as directory:
     entry.write_text('''import QtQuick
 import Quickshell
 import Quickshell.Io
+import "AppearanceRules.js" as Rules
 ShellRoot {
+    id: root
+    property string activeUser: "fixture-user"
     AppearanceState { id: mode }
     Theme { id: theme; darkMode: mode.darkMode; previewBlur: 0 }
     AppearanceExport { id: publisher; theme: theme; ready: mode.appearanceKnown }
-    AppearanceSnapshot { id: reader; path: Quickshell.env("NULLSHELL_APPEARANCE_EXPORT_FILE") }
+    AppearanceSnapshot {
+        id: reader
+        path: Rules.slotFile(Quickshell.env("NULLSHELL_APPEARANCE_DIR"), root.activeUser, "theme.json")
+    }
     WallpaperState { id: wallpaper }
     WallpaperExport { id: wallpaperExport; wallpaper: wallpaper }
-    GreeterWallpaper { id: background; width: 100; height: 80 }
+    GreeterWallpaper {
+        id: background
+        width: 100
+        height: 80
+        snapshotPath: Rules.slotFile(Quickshell.env("NULLSHELL_APPEARANCE_DIR"), root.activeUser, "wallpaper.json")
+    }
     IpcHandler {
         target: "test"
         function setWallpaper(path: string, fit: string): bool { return wallpaper.apply("", path, fit); }
         function setMode(dark: bool): bool { return mode.setTheme(dark); }
+        function setUser(name: string): void { root.activeUser = name; }
         function status(): string {
             return JSON.stringify({available: mode.appearanceAvailable, mode: mode.darkMode,
                 snapshot: reader.snapshot, wallpaperReady: background.ready, wallpaperSnapshot: background.snapshot,
@@ -67,10 +80,11 @@ ShellRoot {
                XDG_RUNTIME_DIR=str(runtime), QT_QPA_PLATFORM="offscreen", QT_QUICK_BACKEND="software",
                DBUS_SESSION_BUS_ADDRESS="unix:path=" + str(base / "no-session-bus"),
                DBUS_SYSTEM_BUS_ADDRESS="unix:path=" + str(base / "no-system-bus"),
-               NULLSHELL_APPEARANCE_SOURCE_USER="fixture-user", USER="fixture-user",
-               NULLSHELL_APPEARANCE_EXPORT_FILE=str(shared), NULLSHELL_WALLPAPER_EXPORT_FILE=str(wallpaper_file),
-               NULLSHELL_WALLPAPER_FILE=str(wallpaper_file), PATH=str(tools) + ":" + os.environ["PATH"])
-    for key in ("WAYLAND_DISPLAY", "DISPLAY", "HYPRLAND_INSTANCE_SIGNATURE"):
+               USER="fixture-user", NULLSHELL_APPEARANCE_DIR=str(slot_root),
+               PATH=str(tools) + ":" + os.environ["PATH"])
+    for key in ("WAYLAND_DISPLAY", "DISPLAY", "HYPRLAND_INSTANCE_SIGNATURE",
+                "NULLSHELL_APPEARANCE_EXPORT_FILE", "NULLSHELL_WALLPAPER_EXPORT_FILE",
+                "NULLSHELL_APPEARANCE_FILE", "NULLSHELL_WALLPAPER_FILE"):
         env.pop(key, None)
     log = base / "qml.log"
 
@@ -151,6 +165,13 @@ ShellRoot {
             assert json.loads(ipc("status").stdout)["snapshot"] == custom
             replace(json.dumps(custom))
             wait(lambda s: s["snapshot"] == custom)
+            # Switching to an account without a published slot resets to default theme/wallpaper.
+            assert ipc("setUser", "other-user").returncode == 0
+            wait(lambda s: s["snapshot"] is None and not s["wallpaperReady"])
+            assert ipc("setUser", "../escape").returncode == 0
+            assert json.loads(ipc("status").stdout)["snapshot"] is None
+            assert ipc("setUser", "fixture-user").returncode == 0
+            wait(lambda s: s["snapshot"] == custom and s["wallpaperReady"])
         finally:
             process.terminate()
             process.wait(timeout=5)
@@ -171,8 +192,12 @@ ShellRoot {
     entry.write_text('''import QtQuick
 import Quickshell
 import Quickshell.Io
+import "AppearanceRules.js" as Rules
 ShellRoot {
-    AppearanceSnapshot { id: reader; path: Quickshell.env("NULLSHELL_APPEARANCE_EXPORT_FILE") }
+    AppearanceSnapshot {
+        id: reader
+        path: Rules.slotFile(Quickshell.env("NULLSHELL_APPEARANCE_DIR"), "fixture-user", "theme.json")
+    }
     IpcHandler {
         target: "test"
         function status(): string { return JSON.stringify({snapshot: reader.snapshot}); }
@@ -196,11 +221,13 @@ ShellRoot {
         result = subprocess.run([str(HELPER), "appearance-export", str(shared)], input=invalid, capture_output=True)
         assert result.returncode != 0 and shared.read_bytes() == before
     # A missing shared destination never causes privileged directory creation;
-    # failure is reported without creating any shared directories.
+    # explicit paths report failure, while --optional skips unprovisioned slots cleanly.
     result = subprocess.run([str(HELPER), "appearance-export", str(base / "missing/theme.json")],
                             input=before, capture_output=True)
     assert result.returncode != 0 and shared.read_bytes() == before
-    assert not (base / "missing").exists()
+    optional = subprocess.run([str(HELPER), "appearance-export", "--optional", str(base / "missing/theme.json")],
+                              input=before, capture_output=True)
+    assert optional.returncode == 0 and not (base / "missing").exists()
     text = "\n".join(line for line in log.read_text().splitlines() if "Appearance snapshot:" not in line)
     assert not any(x in text for x in ("ReferenceError", "TypeError", "SyntaxError", "Cannot assign")), text
 print("Appearance manual persistence, relocated paths, atomic permissions, validation and recovery passed")

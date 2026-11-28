@@ -5,7 +5,7 @@ CARGO_TARGET_DIR ?= backend/target
 
 .DEFAULT_GOAL := help
 
-.PHONY: check-command check-session check-sleep check-settings help build helper install check check-backend check-pairing check-preview check-material check-appearance check-displays check-display-drag check-idle install-greeter install-assets
+.PHONY: check-command check-session check-sleep check-settings help build helper install install-greeter-system check check-backend check-pairing check-preview check-material check-appearance check-displays check-display-drag check-idle install-greeter install-assets
 
 help:
 	@printf '%s\n' \
@@ -13,6 +13,7 @@ help:
 	  '' \
 	  '  build / helper    Build the Rust helper in release mode' \
 	  '  install           Build and install runtime commands (PREFIX, DESTDIR)' \
+	  '  install-greeter-system  Install tmpfiles and systemd slot hooks for greetd' \
 	  '  install-greeter   Install checkout QML using sudo; no service restart' \
 	  '  check             Run lightweight syntax and launcher checks' \
 	  '  check-command     Check search, app dispatch and notifications on a private bus' \
@@ -43,6 +44,12 @@ install: helper
 	install -Dm644 integration/nullshell.portal "$(DESTDIR)$(PREFIX)/share/xdg-desktop-portal/portals/nullshell.portal"
 	install -d "$(DESTDIR)$(PREFIX)/share/dbus-1/services"
 	sed 's|@HELPER@|$(PREFIX)/bin/nullshell-helper|g' integration/org.freedesktop.impl.portal.desktop.nullshell.service.in > "$(DESTDIR)$(PREFIX)/share/dbus-1/services/org.freedesktop.impl.portal.desktop.nullshell.service"
+
+install-greeter-system:
+	install -Dm644 integration/tmpfiles.d/nullshell-greeter.conf "$(DESTDIR)$(PREFIX)/lib/tmpfiles.d/nullshell-greeter.conf"
+	install -d "$(DESTDIR)$(PREFIX)/lib/systemd/system/user@.service.d"
+	sed 's|@HELPER@|$(PREFIX)/bin/nullshell-helper|g' integration/systemd/nullshell-appearance-slots.service.in > "$(DESTDIR)$(PREFIX)/lib/systemd/system/nullshell-appearance-slots.service"
+	sed 's|@HELPER@|$(PREFIX)/bin/nullshell-helper|g' integration/systemd/user@.service.d/nullshell-appearance.conf.in > "$(DESTDIR)$(PREFIX)/lib/systemd/system/user@.service.d/nullshell-appearance.conf"
 
 # Optional system-owned greeter/test resources; never deploy a user config.
 install-assets:

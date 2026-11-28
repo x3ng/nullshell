@@ -28,3 +28,21 @@ function capture(theme) {
     colorNames.forEach(function(key) { colors[key] = String(theme[key]); });
     return JSON.stringify({version: 1, mode: theme.darkMode ? "dark" : "light", colors: colors}) + "\n";
 }
+
+function validSlotUser(name) {
+    return typeof name === "string"
+        && name.length >= 1
+        && name.length <= 32
+        && name !== "."
+        && name !== ".."
+        && name !== "greeter"
+        && name !== "nobody"
+        && /^[a-zA-Z0-9_][a-zA-Z0-9._-]*$/.test(name);
+}
+
+function slotFile(baseDir, userName, fileName) {
+    if (!baseDir || baseDir === "off" || !validSlotUser(userName) || !fileName) return "";
+    var trimmed = String(baseDir).replace(/\/+$/, "");
+    if (!trimmed.startsWith("/")) return "";
+    return trimmed + "/users/" + userName + "/" + fileName;
+}
