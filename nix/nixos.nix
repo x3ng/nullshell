@@ -29,6 +29,7 @@ let
     ${lib.optionalString syncAppearance "export NULLSHELL_APPEARANCE_FILE=${lib.escapeShellArg appearanceFile}"}
     ${lib.optionalString syncAppearance "export NULLSHELL_WALLPAPER_FILE=${lib.escapeShellArg wallpaperFile}"}
     export NULLSHELL_GREETER_STATE_FILE=/var/lib/nullshell-greeter/last-login.json
+    export XDG_CACHE_HOME=/var/cache/nullshell-greeter
     # greetd starts outside the user's session environment. Add the NixOS
     # system profile here, not in the portable session catalog.
     export XDG_DATA_DIRS="''${XDG_DATA_DIRS:-/usr/local/share:/usr/share}:/run/current-system/sw/share"
@@ -131,7 +132,10 @@ in
           message = "greeter.interfaceDirectory must be an absolute dedicated directory, separate from authentication and theme data.";
         }
       ];
-      systemd.tmpfiles.rules = [ "d /var/lib/nullshell-greeter 0700 greeter greeter -" ];
+      systemd.tmpfiles.rules = [
+        "d /var/lib/nullshell-greeter 0700 greeter greeter -"
+        "d /var/cache/nullshell-greeter 0700 greeter greeter -"
+      ];
       services.greetd = {
         enable = true;
         settings.default_session = {

@@ -78,6 +78,7 @@ Scope {
     FileView {
         id: savedMode
         path: theme.statePath
+        atomicWrites: true
         printErrors: false
         onLoaded: {
             const mode = text().trim();

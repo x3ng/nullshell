@@ -30,6 +30,7 @@ Scope {
         id: saved
         path: (Quickshell.env("XDG_STATE_HOME") || Quickshell.env("HOME") + "/.local/state")
             + "/nullshell/appearance-policy.json"
+        atomicWrites: true
         printErrors: false
         onLoaded: {
             try {

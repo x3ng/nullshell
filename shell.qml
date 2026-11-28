@@ -9,6 +9,12 @@ import Quickshell.Io
 import "components"
 
 ShellRoot {
+    // Ensure the user state directory stays private (0700) even on fresh installs without migrate-state.
+    Process {
+        command: ["install", "-d", "-m", "0700",
+            (Quickshell.env("XDG_STATE_HOME") || Quickshell.env("HOME") + "/.local/state") + "/nullshell"]
+        running: true
+    }
     ShellConfig {
         id: config
         onRejected: reason => notifications.notifyLocal("configuration", {
