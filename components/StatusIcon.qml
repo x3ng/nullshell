@@ -145,8 +145,10 @@ Canvas {
             }
             c.stroke();
         } else if (kind === "play") {
-            c.beginPath(); c.moveTo(6, 4.5); c.lineTo(16, 10); c.lineTo(6, 15.5);
-            c.closePath(); c.stroke();
+            c.beginPath();
+            c.moveTo(6.5, 4.5); c.lineTo(15.5, 10); c.lineTo(6.5, 15.5);
+            c.closePath();
+            c.stroke();
         } else if (kind === "pause") {
             c.beginPath();
             c.moveTo(7, 5); c.lineTo(7, 15);
@@ -154,13 +156,19 @@ Canvas {
             c.stroke();
         } else if (kind === "prev") {
             c.beginPath();
-            c.moveTo(5, 5); c.lineTo(5, 15);
-            c.moveTo(16, 5); c.lineTo(7, 10); c.lineTo(16, 15);
+            c.moveTo(5, 5.5); c.lineTo(5, 14.5);
+            c.stroke();
+            c.beginPath();
+            c.moveTo(15, 5.5); c.lineTo(7.5, 10); c.lineTo(15, 14.5);
+            c.closePath();
             c.stroke();
         } else if (kind === "next") {
             c.beginPath();
-            c.moveTo(4, 5); c.lineTo(13, 10); c.lineTo(4, 15);
-            c.moveTo(15, 5); c.lineTo(15, 15);
+            c.moveTo(5, 5.5); c.lineTo(12.5, 10); c.lineTo(5, 14.5);
+            c.closePath();
+            c.stroke();
+            c.beginPath();
+            c.moveTo(15, 5.5); c.lineTo(15, 14.5);
             c.stroke();
         } else if (kind === "chevron") {
             c.beginPath(); c.moveTo(7.5, 5); c.lineTo(13, 10); c.lineTo(7.5, 15);

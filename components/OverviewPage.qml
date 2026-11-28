@@ -148,84 +148,181 @@ ColumnLayout {
                     }
                 }
 
-                // 4. Active media card (only shown when a player exists)
-                Rectangle {
+                // 4. Active media card (52px tile matching connectivity proportions & typography)
+                ClippingRectangle {
                     id: mediaCard
-                    readonly property int coverSize: 42
+                    readonly property int coverSize: 36
+                    readonly property bool hasTimeline: !!page.player?.positionSupported
+                        && !!page.player?.lengthSupported && (page.player?.length ?? 0) > 0
+                    property int progressTick: 0
+                    readonly property real progressRatio: {
+                        const sample = progressTick;
+                        return hasTimeline ? Math.max(0, Math.min(1, page.player.position / page.player.length)) : 0;
+                    }
+                    readonly property string mediaTitle: page.player?.trackTitle || page.player?.identity || "Media"
+                    readonly property string mediaSubtitle: {
+                        const artist = page.player?.trackArtist || "";
+                        const identity = page.player?.identity || "";
+                        if (artist && identity && artist.toLowerCase() !== identity.toLowerCase())
+                            return artist + " · " + identity;
+                        if (artist) return artist;
+                        if (identity && identity !== mediaTitle) return identity;
+                        return page.player?.isPlaying ? "Playing" : "Paused";
+                    }
                     Layout.fillWidth: true
-                    implicitHeight: mediaCard.coverSize + 20
+                    implicitHeight: 52
                     visible: !!page.player
                     radius: page.style.radiusCard
-                    color: page.style.cardSurface
+                    color: openMediaButton.hovered ? page.style.surfaceHover : page.style.cardSurface
+
+                    Timer {
+                        interval: 1000
+                        running: page.panelOpen && mediaCard.visible && mediaCard.hasTimeline && !!page.player?.isPlaying
+                        repeat: true
+                        onTriggered: mediaCard.progressTick++
+                    }
 
                     RowLayout {
                         anchors.fill: parent
-                        anchors.margins: 10
-                        spacing: 10
+                        spacing: 0
 
-                        ClippingRectangle {
-                            Layout.preferredWidth: mediaCard.coverSize
-                            Layout.preferredHeight: mediaCard.coverSize
-                            radius: page.style.radiusControl
-                            color: page.style.controlSurface
-                            Image {
-                                id: cover
-                                anchors.fill: parent
-                                source: page.player?.trackArtUrl || ""
-                                fillMode: Image.PreserveAspectCrop
-                                asynchronous: true
-                                visible: status === Image.Ready
-                            }
-                            StatusIcon {
-                                anchors.centerIn: parent
-                                width: 18; height: 18
-                                visible: !cover.visible
-                                kind: "music"
-                                ink: page.style.textMuted
-                            }
-                        }
-
-                        DeviceRow {
+                        ChoiceButton {
+                            id: openMediaButton
                             objectName: "open-media"
                             Layout.fillWidth: true
                             Layout.minimumWidth: 0
                             Layout.fillHeight: true
                             style: page.style
-                            title: page.player?.trackTitle || page.player?.identity || "Media"
-                            subtitle: page.player?.trackArtist || page.player?.identity || ""
-                            showChevron: false
-                            leftInset: 4
-                            rightInset: 4
+                            color: "transparent"
+                            label: ""
+                            tooltip: "Open media player controls"
+                            Accessible.name: mediaCard.mediaTitle + (mediaCard.mediaSubtitle ? ", " + mediaCard.mediaSubtitle : "")
                             onTriggered: page.actions.execute("media")
+
+                            RowLayout {
+                                anchors.fill: parent
+                                anchors.leftMargin: 8
+                                anchors.rightMargin: 10
+                                spacing: 10
+
+                                ClippingRectangle {
+                                    Layout.preferredWidth: mediaCard.coverSize
+                                    Layout.preferredHeight: mediaCard.coverSize
+                                    radius: page.style.radiusSmall
+                                    color: page.style.controlSurface
+
+                                    Image {
+                                        id: cover
+                                        anchors.fill: parent
+                                        source: page.player?.trackArtUrl || ""
+                                        fillMode: Image.PreserveAspectCrop
+                                        asynchronous: true
+                                        visible: status === Image.Ready
+                                    }
+
+                                    StatusIcon {
+                                        anchors.centerIn: parent
+                                        width: 16
+                                        height: 16
+                                        visible: !cover.visible
+                                        kind: "music"
+                                        ink: page.player?.isPlaying ? page.style.accent : page.style.textMuted
+                                    }
+                                }
+
+                                ColumnLayout {
+                                    Layout.fillWidth: true
+                                    Layout.minimumWidth: 0
+                                    spacing: 1
+
+                                    Text {
+                                        Layout.fillWidth: true
+                                        Layout.minimumWidth: 0
+                                        text: mediaCard.mediaTitle
+                                        textFormat: Text.PlainText
+                                        elide: Text.ElideRight
+                                        color: page.style.textPrimary
+                                        font.family: page.style.fontFamily
+                                        font.pixelSize: page.style.fontSizeSmall
+                                        font.weight: Font.DemiBold
+                                    }
+
+                                    Text {
+                                        Layout.fillWidth: true
+                                        Layout.minimumWidth: 0
+                                        visible: mediaCard.mediaSubtitle !== ""
+                                        text: mediaCard.mediaSubtitle
+                                        textFormat: Text.PlainText
+                                        elide: Text.ElideRight
+                                        color: page.style.textMuted
+                                        font.family: page.style.fontFamily
+                                        font.pixelSize: page.style.fontSizeCaption
+                                    }
+                                }
+                            }
                         }
 
-                        ChoiceButton {
-                            Layout.preferredWidth: page.style.compactControlHeight
-                            Layout.preferredHeight: page.style.compactControlHeight
-                            style: page.style; label: ""; iconKind: "prev"; iconSize: 16
-                            tooltip: "Previous track"
-                            available: page.player?.canGoPrevious ?? false
-                            onTriggered: page.player?.previous()
+                        Rectangle {
+                            Layout.preferredWidth: 1
+                            Layout.preferredHeight: 24
+                            color: page.style.separator
+                            opacity: 0.8
                         }
-                        ChoiceButton {
-                            Layout.preferredWidth: page.style.compactControlHeight
-                            Layout.preferredHeight: page.style.compactControlHeight
-                            style: page.style
-                            filled: true
-                            label: ""; iconKind: page.player?.isPlaying ? "pause" : "play"
-                            iconSize: 16
-                            tooltip: page.player?.isPlaying ? "Pause" : "Play"
-                            available: page.player?.canTogglePlaying ?? false
-                            onTriggered: page.player?.togglePlaying()
+
+                        Row {
+                            Layout.leftMargin: 6
+                            Layout.rightMargin: 6
+                            spacing: 2
+
+                            ChoiceButton {
+                                width: 30
+                                height: 32
+                                style: page.style
+                                label: ""
+                                iconKind: "prev"
+                                iconSize: 15
+                                tooltip: "Previous track"
+                                available: page.player?.canGoPrevious ?? false
+                                onTriggered: page.player?.previous()
+                            }
+
+                            ChoiceButton {
+                                width: 32
+                                height: 32
+                                style: page.style
+                                tone: "toggle"
+                                selected: page.player?.isPlaying ?? false
+                                filled: !(page.player?.isPlaying ?? false)
+                                label: ""
+                                iconKind: page.player?.isPlaying ? "pause" : "play"
+                                iconSize: 15
+                                tooltip: page.player?.isPlaying ? "Pause" : "Play"
+                                available: page.player?.canTogglePlaying ?? false
+                                onTriggered: page.player?.togglePlaying()
+                            }
+
+                            ChoiceButton {
+                                width: 30
+                                height: 32
+                                style: page.style
+                                label: ""
+                                iconKind: "next"
+                                iconSize: 15
+                                tooltip: "Next track"
+                                available: page.player?.canGoNext ?? false
+                                onTriggered: page.player?.next()
+                            }
                         }
-                        ChoiceButton {
-                            Layout.preferredWidth: page.style.compactControlHeight
-                            Layout.preferredHeight: page.style.compactControlHeight
-                            style: page.style; label: ""; iconKind: "next"; iconSize: 16
-                            tooltip: "Next track"
-                            available: page.player?.canGoNext ?? false
-                            onTriggered: page.player?.next()
-                        }
+                    }
+
+                    Rectangle {
+                        visible: mediaCard.hasTimeline && mediaCard.progressRatio > 0
+                        anchors.left: parent.left
+                        anchors.bottom: parent.bottom
+                        width: Math.round(parent.width * mediaCard.progressRatio)
+                        height: 2
+                        color: page.player?.isPlaying ? page.style.accent : page.style.outline
+                        opacity: page.player?.isPlaying ? 0.55 : 0.35
                     }
                 }
 
