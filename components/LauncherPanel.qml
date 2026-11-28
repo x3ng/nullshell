@@ -496,6 +496,10 @@ PanelWindow {
                         if (!showMenu()) Qt.callLater(showMenu);
                     }
                     panelOpen: panel.open && panel.activePage === panel.pageIndexes.overview
+                    onWorkspaceManageRequested: address => {
+                        desktopPage.selectedWorkspaceAddress = address;
+                        panel.selectHome("desktop");
+                    }
                     onDismissRequested: panel.dismiss()
                 }
                 SearchResultsPage {

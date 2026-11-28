@@ -27,7 +27,11 @@ ColumnLayout {
     readonly property string pendingTitle: choices.find(choice => choice.id === pendingAction)?.title || ""
     signal closeRequested()
     spacing: 8
-    Component.onCompleted: session.refresh()
+    Component.onCompleted: {
+        session.refresh();
+        if (system && !system.powerAvailable && typeof system.refreshPowerAvailability === "function")
+            system.refreshPowerAvailability();
+    }
     onVisibleChanged: if (!visible) pendingAction = ""
     Connections {
         target: pane.session

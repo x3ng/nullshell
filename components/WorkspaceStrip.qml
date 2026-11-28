@@ -15,6 +15,7 @@ Item {
     property var trayItems: []
     property Component toolsComponent: null
     signal menuRequested(var owner, real right, real top)
+    signal workspaceManageRequested(string address)
 
     readonly property int itemGap: 4
     readonly property int groupGap: 16
@@ -116,9 +117,13 @@ Item {
                     cardFilled: true
                     selected: modelData.address === strip.controls.focusedWorkspaceAddress
                     available: strip.controls.available && !strip.controls.busy
-                    tooltip: (special ? "Special workspace " : "Workspace ") + String(modelData.name).replace(/^special:/, "") + " · " + apps.length + (apps.length === 1 ? " window" : " windows")
+                    acceptSecondary: true
+                    tooltip: (special ? "Special workspace " : "Workspace ") + String(modelData.name).replace(/^special:/, "")
+                        + " · " + apps.length + (apps.length === 1 ? " window" : " windows")
+                        + "\nRight-click to manage windows & layout"
                     Accessible.name: tooltip
                     onTriggered: strip.controls.focusWorkspace(modelData.address)
+                    onSecondaryTriggered: strip.workspaceManageRequested(modelData.address)
 
                     Row {
                         id: contents

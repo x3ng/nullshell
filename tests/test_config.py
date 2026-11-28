@@ -16,6 +16,8 @@ source = Path(__file__).resolve().parent
 shutil.copy2(source / "config.qml", staged / "config.qml")
 for name in ("ShellConfig.qml", "ConfigRules.js"):
     shutil.copy2(source.parent / name, staged / name)
+(staged / "adapters").mkdir()
+shutil.copy2(source.parent / "adapters/SolarMath.js", staged / "adapters/SolarMath.js")
 entry = str(staged / "config.qml")
 config = Path(os.environ["XDG_CONFIG_HOME"]) / "nullshell/config.json"
 config.parent.mkdir(parents=True, exist_ok=True)

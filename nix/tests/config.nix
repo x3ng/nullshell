@@ -6,6 +6,7 @@ let
       ../../ShellConfig.qml
       ../../ConfigRules.js
       ../../IdlePreferences.qml
+      ../../adapters/SolarMath.js
       ../../tests
     ];
   };

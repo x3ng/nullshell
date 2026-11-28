@@ -3,13 +3,14 @@
 Core functionality is independent of Nix:
 
 - `AppearanceSchedule.qml`: automatic/manual policy and override persistence.
-- `adapters/SolarProvider.qml`: bounded helper invocations and result validation.
-- `backend/src/solar.rs`: pure UTC solar calculation, no network or D-Bus.
+- `adapters/SolarProvider.qml` and `adapters/SolarMath.js`: in-process UTC NOAA
+  solar calculation plus bounded helper coordinate lookups.
 - `backend/src/timezone.rs`: resolves the local time zone and looks up its
   representative coordinates in the installed IANA `zone.tab`, offline.
 - `backend/src/location.rs`: opt-in HTTPS IP lookup via BeaconDB (an empty
   Ichnaea request), with a short timeout and coordinates rounded to 0.1°.
-- `backend/src/settings_portal.rs`: read-only Settings protocol and mode-file reader.
+- `backend/src/settings_portal.rs`: read-only Settings protocol watching the
+  mode file via `inotify` without background polling.
 - `AppearanceState.qml`: sole writer of effective mode; existing compositor,
   portal and greeter exporters consume the result.
 
@@ -69,8 +70,10 @@ The runtime includes `curl`; IP location requires no NixOS option or service.
 
 ## Validation
 
-`cargo test --manifest-path backend/Cargo.toml` covers solar boundaries, polar
-seasons, coordinate/HTTP response validation and namespace matching.
+`cargo test --manifest-path backend/Cargo.toml` covers coordinate/HTTP response
+validation, bounded snapshot validation, deterministic display fingerprints and
+namespace matching; `tests/config.qml` covers in-process solar boundaries and
+polar seasons.
 `make check-settings` requires Python dbus-next and dbus-run-session for tests
 only; the Settings test does not exercise location.
 The Nix settings check also launches the real portal frontend on that private

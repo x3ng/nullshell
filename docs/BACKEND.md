@@ -7,9 +7,9 @@ The CLI dispatches to the following modules in `backend/src/`.
 | --- | --- | --- |
 | `bluetooth-agent` | `bluetooth.rs` | BlueZ Agent1 for one pairing conversation |
 | `sleep-bridge` | `sleep.rs` | logind session and delay-inhibitor FD |
-| `settings-portal` | `settings_portal.rs` | D-Bus activated Settings backend, reading the desktop’s published mode |
-| `appearance-export`, `wallpaper-export` | `appearance.rs`, `wallpaper.rs` | One validated snapshot publication per invocation |
-| `solar`, `timezone`, `location` | `solar.rs`, `timezone.rs`, `location.rs` | One solar calculation, offline time-zone estimate, or coarse HTTPS IP lookup per invocation |
+| `settings-portal` | `settings_portal.rs` | D-Bus activated Settings backend, watching the desktop’s published mode via inotify |
+| `appearance-export`, `wallpaper-export` | `appearance.rs`, `wallpaper.rs` | One validated atomic snapshot publication per invocation |
+| `timezone`, `location` | `timezone.rs`, `location.rs` | One offline time-zone estimate or coarse HTTPS IP lookup per invocation |
 | `displays` | `displays.rs`, `display_restore.lua` | Read-only Hyprland inventory or layout plan, with generated restoration rules |
 
 Compatibility is defined by each command’s argv, protocol and exit behavior.

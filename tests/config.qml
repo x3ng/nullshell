@@ -2,6 +2,7 @@ import QtQuick
 import Quickshell
 import Quickshell.Io
 import "ConfigRules.js" as Rules
+import "adapters/SolarMath.js" as SolarMath
 
 ShellRoot {
     ShellConfig { id: config }
@@ -41,6 +42,19 @@ ShellRoot {
         if (Rules.parse('{"version":1}').displays.mode !== "off"
             || Rules.parse('{"version":1,"displays":{"mode":"auto"}}').displays.mode !== "manual")
             throw new Error("Display profile handling must be opt-in");
+        // Verify in-process NOAA solar calculation (equinox, date line, polar seasons, bounds).
+        const t = 1710892800.0;
+        const dawn = SolarMath.calculate(0.0, 0.0, t);
+        if (!dawn || !dawn.dark || Math.abs(dawn.next_transition - t - 21840.0) >= 300.0)
+            throw new Error("Unexpected equatorial sunrise transition");
+        if (SolarMath.calculate(0.0, 0.0, t + 43200.0).dark
+            || SolarMath.calculate(0.0, 180.0, t).dark !== SolarMath.calculate(0.0, -180.0, t).dark)
+            throw new Error("Solar date-line or midday mismatch");
+        if (SolarMath.calculate(90.0, 0.0, 1718928000.0).next_transition !== null
+            || !SolarMath.calculate(-90.0, 0.0, 1718928000.0).dark
+            || SolarMath.calculate(NaN, 0.0, t) !== null
+            || SolarMath.calculate(0.0, 181.0, t) !== null)
+            throw new Error("Solar polar or validation check failed");
         console.log("CONFIG_RULES_PASSED");
     }
 }

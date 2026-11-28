@@ -18,6 +18,7 @@ ColumnLayout {
     required property var searchModel
     required property var trayItems
     signal menuRequested(var owner, real right, real top)
+    signal workspaceManageRequested(string address)
     required property var controls
     required property bool panelOpen
     signal dismissRequested
@@ -332,6 +333,7 @@ ColumnLayout {
                         const pos = navigationStrip.mapToItem(page, right, top);
                         page.menuRequested(owner, pos.x, pos.y);
                     }
+                    onWorkspaceManageRequested: address => page.workspaceManageRequested(address)
                 }
             }
         }

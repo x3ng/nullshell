@@ -13,10 +13,14 @@ hl.on("hyprland.start", function()
 end)
 ```
 
-`nullshell desktop`, `locker`, `polkit` and `ipc` are optional shorthands for the
-same `quickshell -c` commands. `nullshell lock` and `nullshell sleep-bridge` are
-helpers for capabilities Quickshell does not provide (waiting for a confirmed
-compositor lock, and logind sleep coordination).
+Prefer calling native `quickshell -c ...` and `quickshell ipc -c ...` directly in
+compositor startup and keybinds so no wrapper process sits between the compositor
+and Quickshell. `nullshell desktop`, `locker`, `polkit` and `ipc` remain optional
+compatibility shorthands for those same `quickshell -c` commands. `nullshell lock`
+(`nullshell-lock`) and `nullshell sleep-bridge` (`nullshell-helper sleep-bridge`)
+are dedicated helpers for OS capabilities Quickshell does not provide (starting an
+absent locker and waiting for a confirmed compositor lock, and logind sleep
+coordination).
 
 Do not also run the old nullshell units, another notification owner, Polkit agent
 or hypridle. Quickshell prevents duplicate configurations with `--no-duplicate`;

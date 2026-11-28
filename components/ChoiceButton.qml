@@ -29,7 +29,9 @@ Rectangle {
     property string iconKind: ""
     property int iconSize: 18
     property string tooltip: ""
+    property bool acceptSecondary: false
     signal triggered()
+    signal secondaryTriggered()
 
     activeFocusOnTab: visible && available
     Accessible.role: Accessible.Button
@@ -117,6 +119,10 @@ Rectangle {
         enabled: choice.available
         hoverEnabled: true
         cursorShape: Qt.PointingHandCursor
-        onClicked: choice.triggered()
+        acceptedButtons: choice.acceptSecondary ? (Qt.LeftButton | Qt.RightButton) : Qt.LeftButton
+        onClicked: event => {
+            if (event.button === Qt.RightButton) choice.secondaryTriggered();
+            else choice.triggered();
+        }
     }
 }

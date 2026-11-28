@@ -55,6 +55,7 @@ pub fn run(paths: &[String]) -> Result<(), Box<dyn std::error::Error>> {
         .create(true)
         .truncate(false)
         .mode(0o600)
+        .custom_flags(libc::O_NOFOLLOW)
         .open(parent.join(".wallpaper.lock"))?;
     lock.lock()?;
     let old: Option<Snapshot> = File::open(path)
@@ -108,6 +109,9 @@ pub fn run(paths: &[String]) -> Result<(), Box<dyn std::error::Error>> {
             File::open(parent.join(name))
                 .ok()
                 .and_then(|f| {
+                    if f.metadata().ok()?.len() != bytes.len() as u64 {
+                        return Some(false);
+                    }
                     let mut existing = Vec::new();
                     f.take(MAX_IMAGE + 1).read_to_end(&mut existing).ok()?;
                     Some(existing == bytes)

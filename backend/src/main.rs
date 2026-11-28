@@ -5,7 +5,6 @@ mod displays;
 mod location;
 mod settings_portal;
 mod sleep;
-mod solar;
 mod timezone;
 mod wallpaper;
 
@@ -18,7 +17,6 @@ Commands:
   sleep-bridge [--lock-command JSON_ARGV] [--resume-command JSON_ARGV]
   appearance-export SHARED_FILE    Publish a validated greeter colour snapshot
   wallpaper-export SHARED_FILE     Publish a validated greeter wallpaper
-  solar                            Read a versioned solar request from stdin
   location                         Request coarse IP coordinates from BeaconDB
   timezone                         Resolve a timezone to representative coordinates offline
   displays outputs                 List connected Hyprland outputs and profile keys
@@ -59,9 +57,6 @@ async fn main() -> ExitCode {
             wallpaper::run(args).map_err(|e| format!("Wallpaper export: {e}"))
         }
         // Keep coordinates and provider details out of session logs.
-        ("solar", []) => {
-            solar::run().map_err(|_| "solar: operation unavailable or invalid input".to_owned())
-        }
         ("location", []) => location::run()
             .await
             .map_err(|_| "location: operation unavailable or invalid input".to_owned()),

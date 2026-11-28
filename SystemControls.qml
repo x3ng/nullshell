@@ -81,15 +81,22 @@ Scope {
         refreshPowerAvailability();
     }
     onActiveChanged: {
-        if (active) refreshPowerAvailability();
-        else { bluetoothScanRequested = false; cancelBluetoothPairing(); }
+        if (active) {
+            if (!powerServiceAvailable && Date.now() - lastPowerProbeAt >= 60000)
+                refreshPowerAvailability();
+        } else {
+            bluetoothScanRequested = false;
+            cancelBluetoothPairing();
+        }
     }
 
     // Quickshell 0.3.2 exposes no PowerProfiles availability/ready property.
-    // Probe its actual D-Bus endpoint at startup and when opening the panel.
+    // Probe once at startup; avoid forking busctl on every Super+Q toggle.
     property bool powerServiceAvailable: false
+    property double lastPowerProbeAt: 0
     function refreshPowerAvailability() {
         if (powerProbe.running) return;
+        lastPowerProbeAt = Date.now();
         powerProbe.output = "";
         powerProbe.hasStarted = false;
         powerProbe.running = true;

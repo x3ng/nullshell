@@ -2,8 +2,10 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import Quickshell
 import Quickshell.Io
+import "SolarMath.js" as SolarMath
 
-// Protocol adapter only: no theme decisions, user preferences or persistence.
+// Protocol adapter only: resolves coordinates via helper when needed and computes
+// UTC solar transitions in-process without spawning a helper for arithmetic.
 Scope {
     id: root
     property bool enabled: false
@@ -16,25 +18,19 @@ Scope {
     property double lastCalculation: 0
     property double nextLocation: 0
     property double lastClock: 0
-    property bool solarPending: false
     property bool locationPending: false
     readonly property bool fixedConfigured: Number.isFinite(settings.latitude) && Number.isFinite(settings.longitude)
     readonly property string locationStatus: !enabled ? "inactive"
         : settings.location === "fixed" ? (fixedConfigured ? "fixed" : "unset")
         : locationPending ? "locating" : coordinates ? "ready" : locationError ? "unavailable" : "locating"
     property string locationSource: "timezone"
-    property string solarRequest: ""
     property int generation: 0
-    property int solarGeneration: 0
     property int locationGeneration: 0
     signal updated()
 
     function reset() {
         generation++;
-        // In-flight results carry their generation and are discarded. A process
-        // must finish before reusing its collector/request state.
         if (!enabled) {
-            solar.running = false;
             location.running = false;
         }
         coordinates = null;
@@ -68,30 +64,21 @@ Scope {
             locationStartup.restart();
             location.running = true;
         }
-        if (!coordinates || solarPending || now - lastCalculation < 60) return;
-        solarPending = true;
-        solarGeneration = generation;
-        solarRequest = JSON.stringify({version: 1, latitude: coordinates.latitude,
-            longitude: coordinates.longitude, timestamp: now}) + "\n";
+        if (!coordinates || now - lastCalculation < 60) return;
         lastCalculation = now;
-        solarDeadline.restart();
-        solar.running = true;
-    }
-    Timer { interval: 30000; running: root.enabled; repeat: true; triggeredOnStart: true; onTriggered: root.refresh() }
-    Timer {
-        id: solarDeadline
-        interval: 5000
-        onTriggered: {
-            solar.running = false;
-            root.solarPending = false;
-            if (!root.enabled || root.solarGeneration !== root.generation) {
-                Qt.callLater(root.refresh);
-                return;
-            }
-            root.schedule = null;
-            root.solarError = "Solar helper unavailable; keeping current appearance";
+        const result = SolarMath.calculate(coordinates.latitude, coordinates.longitude, now);
+        if (!result) {
+            schedule = null;
+            solarError = "Solar calculation unavailable; keeping current appearance";
+            return;
         }
+        schedule = result;
+        solarError = "";
+        updated();
     }
+
+    Timer { interval: 30000; running: root.enabled; repeat: true; triggeredOnStart: true; onTriggered: root.refresh() }
+
     function locationFailed() {
         location.running = false;
         locationPending = false;
@@ -133,36 +120,6 @@ Scope {
                 Qt.callLater(root.refresh);
             } catch (_) {
                 root.locationFailed();
-            }
-        }
-    }
-    Process {
-        id: solar
-        command: ["nullshell-helper", "solar"]
-        stdinEnabled: true
-        onStarted: {
-            write(root.solarRequest);
-            stdinEnabled = false;
-        }
-        stdout: StdioCollector { id: solarOutput }
-        onExited: (code, status) => {
-            root.solarPending = false;
-            solarDeadline.stop();
-            stdinEnabled = true;
-            if (!root.enabled || root.solarGeneration !== root.generation) {
-                Qt.callLater(root.refresh);
-                return;
-            }
-            try {
-                const value = JSON.parse(solarOutput.text);
-                if (code !== 0 || status !== 0 || value.version !== 1 || typeof value.dark !== "boolean"
-                    || !(value.next_transition === null || Number.isFinite(value.next_transition))) throw new Error();
-                root.schedule = value;
-                root.solarError = "";
-                root.updated();
-            } catch (_) {
-                root.schedule = null;
-                root.solarError = "Solar calculation unavailable; keeping current appearance";
             }
         }
     }

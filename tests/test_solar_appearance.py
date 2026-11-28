@@ -1,5 +1,6 @@
 """Real offscreen QML and helper with timezone and BeaconDB fixtures."""
 import json
+import math
 import os
 from pathlib import Path
 import shutil
@@ -45,9 +46,24 @@ sys.stdout.write('200')
     runtime = base / 'runtime'
     runtime.mkdir(mode=0o700)
     def expected(longitude):
-        result = subprocess.run([str(HELPER), 'solar'], input=json.dumps({'version': 1, 'latitude': 0,
-            'longitude': longitude, 'timestamp': time.time()}), capture_output=True, text=True, check=True)
-        return json.loads(result.stdout)['dark']
+        now = time.time()
+        t = (now / 86400.0 + 2440587.5 - 2451545.0) / 36525.0
+        l = (280.46646 + t * (36000.76983 + 0.0003032 * t)) % 360.0
+        m = 357.52911 + t * (35999.05029 - 0.0001537 * t)
+        e = 0.016708634 - t * (0.000042037 + 0.0000001267 * t)
+        c = (math.sin(math.radians(m)) * (1.914602 - t * (0.004817 + 0.000014 * t))
+             + math.sin(math.radians(2.0 * m)) * (0.019993 - 0.000101 * t)
+             + math.sin(math.radians(3.0 * m)) * 0.000289)
+        omega = 125.04 - 1934.136 * t
+        lam = l + c - 0.00569 - 0.00478 * math.sin(math.radians(omega))
+        eps = 23.0 + (26.0 + (21.448 - t * (46.815 + t * (0.00059 - 0.001813 * t))) / 60.0) / 60.0 + 0.00256 * math.cos(math.radians(omega))
+        decl = math.asin(math.sin(math.radians(eps)) * math.sin(math.radians(lam)))
+        y = math.tan(math.radians(eps) / 2.0) ** 2
+        eq = math.degrees(4.0 * (y * math.sin(math.radians(2.0 * l)) - 2.0 * e * math.sin(math.radians(m))
+             + 4.0 * e * y * math.sin(math.radians(m)) * math.cos(math.radians(2.0 * l))
+             - 0.5 * y * y * math.sin(math.radians(4.0 * l)) - 1.25 * e * e * math.sin(math.radians(2.0 * m))))
+        hour = ((now % 86400.0) / 60.0 + eq + 4.0 * longitude) % 1440.0 / 4.0 - 180.0
+        return math.cos(decl) * math.cos(math.radians(hour)) < math.sin(math.radians(-0.833))
     # At the equator, opposing longitudes give different modes away from twilight.
     longitude = (180 - (time.time() % 86400) / 240) % 360 - 180
     first = expected(longitude)
